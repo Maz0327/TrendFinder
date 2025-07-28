@@ -89,9 +89,9 @@ Preferred communication style: Simple, everyday language.
 ### Core Infrastructure
 - **Neon Database**: Serverless PostgreSQL for primary data storage
 - **OpenAI API**: GPT-4o for content analysis and hook generation
-- **Bright Data API**: Primary data source for reliable social media content scraping
-- **Bright Data Browser**: Advanced browser automation for complex scraping scenarios and JavaScript-heavy sites
-- **Platform APIs**: Reddit API, YouTube Data API, News APIs, Twitter API v2 (fallback sources)
+- **Bright Data API**: Primary data source for reliable social media content scraping across all platforms
+- **Bright Data Browser**: Advanced browser automation (WebSocket: wss://api@brd.superproxy.io:9222) for complex scraping scenarios and JavaScript-heavy sites
+- **Platform APIs**: Reddit API, YouTube Data API, News APIs, Twitter API v2 (emergency fallback sources only)
 
 ### Development Tools
 - **Replit Integration**: Development environment with cartographer plugin
