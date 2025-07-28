@@ -1,0 +1,116 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import Header from "@/components/dashboard/Header";
+import Sidebar from "@/components/dashboard/Sidebar";
+import StatsOverview from "@/components/dashboard/StatsOverview";
+import ContentFilters from "@/components/dashboard/ContentFilters";
+import TrendCard from "@/components/dashboard/TrendCard";
+import TrendModal from "@/components/dashboard/TrendModal";
+import { api } from "@/lib/api";
+import type { ContentRadarItem, ContentFilters as FilterType } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+
+export default function Dashboard() {
+  const [filters, setFilters] = useState<FilterType>({
+    category: 'all',
+    timeRange: 'hour',
+    sortBy: 'viralScore'
+  });
+  const [selectedTrend, setSelectedTrend] = useState<ContentRadarItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 9;
+
+  const { data: content = [], isLoading: contentLoading, refetch: refetchContent } = useQuery({
+    queryKey: ['/api/content', filters],
+    queryFn: () => api.getContent(filters),
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['/api/stats'],
+    queryFn: api.getStats,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const handleFilterChange = (newFilters: Partial<FilterType>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+    setCurrentPage(0);
+  };
+
+  const handleTrendClick = (trend: ContentRadarItem) => {
+    setSelectedTrend(trend);
+    setIsModalOpen(true);
+  };
+
+  const paginatedContent = content.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
+
+  const hasMore = (currentPage + 1) * itemsPerPage < content.length;
+
+  const handleLoadMore = () => {
+    setCurrentPage(prev => prev + 1);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header onRefresh={() => refetchContent()} />
+      
+      <div className="flex pt-16">
+        <Sidebar filters={filters} onFiltersChange={handleFilterChange} />
+        
+        <main className="flex-1 ml-64 p-6">
+          <StatsOverview stats={stats} />
+          
+          <ContentFilters filters={filters} onFiltersChange={handleFilterChange} />
+          
+          {contentLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2 text-gray-600">Loading trends...</span>
+            </div>
+          ) : content.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-500">
+                <h3 className="text-lg font-medium mb-2">No trends found</h3>
+                <p className="text-sm">Try adjusting your filters or running a new scan to fetch fresh content.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                {paginatedContent.map((trend) => (
+                  <TrendCard
+                    key={trend.id}
+                    trend={trend}
+                    onClick={() => handleTrendClick(trend)}
+                  />
+                ))}
+              </div>
+              
+              {hasMore && (
+                <div className="text-center py-8">
+                  <Button onClick={handleLoadMore} className="px-6 py-3">
+                    <i className="fas fa-plus mr-2"></i>
+                    Load More Trends
+                  </Button>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Showing {(currentPage + 1) * itemsPerPage} of {content.length} trends
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      <TrendModal 
+        trend={selectedTrend}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </div>
+  );
+}
