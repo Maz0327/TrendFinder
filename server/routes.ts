@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { scheduler } from "./services/scheduler";
 import { BrightDataService } from "./services/brightDataService";
+import { BrightDataBrowserService } from "./services/brightDataBrowser";
 import { AIAnalyzer } from "./services/aiAnalyzer";
 import { insertContentRadarSchema } from "@shared/schema";
 import { z } from "zod";
@@ -10,6 +11,7 @@ import { z } from "zod";
 export async function registerRoutes(app: Express): Promise<Server> {
   const aiAnalyzer = new AIAnalyzer();
   const brightData = new BrightDataService();
+  const brightDataBrowser = new BrightDataBrowserService();
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {
@@ -113,10 +115,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test Bright Data connection and fetch sample data
+  // Test Bright Data API connection and fetch sample data
   app.post("/api/brightdata/test", async (req, res) => {
     try {
-      console.log('Testing Bright Data connection...');
+      console.log('Testing Bright Data API connection...');
       const { platform = 'reddit' } = req.body;
       
       let sampleData: any[] = [];
@@ -146,16 +148,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         success: true,
+        method: 'API',
         platform,
         itemsFound: sampleData.length,
         sampleData: sampleData.slice(0, 5), // Return first 5 items as sample
-        message: `Successfully fetched ${sampleData.length} items from ${platform}`
+        message: `Successfully fetched ${sampleData.length} items from ${platform} using Bright Data API`
       });
       
     } catch (error: any) {
-      console.error('Bright Data test error:', error);
+      console.error('Bright Data API test error:', error);
       res.status(500).json({ 
-        error: "Bright Data test failed", 
+        error: "Bright Data API test failed", 
+        details: error.message,
+        platform: req.body.platform || 'unknown'
+      });
+    }
+  });
+
+  // Test Bright Data Browser automation and fetch sample data
+  app.post("/api/brightdata/browser/test", async (req, res) => {
+    try {
+      console.log('Testing Bright Data Browser automation...');
+      const { platform = 'reddit' } = req.body;
+      
+      let sampleData: any[] = [];
+      
+      switch (platform) {
+        case 'reddit':
+          sampleData = await brightDataBrowser.scrapeRedditTrending(['popular', 'technology']);
+          break;
+        case 'instagram':
+          sampleData = await brightDataBrowser.scrapeInstagramTrending(['trending', 'tech']);
+          break;
+        case 'tiktok':
+          sampleData = await brightDataBrowser.scrapeTikTokTrending(['fyp', 'tech']);
+          break;
+        case 'twitter':
+          sampleData = await brightDataBrowser.scrapeTwitterTrending(['trending', 'tech']);
+          break;
+        case 'all':
+          sampleData = await brightDataBrowser.fetchAllTrendingContentBrowser();
+          break;
+        default:
+          return res.status(400).json({ error: 'Invalid platform for browser scraping' });
+      }
+      
+      res.json({
+        success: true,
+        method: 'Browser Automation',
+        platform,
+        itemsFound: sampleData.length,
+        sampleData: sampleData.slice(0, 5), // Return first 5 items as sample
+        message: `Successfully scraped ${sampleData.length} items from ${platform} using Bright Data Browser`
+      });
+      
+    } catch (error: any) {
+      console.error('Bright Data Browser test error:', error);
+      res.status(500).json({ 
+        error: "Bright Data Browser test failed", 
         details: error.message,
         platform: req.body.platform || 'unknown'
       });

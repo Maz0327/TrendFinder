@@ -1,12 +1,14 @@
 import * as cron from 'node-cron';
 import { ContentFetcher } from './contentFetcher';
 import { BrightDataService } from './brightDataService';
+import { BrightDataBrowserService } from './brightDataBrowser';
 import { AIAnalyzer } from './aiAnalyzer';
 import { storage } from '../storage';
 
 export class ContentScheduler {
   private fetcher: ContentFetcher;
   private brightData: BrightDataService;
+  private brightDataBrowser: BrightDataBrowserService;
   private analyzer: AIAnalyzer;
   private isRunning = false;
   private scheduledTask: cron.ScheduledTask | null = null;
@@ -14,6 +16,7 @@ export class ContentScheduler {
   constructor() {
     this.fetcher = new ContentFetcher();
     this.brightData = new BrightDataService();
+    this.brightDataBrowser = new BrightDataBrowserService();
     this.analyzer = new AIAnalyzer();
   }
 
@@ -42,9 +45,24 @@ export class ContentScheduler {
       let allItems: any[] = [];
       
       try {
-        console.log('Fetching content from Bright Data...');
-        allItems = await this.brightData.fetchAllTrendingContent();
-        console.log(`Bright Data returned ${allItems.length} items`);
+        console.log('Fetching content from Bright Data APIs and Browser...');
+        
+        // Try both API and browser-based scraping in parallel
+        const [apiItems, browserItems] = await Promise.all([
+          this.brightData.fetchAllTrendingContent().catch(err => {
+            console.log('Bright Data API failed:', err.message);
+            return [];
+          }),
+          this.brightDataBrowser.fetchAllTrendingContentBrowser().catch(err => {
+            console.log('Bright Data Browser failed:', err.message);
+            return [];
+          })
+        ]);
+        
+        allItems = [...apiItems, ...browserItems];
+        console.log(`Bright Data APIs returned ${apiItems.length} items`);
+        console.log(`Bright Data Browser returned ${browserItems.length} items`);
+        console.log(`Total items from Bright Data: ${allItems.length}`);
         
         if (allItems.length === 0) {
           console.log('No data from Bright Data, falling back to original fetchers...');
