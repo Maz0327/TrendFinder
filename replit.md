@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack content trend monitoring application that tracks viral content across multiple platforms (Reddit, YouTube, News APIs, and Twitter/X). The system automatically scans these platforms, analyzes content using AI, and provides insights into trending topics with viral potential scoring and content hooks for social media optimization.
+This is a full-stack content trend monitoring application that tracks viral content across multiple platforms using **Bright Data as the primary data source**. The system automatically scans Reddit, Instagram, YouTube, TikTok, and Twitter/X through Bright Data's API and browser automation, analyzes content using AI, and provides insights into trending topics with viral potential scoring and content hooks for social media optimization.
 
 ## User Preferences
 

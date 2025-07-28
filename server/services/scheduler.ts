@@ -45,38 +45,40 @@ export class ContentScheduler {
       let allItems: any[] = [];
       
       try {
-        console.log('Fetching content from Bright Data APIs and Browser...');
+        console.log('🔥 BRIGHT DATA PRIMARY SCAN: Fetching content from Bright Data APIs and Browser...');
         
-        // Try both API and browser-based scraping in parallel
+        // BRIGHT DATA IS THE PRIMARY SOURCE - Try both API and browser-based scraping in parallel
         const [apiItems, browserItems] = await Promise.all([
           this.brightData.fetchAllTrendingContent().catch(err => {
-            console.log('Bright Data API failed:', err.message);
+            console.log('Bright Data API status:', err.message);
             return [];
           }),
           this.brightDataBrowser.fetchAllTrendingContentBrowser().catch(err => {
-            console.log('Bright Data Browser failed:', err.message);
+            console.log('Bright Data Browser status:', err.message);
             return [];
           })
         ]);
         
         allItems = [...apiItems, ...browserItems];
-        console.log(`Bright Data APIs returned ${apiItems.length} items`);
-        console.log(`Bright Data Browser returned ${browserItems.length} items`);
-        console.log(`Total items from Bright Data: ${allItems.length}`);
+        console.log(`✅ Bright Data APIs returned ${apiItems.length} items`);
+        console.log(`✅ Bright Data Browser returned ${browserItems.length} items`);
+        console.log(`🎯 TOTAL BRIGHT DATA ITEMS: ${allItems.length}`);
         
+        // Only use fallback if Bright Data returns absolutely no results
         if (allItems.length === 0) {
-          console.log('No data from Bright Data, falling back to original fetchers...');
-          // Fallback to original fetcher methods
+          console.log('⚠️ Bright Data returned 0 items - using limited fallback sources...');
           const [redditItems, youtubeItems, newsItems] = await Promise.all([
             this.fetcher.fetchRedditTrends(),
             this.fetcher.fetchYouTubeTrends(),
             this.fetcher.fetchNewsTrends()
           ]);
           allItems = [...redditItems, ...youtubeItems, ...newsItems];
+        } else {
+          console.log('✨ BRIGHT DATA SUCCESS: Using primary data source only');
         }
       } catch (brightDataError) {
-        console.log('Bright Data error, falling back to original fetchers:', brightDataError);
-        // Fallback to original fetcher methods
+        console.log('❌ Bright Data primary source error:', brightDataError.message);
+        // Emergency fallback only
         const [redditItems, youtubeItems, newsItems] = await Promise.all([
           this.fetcher.fetchRedditTrends(),
           this.fetcher.fetchYouTubeTrends(),

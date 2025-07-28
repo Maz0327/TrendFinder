@@ -17,6 +17,7 @@ export class BrightDataService {
   constructor() {
     this.config = {
       apiToken: process.env.BRIGHT_DATA_API_TOKEN || '',
+      // Primary Bright Data API endpoint - this is now the main data source
       baseUrl: 'https://api.brightdata.com/datasets/v3'
     };
   }
