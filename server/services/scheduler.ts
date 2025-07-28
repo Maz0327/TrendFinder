@@ -1,16 +1,19 @@
 import * as cron from 'node-cron';
 import { ContentFetcher } from './contentFetcher';
+import { BrightDataService } from './brightDataService';
 import { AIAnalyzer } from './aiAnalyzer';
 import { storage } from '../storage';
 
 export class ContentScheduler {
   private fetcher: ContentFetcher;
+  private brightData: BrightDataService;
   private analyzer: AIAnalyzer;
   private isRunning = false;
   private scheduledTask: cron.ScheduledTask | null = null;
 
   constructor() {
     this.fetcher = new ContentFetcher();
+    this.brightData = new BrightDataService();
     this.analyzer = new AIAnalyzer();
   }
 
@@ -33,31 +36,52 @@ export class ContentScheduler {
     let itemsProcessed = 0;
 
     try {
-      console.log('Starting content scan...');
+      console.log('Starting content scan with Bright Data...');
       
-      // Record scan start for each platform
-      const platforms = ['reddit', 'youtube', 'news'];
+      // Try Bright Data first, fallback to original fetcher if needed
+      let allItems: any[] = [];
       
-      for (const platform of platforms) {
-        try {
-          let items: any[] = [];
-          
-          switch (platform) {
-            case 'reddit':
-              items = await this.fetcher.fetchRedditTrends();
-              break;
-            case 'youtube':
-              items = await this.fetcher.fetchYouTubeTrends();
-              break;
-            case 'news':
-              items = await this.fetcher.fetchNewsTrends();
-              break;
-          }
+      try {
+        console.log('Fetching content from Bright Data...');
+        allItems = await this.brightData.fetchAllTrendingContent();
+        console.log(`Bright Data returned ${allItems.length} items`);
+        
+        if (allItems.length === 0) {
+          console.log('No data from Bright Data, falling back to original fetchers...');
+          // Fallback to original fetcher methods
+          const [redditItems, youtubeItems, newsItems] = await Promise.all([
+            this.fetcher.fetchRedditTrends(),
+            this.fetcher.fetchYouTubeTrends(),
+            this.fetcher.fetchNewsTrends()
+          ]);
+          allItems = [...redditItems, ...youtubeItems, ...newsItems];
+        }
+      } catch (brightDataError) {
+        console.log('Bright Data error, falling back to original fetchers:', brightDataError);
+        // Fallback to original fetcher methods
+        const [redditItems, youtubeItems, newsItems] = await Promise.all([
+          this.fetcher.fetchRedditTrends(),
+          this.fetcher.fetchYouTubeTrends(),
+          this.fetcher.fetchNewsTrends()
+        ]);
+        allItems = [...redditItems, ...youtubeItems, ...newsItems];
+      }
 
-          if (items.length > 0) {
+      if (allItems.length > 0) {
+        // Group items by platform for tracking
+        const platformGroups = allItems.reduce((acc, item) => {
+          if (!acc[item.platform]) acc[item.platform] = [];
+          acc[item.platform].push(item);
+          return acc;
+        }, {} as Record<string, any[]>);
+
+        for (const [platform, platformItems] of Object.entries(platformGroups)) {
+          try {
+            const items = platformItems as any[];
+
             // Analyze items in batches
             const analysisResults = await this.analyzer.batchAnalyze(
-              items.map(item => ({
+              items.map((item: any) => ({
                 title: item.title,
                 content: item.content,
                 platform: item.platform
@@ -91,29 +115,38 @@ export class ContentScheduler {
                 errors.push(`Failed to save item: ${item.title}`);
               }
             }
+
+            // Record scan completion
+            await storage.createScanHistory({
+              platform,
+              status: items.length > 0 ? 'success' : 'partial',
+              itemsFound: items.length,
+              errorMessage: null,
+              scanDuration: Date.now() - startTime
+            });
+
+          } catch (error) {
+            const errorMsg = `${platform} scan failed: ${error}`;
+            errors.push(errorMsg);
+            
+            await storage.createScanHistory({
+              platform,
+              status: 'error',
+              itemsFound: 0,
+              errorMessage: errorMsg,
+              scanDuration: Date.now() - startTime
+            });
           }
-
-          // Record scan completion
-          await storage.createScanHistory({
-            platform,
-            status: items.length > 0 ? 'success' : 'partial',
-            itemsFound: items.length,
-            errorMessage: null,
-            scanDuration: Date.now() - startTime
-          });
-
-        } catch (error) {
-          const errorMsg = `${platform} scan failed: ${error}`;
-          errors.push(errorMsg);
-          
-          await storage.createScanHistory({
-            platform,
-            status: 'error',
-            itemsFound: 0,
-            errorMessage: errorMsg,
-            scanDuration: Date.now() - startTime
-          });
         }
+      } else {
+        // Record that no content was found across all platforms
+        await storage.createScanHistory({
+          platform: 'all',
+          status: 'partial',
+          itemsFound: 0,
+          errorMessage: 'No content found from any source',
+          scanDuration: Date.now() - startTime
+        });
       }
 
       console.log(`Scan completed. Processed ${itemsProcessed} items with ${errors.length} errors.`);
