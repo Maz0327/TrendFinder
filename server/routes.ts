@@ -2,12 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { scheduler } from "./services/scheduler";
+import { BrightDataService } from "./services/brightDataService";
 import { AIAnalyzer } from "./services/aiAnalyzer";
 import { insertContentRadarSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const aiAnalyzer = new AIAnalyzer();
+  const brightData = new BrightDataService();
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {
@@ -108,6 +110,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to run scan" });
+    }
+  });
+
+  // Test Bright Data connection and fetch sample data
+  app.post("/api/brightdata/test", async (req, res) => {
+    try {
+      console.log('Testing Bright Data connection...');
+      const { platform = 'reddit' } = req.body;
+      
+      let sampleData: any[] = [];
+      
+      switch (platform) {
+        case 'reddit':
+          sampleData = await brightData.fetchRedditTrending(['popular', 'technology']);
+          break;
+        case 'instagram':
+          sampleData = await brightData.fetchInstagramTrending(['trending', 'tech']);
+          break;
+        case 'youtube':
+          sampleData = await brightData.fetchYouTubeTrending(['trending', 'technology']);
+          break;
+        case 'tiktok':
+          sampleData = await brightData.fetchTikTokTrending(['fyp', 'tech']);
+          break;
+        case 'twitter':
+          sampleData = await brightData.fetchTwitterTrending(['trending', 'tech']);
+          break;
+        case 'all':
+          sampleData = await brightData.fetchAllTrendingContent();
+          break;
+        default:
+          return res.status(400).json({ error: 'Invalid platform' });
+      }
+      
+      res.json({
+        success: true,
+        platform,
+        itemsFound: sampleData.length,
+        sampleData: sampleData.slice(0, 5), // Return first 5 items as sample
+        message: `Successfully fetched ${sampleData.length} items from ${platform}`
+      });
+      
+    } catch (error: any) {
+      console.error('Bright Data test error:', error);
+      res.status(500).json({ 
+        error: "Bright Data test failed", 
+        details: error.message,
+        platform: req.body.platform || 'unknown'
+      });
     }
   });
 

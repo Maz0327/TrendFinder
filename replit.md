@@ -35,7 +35,7 @@ Preferred communication style: Simple, everyday language.
 ## Key Components
 
 ### Content Management System
-- **Content Fetching**: Automated scanning of Reddit, YouTube, news sources, and Twitter
+- **Content Fetching**: Bright Data integration for reliable scraping of Reddit, Instagram, YouTube, TikTok, and Twitter/X
 - **AI Analysis**: OpenAI GPT-4o integration for content summarization and hook generation
 - **Viral Scoring**: Algorithm-based scoring system for viral potential assessment
 - **Content Categorization**: Automatic categorization into pop culture, technology, business, sports, etc.
@@ -60,10 +60,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Content Ingestion Flow
 1. **Scheduled Triggers**: Cron jobs initiate content scanning across platforms
-2. **Platform APIs**: Fetch trending content from Reddit, YouTube, news APIs, and Twitter
-3. **Content Processing**: Extract relevant data (title, content, engagement metrics)
-4. **AI Analysis**: Generate summaries, hooks, and viral scores using OpenAI
-5. **Database Storage**: Persist processed content with metadata and categorization
+2. **Bright Data Integration**: Primary scraping through Bright Data APIs for Reddit, Instagram, YouTube, TikTok, and Twitter/X
+3. **Fallback Sources**: Secondary fetching from direct platform APIs when needed
+4. **Content Processing**: Extract relevant data (title, content, engagement metrics)
+5. **AI Analysis**: Generate summaries, hooks, and viral scores using OpenAI
+6. **Database Storage**: Persist processed content with metadata and categorization
 
 ### User Interaction Flow
 1. **Dashboard Access**: Users view real-time trending content dashboard
@@ -83,7 +84,8 @@ Preferred communication style: Simple, everyday language.
 ### Core Infrastructure
 - **Neon Database**: Serverless PostgreSQL for primary data storage
 - **OpenAI API**: GPT-4o for content analysis and hook generation
-- **Platform APIs**: Reddit API, YouTube Data API, News APIs, Twitter API v2
+- **Bright Data API**: Primary data source for reliable social media content scraping across all platforms
+- **Platform APIs**: Reddit API, YouTube Data API, News APIs, Twitter API v2 (fallback sources)
 
 ### Development Tools
 - **Replit Integration**: Development environment with cartographer plugin
