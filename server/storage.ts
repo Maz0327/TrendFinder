@@ -328,12 +328,12 @@ class DatabaseStorage implements IStorage {
     avgScore: number;
   }> {
     const items = await this.db.select().from(contentRadar).where(eq(contentRadar.isActive, true));
-    const highViralItems = items.filter(item => parseFloat(item.viralScore || '0') >= 8.0);
+    const highViralItems = items.filter((item: ContentRadar) => parseFloat(item.viralScore || '0') >= 8.0);
     const avgScore = items.length > 0 
-      ? items.reduce((sum, item) => sum + parseFloat(item.viralScore || '0'), 0) / items.length
+      ? items.reduce((sum: number, item: ContentRadar) => sum + parseFloat(item.viralScore || '0'), 0) / items.length
       : 0;
     
-    const activePlatforms = new Set(items.map(item => item.platform)).size;
+    const activePlatforms = new Set(items.map((item: ContentRadar) => item.platform)).size;
     
     return {
       totalTrends: items.length,
@@ -353,5 +353,14 @@ class DatabaseStorage implements IStorage {
   }
 }
 
-// Use memory storage for now due to database connection issues
-export const storage = new MemStorage();
+// Try database storage first, fallback to memory if needed
+let storage: IStorage;
+try {
+  storage = new DatabaseStorage();
+  console.log("✅ Using database storage");
+} catch (error) {
+  console.warn("⚠️ Database connection failed, using memory storage:", error);
+  storage = new MemStorage();
+}
+
+export { storage };
