@@ -1,5 +1,9 @@
 import { type User, type InsertUser, type ContentRadar, type InsertContentRadar, type ScanHistory, type InsertScanHistory } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import { users, contentRadar, scanHistory } from "@shared/schema";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -210,4 +214,144 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Database storage implementation
+class DatabaseStorage implements IStorage {
+  private db: any;
+
+  constructor() {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL is required");
+    }
+    try {
+      const sql = neon(process.env.DATABASE_URL);
+      this.db = drizzle(sql);
+      console.log("✅ Database connection established");
+    } catch (error) {
+      console.error("❌ Database connection failed:", error);
+      throw error;
+    }
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await this.db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async getContentItems(filters?: {
+    category?: string;
+    platform?: string;
+    timeRange?: string;
+    sortBy?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ContentRadar[]> {
+    try {
+      let query = this.db.select().from(contentRadar).where(eq(contentRadar.isActive, true));
+      
+      // Apply filters
+      const conditions = [];
+      if (filters?.category && filters.category !== 'all') {
+        conditions.push(eq(contentRadar.category, filters.category));
+      }
+      if (filters?.platform && filters.platform !== 'all') {
+        conditions.push(eq(contentRadar.platform, filters.platform));
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+      
+      // Apply sorting
+      if (filters?.sortBy === 'viralScore') {
+        query = query.orderBy(desc(contentRadar.viralScore));
+      } else if (filters?.sortBy === 'engagement') {
+        query = query.orderBy(desc(contentRadar.engagement));
+      } else {
+        query = query.orderBy(desc(contentRadar.createdAt));
+      }
+      
+      // Apply pagination
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+      if (filters?.offset) {
+        query = query.offset(filters.offset);
+      }
+      
+      const result = await query;
+      console.log(`✅ Retrieved ${result.length} content items`);
+      return result;
+    } catch (error) {
+      console.error("❌ Error fetching content items:", error);
+      throw error;
+    }
+  }
+
+  async getContentItemById(id: string): Promise<ContentRadar | undefined> {
+    const result = await this.db.select().from(contentRadar).where(eq(contentRadar.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createContentItem(item: InsertContentRadar): Promise<ContentRadar> {
+    const result = await this.db.insert(contentRadar).values(item).returning();
+    return result[0];
+  }
+
+  async updateContentItem(id: string, updates: Partial<ContentRadar>): Promise<ContentRadar | undefined> {
+    const result = await this.db
+      .update(contentRadar)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contentRadar.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteContentItem(id: string): Promise<boolean> {
+    const result = await this.db.delete(contentRadar).where(eq(contentRadar.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getStats(): Promise<{
+    totalTrends: number;
+    viralPotential: number;
+    activeSources: number;
+    avgScore: number;
+  }> {
+    const items = await this.db.select().from(contentRadar).where(eq(contentRadar.isActive, true));
+    const highViralItems = items.filter(item => parseFloat(item.viralScore || '0') >= 8.0);
+    const avgScore = items.length > 0 
+      ? items.reduce((sum, item) => sum + parseFloat(item.viralScore || '0'), 0) / items.length
+      : 0;
+    
+    const activePlatforms = new Set(items.map(item => item.platform)).size;
+    
+    return {
+      totalTrends: items.length,
+      viralPotential: highViralItems.length,
+      activeSources: activePlatforms,
+      avgScore: Math.round(avgScore * 10) / 10,
+    };
+  }
+
+  async createScanHistory(scan: InsertScanHistory): Promise<ScanHistory> {
+    const result = await this.db.insert(scanHistory).values(scan).returning();
+    return result[0];
+  }
+
+  async getRecentScans(limit = 10): Promise<ScanHistory[]> {
+    return await this.db.select().from(scanHistory).orderBy(desc(scanHistory.createdAt)).limit(limit);
+  }
+}
+
+// Use memory storage for now due to database connection issues
 export const storage = new MemStorage();
