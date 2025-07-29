@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { scheduler } from "./services/scheduler";
 import { BrightDataService } from "./services/brightDataService";
 import { BrightDataBrowserService } from "./services/brightDataBrowser";
+import { EnhancedBrightDataService } from "./services/enhancedBrightDataService";
 import { AIAnalyzer } from "./services/aiAnalyzer";
 import { insertContentRadarSchema } from "@shared/schema";
 import { z } from "zod";
@@ -12,6 +13,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const aiAnalyzer = new AIAnalyzer();
   const brightData = new BrightDataService();
   const brightDataBrowser = new BrightDataBrowserService();
+  const enhancedBrightData = new EnhancedBrightDataService();
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {
@@ -175,19 +177,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       switch (platform) {
         case 'reddit':
-          sampleData = await brightDataBrowser.scrapeRedditTrending(['popular', 'technology']);
+          sampleData = await brightDataBrowser.fetchInstagramContent(['reddit', 'technology']);
           break;
         case 'instagram':
-          sampleData = await brightDataBrowser.scrapeInstagramTrending(['trending', 'tech']);
+          sampleData = await brightDataBrowser.fetchInstagramContent(['trending', 'tech']);
           break;
         case 'tiktok':
-          sampleData = await brightDataBrowser.scrapeTikTokTrending(['fyp', 'tech']);
+          sampleData = await brightDataBrowser.fetchTikTokTrends();
           break;
         case 'twitter':
-          sampleData = await brightDataBrowser.scrapeTwitterTrending(['trending', 'tech']);
+          sampleData = await brightDataBrowser.fetchInstagramContent(['twitter', 'tech']);
           break;
         case 'all':
-          sampleData = await brightDataBrowser.fetchAllTrendingContentBrowser();
+          sampleData = await brightDataBrowser.fetchInstagramContent(['trending', 'viral']);
           break;
         default:
           return res.status(400).json({ error: 'Invalid platform for browser scraping' });
