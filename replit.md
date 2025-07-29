@@ -43,10 +43,12 @@ Preferred communication style: Simple, everyday language.
 - **Content Categorization**: Automatic categorization into pop culture, technology, business, sports, etc.
 
 ### Data Processing Pipeline
-- **Scheduled Scanning**: Configurable content scanning intervals
+- **Scheduled Scanning**: Configurable content scanning intervals (every 15 minutes)
+- **Dual Bright Data Integration**: Both API endpoints and real browser automation working in parallel
 - **Content Filtering**: Platform-specific content extraction and processing
 - **Engagement Tracking**: Metrics collection for upvotes, comments, views, etc.
 - **Growth Rate Analysis**: Trend momentum calculation
+- **Browser Automation**: Real Puppeteer integration with Bright Data Browser zone credentials
 
 ### Dashboard Interface
 - **Real-time Stats**: Live dashboard with trend metrics and platform status
@@ -89,8 +91,8 @@ Preferred communication style: Simple, everyday language.
 ### Core Infrastructure
 - **Neon Database**: Serverless PostgreSQL for primary data storage
 - **OpenAI API**: GPT-4o for content analysis and hook generation
-- **Bright Data API**: Primary data source for reliable social media content scraping across all platforms
-- **Bright Data Browser**: Advanced browser automation (WebSocket: wss://api@brd.superproxy.io:9222) for complex scraping scenarios and JavaScript-heavy sites
+- **Bright Data API**: Primary data source for reliable social media content scraping using dataset endpoints
+- **Bright Data Browser**: Real browser automation (WebSocket: wss://zone:user@brd.superproxy.io:9222) with production credentials for JavaScript-heavy sites like Instagram and TikTok
 - **Platform APIs**: Reddit API, YouTube Data API, News APIs, Twitter API v2 (emergency fallback sources only)
 
 ### Development Tools

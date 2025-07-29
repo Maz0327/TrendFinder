@@ -35,10 +35,16 @@ export class BrightDataBrowserService {
     this.apiToken = process.env.BRIGHT_DATA_API_TOKEN || '';
     this.baseUrl = 'https://api.brightdata.com';
     
-    // NOTE: Bright Data Browser requires different credentials than the API
-    // For now, we'll use demo data with proper browser automation structure
-    // The current BRIGHT_DATA_API_TOKEN is for dataset API, not browser service
-    this.wsEndpoint = `wss://demo@brd.superproxy.io:9222`;
+    // Bright Data Browser credentials (separate from API token)
+    const browserUser = process.env.BRIGHT_DATA_BROWSER_USER || '';
+    const browserPass = process.env.BRIGHT_DATA_BROWSER_PASS || '';
+    
+    if (browserUser && browserPass) {
+      // Bright Data Browser endpoint - correct format: zone:username@host
+      this.wsEndpoint = `wss://${browserPass}:${browserUser}@brd.superproxy.io:9222`;
+    } else {
+      this.wsEndpoint = `wss://demo@brd.superproxy.io:9222`;
+    }
   }
 
   // Execute browser automation using Puppeteer with Bright Data Browser
@@ -47,31 +53,48 @@ export class BrightDataBrowserService {
       throw new Error('Bright Data API token not configured');
     }
 
-    // NOTE: Browser automation requires separate Bright Data Browser credentials
-    // For demo purposes, we'll simulate the browser automation process
-    // In production, you would need proper Bright Data Browser zone credentials
-    
+    let browser = null;
     try {
-      console.log(`🚀 Simulating Bright Data Browser automation for ${platform}...`);
-      console.log(`Target URL: ${url}`);
+      console.log(`🚀 Connecting to Bright Data Browser via Puppeteer...`);
+      console.log(`WebSocket endpoint: ${this.wsEndpoint.replace(/:[^:@]*@/, ':***@')}`);
       
-      // Simulate browser processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Connect to Bright Data Browser using Puppeteer
+      browser = await puppeteer.connect({
+        browserWSEndpoint: this.wsEndpoint,
+      });
+
+      console.log(`✅ Connected! Navigating to: ${url}`);
+      const page = await browser.newPage();
       
-      console.log(`📄 Extracting content from ${platform} (simulated browser automation)...`);
+      // Set viewport and user agent
+      await page.setViewport({ width: 1920, height: 1080 });
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
       
-      // Generate realistic demo data that simulates browser extraction
-      let extractedData = this.generateDemoData(platform, 'trending', 3);
+      // Navigate to the page
+      await page.goto(url, { 
+        waitUntil: 'networkidle2',
+        timeout: 60000 
+      });
       
-      // Add browser-specific metadata to make it realistic
-      extractedData = extractedData.map(item => ({
-        ...item,
-        title: item.title?.replace('Bright Data Browser Automation', 'Browser Scraped') || item.title,
-        browser_scraped: true,
-        extraction_method: 'puppeteer_simulation'
-      }));
+      // Wait for content to load
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      console.log(`✅ Extracted ${extractedData.length} items from ${platform} via browser automation`);
+      console.log(`📄 Page loaded, extracting content from ${platform}...`);
+      
+      // Platform-specific scraping logic
+      let extractedData = [];
+      
+      if (platform === 'instagram') {
+        extractedData = await this.scrapeInstagramWithPuppeteer(page);
+      } else if (platform === 'tiktok') {
+        extractedData = await this.scrapeTikTokWithPuppeteer(page);
+      } else if (platform === 'reddit') {
+        extractedData = await this.scrapeRedditWithPuppeteer(page);
+      } else if (platform === 'twitter') {
+        extractedData = await this.scrapeTwitterWithPuppeteer(page);
+      }
+      
+      console.log(`✅ Extracted ${extractedData.length} items from ${platform}`);
       
       return {
         success: true,
@@ -79,11 +102,10 @@ export class BrightDataBrowserService {
         platform: platform,
         data: extractedData,
         metadata: {
-          browser_used: 'Bright Data Browser API (Simulated)',
-          execution_time: '2000ms',
+          browser_used: 'Puppeteer + Bright Data Browser',
+          execution_time: Date.now(),
           timestamp: new Date().toISOString(),
-          websocket_endpoint: this.wsEndpoint,
-          note: 'Browser automation ready for production credentials'
+          websocket_endpoint: this.wsEndpoint.replace(/:[^:@]*@/, ':***@')
         }
       };
       
