@@ -16,6 +16,8 @@ Preferred communication style: Simple, everyday language.
 
 **Next Priority**: Build strategic intelligence platform features while database connectivity is being resolved.
 
+**Architecture Strategy**: Analyzed reference system issues (schema chaos, 60+ micro-services, 10+ second delays, security vulnerabilities) and designed improved architecture focusing on simplicity, performance, and security. Plan: 5 core tables vs their 17+, 5-7 focused services vs their 60+, <2 second processing vs their 10+ seconds.
+
 ## System Architecture
 
 ### Frontend Architecture
