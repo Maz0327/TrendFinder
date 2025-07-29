@@ -43,7 +43,7 @@ Preferred communication style: Simple, everyday language.
 - **Content Categorization**: Automatic categorization into pop culture, technology, business, sports, etc.
 
 ### Data Processing Pipeline
-- **Scheduled Scanning**: Configurable content scanning intervals (every 15 minutes)
+- **Manual Scanning**: Auto-scanning disabled by default, users control when to start/stop scheduled scans
 - **Dual Bright Data Integration**: Both API endpoints and real browser automation working in parallel
 - **Content Filtering**: Platform-specific content extraction and processing
 - **Engagement Tracking**: Metrics collection for upvotes, comments, views, etc.

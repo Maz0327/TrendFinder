@@ -315,8 +315,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Initialize scheduled scans on startup
-  scheduler.startScheduledScans(15);
+  // Auto-scanning disabled by default - users must manually start it
+  console.log('📋 Scheduler initialized (auto-scan disabled by default)');
 
   const httpServer = createServer(app);
   return httpServer;
