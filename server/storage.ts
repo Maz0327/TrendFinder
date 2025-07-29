@@ -353,14 +353,16 @@ class DatabaseStorage implements IStorage {
   }
 }
 
-// Try database storage first, fallback to memory if needed
-let storage: IStorage;
-try {
-  storage = new DatabaseStorage();
-  console.log("✅ Using database storage");
-} catch (error) {
-  console.warn("⚠️ Database connection failed, using memory storage:", error);
-  storage = new MemStorage();
-}
+// Use memory storage temporarily while fixing Supabase connection
+export const storage = new MemStorage();
 
-export { storage };
+// Uncomment this when Supabase is working:
+// let storage: IStorage;
+// try {
+//   storage = new DatabaseStorage();
+//   console.log("✅ Using database storage");
+// } catch (error) {
+//   console.warn("⚠️ Database connection failed, using memory storage:", error);
+//   storage = new MemStorage();
+// }
+// export { storage };
