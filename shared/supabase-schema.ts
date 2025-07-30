@@ -1,5 +1,6 @@
 // Supabase Schema - Clean database design for Content Radar Platform
 // Strategic Intelligence and Truth Analysis Framework
+// Fixed: snake_case columns mapped to camelCase TypeScript properties
 import { pgTable, varchar, text, timestamp, jsonb, boolean, integer, decimal, index, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";

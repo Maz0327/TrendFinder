@@ -44,7 +44,7 @@ export class TruthAnalysisEngine {
 Content Type: ${capture.type}
 Platform: ${capture.platform || 'Unknown'}
 Content: ${capture.content || 'No text content'}
-User Note: ${capture.userNote || 'None'}
+User Note: ${capture.content || 'None'}
 Metadata: ${JSON.stringify(capture.metadata || {})}
 
 Provide analysis in this exact JSON format:
@@ -112,7 +112,7 @@ Provide analysis in this exact JSON format:
     const prompt = `Analyze this visual content using the Truth Analysis Framework. This is a ${capture.type} from ${capture.platform || 'unknown platform'}.
 
 OCR/Content: ${capture.content || 'No text extracted'}
-User Note: ${capture.userNote || 'None'}
+User Note: ${capture.content || 'None'}
 
 Analyze the visual and contextual elements to extract:
 1. FACT: What objectively exists in this image (text, visuals, metrics)

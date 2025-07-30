@@ -51,7 +51,7 @@ export class CaptureAnalysisService {
       const truthAnalysis = await openaiAnalysisService.analyzeCaptureContent(
         capture.content || '',
         capture.title || 'Untitled',
-        capture.sourceUrl || undefined,
+        capture.url || undefined,
         capture.type
       );
 
