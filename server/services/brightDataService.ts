@@ -50,7 +50,7 @@ export class BrightDataService {
 
   // Reddit trending posts
   async fetchRedditTrending(subreddits: string[] = ['all', 'popular', 'technology', 'worldnews']): Promise<any[]> {
-    const datasetId = 'gd_lwnyao9z6jl91hi0di'; // Reddit posts dataset ID
+    const datasetId = process.env.BRIGHT_DATA_REDDIT_COLLECTOR || 'gd_lwnyao9z6jl91hi0di'; // Reddit posts dataset ID
     const urls = subreddits.map(sub => `https://www.reddit.com/r/${sub}/hot/.json`);
 
     try {
@@ -89,7 +89,7 @@ export class BrightDataService {
 
   // Instagram trending posts
   async fetchInstagramTrending(hashtags: string[] = ['trending', 'viral', 'tech', 'news']): Promise<any[]> {
-    const datasetId = 'gd_l7q7dkf244hwjhxy5'; // Instagram posts dataset ID
+    const datasetId = process.env.BRIGHT_DATA_INSTAGRAM_COLLECTOR || 'gd_ltppn085pokosxh13'; // Instagram posts dataset ID
     const urls = hashtags.map(tag => `https://www.instagram.com/explore/tags/${tag}/`);
 
     try {
@@ -127,7 +127,7 @@ export class BrightDataService {
 
   // YouTube trending videos
   async fetchYouTubeTrending(categories: string[] = ['trending', 'technology', 'news', 'entertainment']): Promise<any[]> {
-    const datasetId = 'gd_lc4pnh7df9jnp9oxf0'; // YouTube videos dataset ID
+    const datasetId = process.env.BRIGHT_DATA_YOUTUBE_COLLECTOR || 'gd_ly9m6la02qd59kqkt'; // YouTube videos dataset ID
     const urls = categories.map(cat => `https://www.youtube.com/results?search_query=${cat}&sp=CAMSAhAB`);
 
     try {
@@ -166,7 +166,7 @@ export class BrightDataService {
 
   // TikTok trending videos
   async fetchTikTokTrending(hashtags: string[] = ['fyp', 'trending', 'viral', 'tech']): Promise<any[]> {
-    const datasetId = 'gd_l56gpq5d6pp5gxp1k5'; // TikTok videos dataset ID
+    const datasetId = process.env.BRIGHT_DATA_TIKTOK_COLLECTOR || 'gd_lyclm20il4r5helnj'; // TikTok videos dataset ID
     const urls = hashtags.map(tag => `https://www.tiktok.com/tag/${tag}`);
 
     try {
@@ -206,7 +206,7 @@ export class BrightDataService {
 
   // Twitter/X trending posts
   async fetchTwitterTrending(hashtags: string[] = ['trending', 'breaking', 'viral', 'tech']): Promise<any[]> {
-    const datasetId = 'gd_lfkpzh4b9k1ghr72c4'; // Twitter posts dataset ID
+    const datasetId = process.env.BRIGHT_DATA_TWITTER_COLLECTOR || 'gd_lx8n5kz91pc48jpis'; // Twitter posts dataset ID
     const urls = hashtags.map(tag => `https://twitter.com/hashtag/${tag}`);
 
     try {

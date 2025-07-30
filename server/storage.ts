@@ -1,24 +1,57 @@
-import { type User, type InsertUser, type ContentRadar, type InsertContentRadar, type ScanHistory, type InsertScanHistory } from "@shared/schema";
+import { 
+  type User, type InsertUser,
+  type Signal, type InsertSignal,
+  type Source, type InsertSource,
+  type SignalSource, type InsertSignalSource,
+  type UserPreference, type InsertUserPreference,
+  type ContentRadar, type InsertContentRadar,
+  type ScanHistory, type InsertScanHistory
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { users, contentRadar, scanHistory } from "@shared/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { users, signals, sources, signalSources, userPreferences, contentRadar, scanHistory } from "@shared/schema";
+import { eq, desc, and, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
+  // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  // Content Radar methods
-  getContentItems(filters?: {
+  // Signal methods (replacing content radar)
+  getSignals(filters?: {
     category?: string;
-    platform?: string;
+    signalType?: string;
     timeRange?: string;
     sortBy?: string;
     limit?: number;
     offset?: number;
-  }): Promise<ContentRadar[]>;
+  }): Promise<Signal[]>;
+  getSignalById(id: string): Promise<Signal | undefined>;
+  createSignal(signal: InsertSignal): Promise<Signal>;
+  updateSignal(id: string, updates: Partial<Signal>): Promise<Signal | undefined>;
+  deleteSignal(id: string): Promise<boolean>;
+  getRecentSignals(timeWindow: string): Promise<Signal[]>;
+  
+  // Source methods
+  getSourceByName(name: string): Promise<Source | undefined>;
+  getSourceById(id: string): Promise<Source | undefined>;
+  getAllSources(tier?: number): Promise<Source[]>;
+  createSource(source: InsertSource): Promise<Source>;
+  updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined>;
+  
+  // Signal Source relationship methods
+  createSignalSource(signalSource: InsertSignalSource): Promise<SignalSource>;
+  getSignalSources(signalId: string): Promise<SignalSource[]>;
+  
+  // User Preference methods
+  getUserPreferences(userId: string): Promise<UserPreference | undefined>;
+  createUserPreferences(prefs: InsertUserPreference): Promise<UserPreference>;
+  updateUserPreferences(userId: string, updates: Partial<UserPreference>): Promise<UserPreference | undefined>;
+  
+  // Legacy Content Radar methods (for backward compatibility)
+  getContentItems(filters?: any): Promise<ContentRadar[]>;
   getContentItemById(id: string): Promise<ContentRadar | undefined>;
   createContentItem(item: InsertContentRadar): Promise<ContentRadar>;
   updateContentItem(id: string, updates: Partial<ContentRadar>): Promise<ContentRadar | undefined>;
@@ -39,12 +72,18 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
-  private contentItems: Map<string, ContentRadar>;
+  private signals: Map<string, Signal>;
+  private sources: Map<string, Source>;
+  private signalSources: Map<string, SignalSource>;
+  private userPreferences: Map<string, UserPreference>;
   private scanHistory: Map<string, ScanHistory>;
 
   constructor() {
     this.users = new Map();
-    this.contentItems = new Map();
+    this.signals = new Map();
+    this.sources = new Map();
+    this.signalSources = new Map();
+    this.userPreferences = new Map();
     this.scanHistory = new Map();
   }
 
@@ -60,27 +99,34 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      role: insertUser.role || 'user',
+      email: insertUser.email || null,
+      createdAt: new Date()
+    };
     this.users.set(id, user);
     return user;
   }
 
-  async getContentItems(filters?: {
+  // Signal methods
+  async getSignals(filters?: {
     category?: string;
-    platform?: string;
+    signalType?: string;
     timeRange?: string;
     sortBy?: string;
     limit?: number;
     offset?: number;
-  }): Promise<ContentRadar[]> {
-    let items = Array.from(this.contentItems.values()).filter(item => item.isActive);
+  }): Promise<Signal[]> {
+    let items = Array.from(this.signals.values()).filter(item => item.isActive);
     
     if (filters?.category && filters.category !== 'all') {
       items = items.filter(item => item.category === filters.category);
     }
     
-    if (filters?.platform) {
-      items = items.filter(item => item.platform === filters.platform);
+    if (filters?.signalType) {
+      items = items.filter(item => item.signalType === filters.signalType);
     }
     
     if (filters?.timeRange) {
@@ -95,10 +141,15 @@ export class MemStorage implements IStorage {
           cutoff.setHours(now.getHours() - 6);
           break;
         case '24hours':
+        case '24h':
           cutoff.setDate(now.getDate() - 1);
           break;
         case 'week':
+        case '7d':
           cutoff.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          cutoff.setDate(now.getDate() - 30);
           break;
       }
       
@@ -113,6 +164,8 @@ export class MemStorage implements IStorage {
           return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
         case 'engagement':
           return (b.engagement || 0) - (a.engagement || 0);
+        case 'growthRate':
+          return parseFloat(b.growthRate || '0') - parseFloat(a.growthRate || '0');
         case 'viralScore':
         default:
           return parseFloat(b.viralScore || '0') - parseFloat(a.viralScore || '0');
@@ -122,52 +175,232 @@ export class MemStorage implements IStorage {
     // Apply pagination
     const offset = filters?.offset || 0;
     const limit = filters?.limit || 50;
-    
     return items.slice(offset, offset + limit);
   }
 
-  async getContentItemById(id: string): Promise<ContentRadar | undefined> {
-    return this.contentItems.get(id);
+  async getSignalById(id: string): Promise<Signal | undefined> {
+    return this.signals.get(id);
   }
 
-  async createContentItem(item: InsertContentRadar): Promise<ContentRadar> {
+  async createSignal(signal: InsertSignal): Promise<Signal> {
     const id = randomUUID();
-    const now = new Date();
-    const contentItem: ContentRadar = {
-      ...item,
+    const newSignal: Signal = {
+      ...signal,
       id,
-      createdAt: now,
-      updatedAt: now,
-      summary: item.summary || null,
-      content: item.content || null,
-      hook1: item.hook1 || null,
-      hook2: item.hook2 || null,
-      viralScore: item.viralScore || null,
-      engagement: item.engagement || null,
-      growthRate: item.growthRate || null,
-      metadata: item.metadata || null,
-      isActive: item.isActive !== undefined ? item.isActive : true,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
-    this.contentItems.set(id, contentItem);
-    return contentItem;
+    this.signals.set(id, newSignal);
+    return newSignal;
   }
 
-  async updateContentItem(id: string, updates: Partial<ContentRadar>): Promise<ContentRadar | undefined> {
-    const existing = this.contentItems.get(id);
-    if (!existing) return undefined;
+  async updateSignal(id: string, updates: Partial<Signal>): Promise<Signal | undefined> {
+    const signal = this.signals.get(id);
+    if (!signal) return undefined;
     
-    const updated = {
-      ...existing,
-      ...updates,
-      updatedAt: new Date(),
-    };
-    
-    this.contentItems.set(id, updated);
+    const updated = { ...signal, ...updates, updatedAt: new Date() };
+    this.signals.set(id, updated);
     return updated;
   }
 
+  async deleteSignal(id: string): Promise<boolean> {
+    return this.signals.delete(id);
+  }
+
+  async getRecentSignals(timeWindow: string): Promise<Signal[]> {
+    return this.getSignals({ timeRange: timeWindow, sortBy: 'recency' });
+  }
+
+  // Source methods
+  async getSourceByName(name: string): Promise<Source | undefined> {
+    return Array.from(this.sources.values()).find(source => source.name === name);
+  }
+
+  async getSourceById(id: string): Promise<Source | undefined> {
+    return this.sources.get(id);
+  }
+
+  async getAllSources(tier?: number): Promise<Source[]> {
+    let sources = Array.from(this.sources.values()).filter(s => s.isActive);
+    if (tier) {
+      sources = sources.filter(s => s.tier === tier);
+    }
+    return sources;
+  }
+
+  async createSource(source: InsertSource): Promise<Source> {
+    const id = randomUUID();
+    const newSource: Source = {
+      ...source,
+      id,
+      createdAt: new Date()
+    };
+    this.sources.set(id, newSource);
+    return newSource;
+  }
+
+  async updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined> {
+    const source = this.sources.get(id);
+    if (!source) return undefined;
+    
+    const updated = { ...source, ...updates };
+    this.sources.set(id, updated);
+    return updated;
+  }
+
+  // Signal Source relationship methods
+  async createSignalSource(signalSource: InsertSignalSource): Promise<SignalSource> {
+    const id = randomUUID();
+    const newSignalSource: SignalSource = {
+      ...signalSource,
+      id,
+      createdAt: new Date()
+    };
+    this.signalSources.set(id, newSignalSource);
+    return newSignalSource;
+  }
+
+  async getSignalSources(signalId: string): Promise<SignalSource[]> {
+    return Array.from(this.signalSources.values()).filter(ss => ss.signalId === signalId);
+  }
+
+  // User Preference methods
+  async getUserPreferences(userId: string): Promise<UserPreference | undefined> {
+    return Array.from(this.userPreferences.values()).find(pref => pref.userId === userId);
+  }
+
+  async createUserPreferences(prefs: InsertUserPreference): Promise<UserPreference> {
+    const id = randomUUID();
+    const newPrefs: UserPreference = {
+      ...prefs,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.userPreferences.set(id, newPrefs);
+    return newPrefs;
+  }
+
+  async updateUserPreferences(userId: string, updates: Partial<UserPreference>): Promise<UserPreference | undefined> {
+    const prefs = await this.getUserPreferences(userId);
+    if (!prefs) return undefined;
+    
+    const updated = { ...prefs, ...updates, updatedAt: new Date() };
+    this.userPreferences.set(prefs.id, updated);
+    return updated;
+  }
+
+  // Legacy Content Radar methods (mapping to Signal methods)
+  async getContentItems(filters?: {
+    category?: string;
+    platform?: string;
+    timeRange?: string;
+    sortBy?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ContentRadar[]> {
+    // Map platform filter to signal sources
+    let signals = await this.getSignals({
+      category: filters?.category,
+      timeRange: filters?.timeRange,
+      sortBy: filters?.sortBy,
+      limit: filters?.limit,
+      offset: filters?.offset
+    });
+    
+    // Filter by platform if specified
+    if (filters?.platform) {
+      const platformSignalIds = Array.from(this.signalSources.values())
+        .filter(ss => {
+          const source = this.sources.get(ss.sourceId);
+          return source?.name === filters.platform;
+        })
+        .map(ss => ss.signalId);
+      
+      signals = signals.filter(s => platformSignalIds.includes(s.id));
+    }
+    
+    // Map signals to ContentRadar format for backward compatibility
+    return signals.map(signal => ({
+      ...signal,
+      platform: this.getPlatformFromSignal(signal),
+      hook1: signal.hooks?.[0] || null,
+      hook2: signal.hooks?.[1] || null
+    })) as ContentRadar[];
+  }
+
+  async getContentItemById(id: string): Promise<ContentRadar | undefined> {
+    const signal = await this.getSignalById(id);
+    if (!signal) return undefined;
+    
+    return {
+      ...signal,
+      platform: this.getPlatformFromSignal(signal),
+      hook1: signal.hooks?.[0] || null,
+      hook2: signal.hooks?.[1] || null
+    } as ContentRadar;
+  }
+
+  async createContentItem(item: InsertContentRadar): Promise<ContentRadar> {
+    // Convert ContentRadar format to Signal format
+    const signal = await this.createSignal({
+      ...item,
+      hooks: [item.hook1, item.hook2].filter(Boolean) as string[]
+    });
+    
+    // If platform is specified, create a signal source relationship
+    if (item.platform) {
+      const source = await this.getSourceByName(item.platform);
+      if (source) {
+        await this.createSignalSource({
+          signalId: signal.id,
+          sourceId: source.id,
+          platformUrl: item.url
+        });
+      }
+    }
+    
+    return {
+      ...signal,
+      platform: item.platform || 'unknown',
+      hook1: signal.hooks?.[0] || null,
+      hook2: signal.hooks?.[1] || null
+    } as ContentRadar;
+  }
+
+  async updateContentItem(id: string, updates: Partial<ContentRadar>): Promise<ContentRadar | undefined> {
+    const signalUpdates: Partial<Signal> = {
+      ...updates,
+      hooks: updates.hook1 || updates.hook2 
+        ? [updates.hook1 || '', updates.hook2 || ''].filter(Boolean)
+        : undefined
+    };
+    
+    const updatedSignal = await this.updateSignal(id, signalUpdates);
+    if (!updatedSignal) return undefined;
+    
+    return {
+      ...updatedSignal,
+      platform: this.getPlatformFromSignal(updatedSignal),
+      hook1: updatedSignal.hooks?.[0] || null,
+      hook2: updatedSignal.hooks?.[1] || null
+    } as ContentRadar;
+  }
+
   async deleteContentItem(id: string): Promise<boolean> {
-    return this.contentItems.delete(id);
+    return this.deleteSignal(id);
+  }
+
+  private getPlatformFromSignal(signal: Signal): string {
+    const signalSource = Array.from(this.signalSources.values())
+      .find(ss => ss.signalId === signal.id);
+    
+    if (signalSource) {
+      const source = this.sources.get(signalSource.sourceId);
+      return source?.name || 'unknown';
+    }
+    
+    return (signal.metadata as any)?.platform || 'unknown';
   }
 
   async getStats(): Promise<{
@@ -176,18 +409,18 @@ export class MemStorage implements IStorage {
     activeSources: number;
     avgScore: number;
   }> {
-    const items = Array.from(this.contentItems.values()).filter(item => item.isActive);
+    const items = Array.from(this.signals.values()).filter(item => item.isActive);
     const highViralItems = items.filter(item => parseFloat(item.viralScore || '0') >= 8.0);
     const avgScore = items.length > 0 
       ? items.reduce((sum, item) => sum + parseFloat(item.viralScore || '0'), 0) / items.length
       : 0;
     
-    const activePlatforms = new Set(items.map(item => item.platform)).size;
+    const activeSources = Array.from(this.sources.values()).filter(s => s.isActive).length;
     
     return {
       totalTrends: items.length,
       viralPotential: highViralItems.length,
-      activeSources: activePlatforms,
+      activeSources: activeSources,
       avgScore: Math.round(avgScore * 10) / 10,
     };
   }

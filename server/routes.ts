@@ -6,7 +6,8 @@ import { BrightDataService } from "./services/brightDataService";
 import { BrightDataBrowserService } from "./services/brightDataBrowser";
 import { EnhancedBrightDataService } from "./services/enhancedBrightDataService";
 import { AIAnalyzer } from "./services/aiAnalyzer";
-import { insertContentRadarSchema } from "@shared/schema";
+import { StrategicIntelligenceService } from "./services/strategicIntelligenceService";
+import { insertContentRadarSchema, insertSourceSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -14,6 +15,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const brightData = new BrightDataService();
   const brightDataBrowser = new BrightDataBrowserService();
   const enhancedBrightData = new EnhancedBrightDataService();
+  const strategicIntelligence = new StrategicIntelligenceService(storage);
+  
+  // Initialize Tier 1 sources on startup
+  await strategicIntelligence.initializeSources();
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {
@@ -314,6 +319,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(filteredItems);
     } catch (error) {
       res.status(500).json({ error: "Search failed" });
+    }
+  });
+
+  // Strategic Intelligence API Endpoints
+  
+  // Get all sources
+  app.get("/api/sources", async (req, res) => {
+    try {
+      const tier = req.query.tier ? parseInt(req.query.tier as string) : undefined;
+      const sources = await storage.getAllSources(tier);
+      res.json(sources);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sources" });
+    }
+  });
+  
+  // Get signals with enhanced filtering
+  app.get("/api/signals", async (req, res) => {
+    try {
+      const {
+        category,
+        signalType,
+        timeRange,
+        sortBy,
+        limit = '50',
+        offset = '0'
+      } = req.query;
+
+      const filters = {
+        category: category as string,
+        signalType: signalType as string,
+        timeRange: timeRange as string,
+        sortBy: sortBy as string,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string)
+      };
+
+      const signals = await storage.getSignals(filters);
+      res.json(signals);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch signals" });
+    }
+  });
+  
+  // Fetch multi-platform intelligence
+  app.post("/api/intelligence/fetch", async (req, res) => {
+    try {
+      const { platforms, keywords = [], competitors = [], timeWindow = '24h', limit = 50 } = req.body;
+      
+      if (!platforms || platforms.length === 0) {
+        return res.status(400).json({ error: "At least one platform is required" });
+      }
+      
+      const signals = await strategicIntelligence.fetchMultiPlatformIntelligence({
+        platforms,
+        keywords,
+        competitors,
+        timeWindow,
+        limit
+      });
+      
+      res.json({ 
+        success: true, 
+        count: signals.length,
+        signals 
+      });
+    } catch (error) {
+      console.error('Error fetching intelligence:', error);
+      res.status(500).json({ error: "Failed to fetch intelligence", details: error.message });
+    }
+  });
+  
+  // Get emerging trends analysis
+  app.get("/api/intelligence/trends", async (req, res) => {
+    try {
+      const timeWindow = req.query.timeWindow as string || '7d';
+      const trendReport = await strategicIntelligence.detectEmergingTrends(timeWindow);
+      res.json(trendReport);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to analyze trends" });
+    }
+  });
+  
+  // Get cultural moments
+  app.get("/api/intelligence/cultural-moments", async (req, res) => {
+    try {
+      const signals = await storage.getRecentSignals('24h');
+      const culturalMoments = await strategicIntelligence.correlateCulturalMoments(signals);
+      res.json(culturalMoments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to detect cultural moments" });
     }
   });
 
