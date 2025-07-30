@@ -11,6 +11,7 @@ import { TruthAnalysisFramework } from "./services/truthAnalysisFramework";
 import { Tier2PlatformService } from "./services/tier2PlatformService";
 import { BriefGenerationService } from "./services/briefGenerationService";
 import { ChromeExtensionService } from "./services/chromeExtensionService";
+import { FixedBrightDataService } from "./services/fixedBrightDataService";
 import { insertContentRadarSchema, insertSourceSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -24,6 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const tier2Service = new Tier2PlatformService();
   const briefService = new BriefGenerationService();
   const chromeExtensionService = new ChromeExtensionService();
+  const fixedBrightData = new FixedBrightDataService();
   
   // Initialize Tier 1 sources on startup
   await strategicIntelligence.initializeSources();
@@ -676,6 +678,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(status);
     } catch (error) {
       res.status(500).json({ error: "Failed to get system status" });
+    }
+  });
+
+  // Bright Data API Configuration and Testing Routes
+  
+  // Test Bright Data API connection
+  app.get("/api/bright-data/test", async (req, res) => {
+    try {
+      const testResult = await fixedBrightData.testConnection();
+      res.json(testResult);
+    } catch (error) {
+      res.status(500).json({ 
+        status: 'error', 
+        message: 'Failed to test Bright Data connection',
+        details: error.message 
+      });
+    }
+  });
+  
+  // Get platform configuration status
+  app.get("/api/bright-data/status", async (req, res) => {
+    try {
+      const status = fixedBrightData.getPlatformStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get platform status" });
+    }
+  });
+  
+  // Get configuration instructions
+  app.get("/api/bright-data/instructions", async (req, res) => {
+    try {
+      const instructions = fixedBrightData.getConfigurationInstructions();
+      res.json(instructions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get instructions" });
+    }
+  });
+  
+  // Update dataset ID for a platform
+  app.post("/api/bright-data/config", async (req, res) => {
+    try {
+      const { platform, datasetId } = req.body;
+      
+      if (!platform || !datasetId) {
+        return res.status(400).json({ error: "Platform and datasetId are required" });
+      }
+      
+      const success = fixedBrightData.updateDatasetId(platform, datasetId);
+      if (success) {
+        res.json({ success: true, message: `Dataset ID updated for ${platform}` });
+      } else {
+        res.status(400).json({ error: `Platform ${platform} not supported` });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update configuration" });
+    }
+  });
+  
+  // Fetch data using fixed Bright Data service
+  app.post("/api/bright-data/fetch", async (req, res) => {
+    try {
+      const { platform, keywords = [], limit = 20 } = req.body;
+      
+      if (!platform) {
+        return res.status(400).json({ error: "Platform is required" });
+      }
+      
+      const data = await fixedBrightData.fetchPlatformData(platform, keywords, limit);
+      res.json({
+        success: true,
+        platform,
+        count: data.length,
+        data,
+        method: data[0]?.metadata?.source || 'unknown'
+      });
+    } catch (error) {
+      console.error('Error fetching via fixed Bright Data:', error);
+      res.status(500).json({ 
+        error: "Failed to fetch data", 
+        details: error.message,
+        platform: req.body.platform 
+      });
     }
   });
 
