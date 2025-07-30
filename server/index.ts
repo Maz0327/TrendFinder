@@ -1,10 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
-const pgSession = connectPgSimple(session);
+const MemStore = MemoryStore(session);
 
 const app = express();
 app.use(express.json());
@@ -13,19 +13,17 @@ app.use(express.urlencoded({ extended: false }));
 // Session configuration
 app.use(
   session({
-    store: new pgSession({
-      conString: process.env.DATABASE_URL,
-      tableName: 'user_sessions',
-      createTableIfMissing: true,
+    store: new MemStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
     }),
     secret: process.env.SESSION_SECRET || 'content-radar-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Disable secure for development
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'strict'
+      sameSite: 'lax' // More permissive for development
     }
   })
 );

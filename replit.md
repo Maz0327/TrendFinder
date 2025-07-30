@@ -16,7 +16,8 @@ Preferred communication style: Simple, everyday language.
 - Resolved mixed ID types (integer vs UUID) causing authentication failures
 - Fixed storage configuration to use correct Neon database instead of Supabase
 - Implemented complete DatabaseStorage with proper CRUD operations
-- Authentication now persists correctly between sessions
+- Fixed session persistence using memory store (sessions now persist across page refreshes)
+- Added legacy table compatibility for backward compatibility with existing features
 
 **Phase 1 - Project-Based Architecture**: ✅ COMPLETE
 - New 4-table schema: projects → captures → analysis → briefs
