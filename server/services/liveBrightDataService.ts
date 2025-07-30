@@ -28,19 +28,18 @@ export class LiveBrightDataService {
     console.log(`[Live Bright Data] Fetching live data from ${platform} with keywords: ${keywords.join(', ')}`);
 
     try {
-      // Try Bright Data browser automation first (most reliable)
-      if (this.browserUser && this.browserPass) {
-        const browserData = await this.fetchViaBrowser(platform, keywords, limit);
-        if (browserData.length > 0) {
-          return {
-            success: true,
-            platform,
-            count: browserData.length,
-            data: browserData,
-            source: 'bright_data_browser',
-            timestamp: new Date().toISOString()
-          };
-        }
+      // Try Bright Data browser automation first (most reliable for live data)
+      console.log(`[Live Bright Data] Attempting browser automation for ${platform}`);
+      const browserData = await this.fetchViaBrowser(platform, keywords, limit);
+      if (browserData.length > 0) {
+        return {
+          success: true,
+          platform,
+          count: browserData.length,
+          data: browserData,
+          source: 'bright_data_browser',
+          timestamp: new Date().toISOString()
+        };
       }
 
       // Try direct API endpoints
@@ -87,28 +86,20 @@ export class LiveBrightDataService {
    * Fetch data using Bright Data browser automation
    */
   private async fetchViaBrowser(platform: string, keywords: string[], limit: number): Promise<any[]> {
-    console.log(`[Live Bright Data] Using browser automation for ${platform}`);
+    console.log(`[Live Bright Data] Using Bright Data Browser API for ${platform}`);
 
     try {
-      // Configure browser with Bright Data proxy
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          `--proxy-server=brd.superproxy.io:22225`,
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
-        ]
+      // Connect to Bright Data Browser API endpoint directly
+      const browserWSEndpoint = 'wss://brd-customer-hl_d2c6dd0f-zone-scraping_browser1:wl58vcxlx0ph@brd.superproxy.io:9222';
+      
+      console.log(`[Live Bright Data] Connecting to Bright Data Browser API...`);
+      
+      const browser = await puppeteer.connect({
+        browserWSEndpoint,
+        ignoreHTTPSErrors: true
       });
 
       const page = await browser.newPage();
-      
-      // Authenticate with Bright Data proxy
-      await page.authenticate({
-        username: this.browserUser,
-        password: this.browserPass
-      });
 
       // Set realistic headers
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
@@ -135,11 +126,21 @@ export class LiveBrightDataService {
           throw new Error(`Platform ${platform} not supported for browser automation`);
       }
 
-      await browser.close();
+      await page.close();
+      await browser.disconnect();
+      
+      console.log(`[Live Bright Data] Successfully scraped ${results.length} live items from ${platform}`);
       return results;
 
     } catch (error) {
       console.error(`[Live Bright Data] Browser automation failed for ${platform}:`, error);
+      
+      // Try direct API fallback before giving up
+      if (platform === 'reddit') {
+        console.log(`[Live Bright Data] Trying direct Reddit API fallback`);
+        return await this.fetchRedditDirect(keywords, limit);
+      }
+      
       return [];
     }
   }
@@ -455,27 +456,29 @@ export class LiveBrightDataService {
   }
 
   /**
-   * Generate enhanced demo data with realistic structure
+   * Generate demo data only when live scraping fails
    */
   private generateEnhancedDemo(platform: string, keywords: string[], limit: number): any[] {
     const keywordText = keywords.length > 0 ? keywords.join(', ') : 'trending topics';
     const results = [];
 
-    for (let i = 0; i < Math.min(limit, 5); i++) {
+    console.log(`[Live Bright Data] Generating fallback demo data for ${platform} (live scraping failed)`);
+
+    for (let i = 0; i < Math.min(limit, 3); i++) {
       results.push({
-        title: `Live ${platform} content about ${keywordText}`,
-        content: `This is enhanced demo content for ${platform} related to ${keywordText}. Bright Data browser automation is configured and ready for live scraping.`,
+        title: `${platform} content about ${keywordText} (fallback data)`,
+        content: `Live scraping attempted but failed for ${platform}. Browser API configured but encountered connection issues.`,
         platform,
         category: this.categorizeContent(keywordText),
-        engagement: Math.floor(Math.random() * 5000) + 100,
-        url: `https://${platform}.com/live-content-${i}`,
+        engagement: Math.floor(Math.random() * 1000) + 50,
+        url: `https://${platform}.com/fallback-${i}`,
         metadata: {
-          source: 'enhanced_demo',
+          source: 'demo_fallback',
           keywords: keywords,
           timestamp: new Date().toISOString(),
-          note: 'Bright Data browser automation ready - live scraping available',
-          browserCredentials: !!(this.browserUser && this.browserPass),
-          apiToken: !!this.apiToken
+          note: 'Live scraping failed - this is fallback data',
+          browserEndpoint: 'wss://brd-customer-hl_d2c6dd0f-zone-scraping_browser1:wl58vcxlx0ph@brd.superproxy.io:9222',
+          scrapingAttempted: true
         }
       });
     }
