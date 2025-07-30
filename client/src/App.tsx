@@ -12,19 +12,25 @@ import NotFound from "@/pages/not-found";
 import SignalMining from "@/pages/signal-mining";
 import Projects from "@/pages/projects";
 import BriefBuilder from "@/pages/brief-builder";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
 import MobileNavBar from "@/components/layout/MobileNavBar";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/signal-mining" component={SignalMining} />
-      <Route path="/projects" component={Projects} />
-      <Route path="/brief-builder" component={BriefBuilder} />
-      <Route path="/intelligence" component={IntelligenceHub} />
-      <Route path="/analysis" component={AnalysisCenter} />
-      <Route path="/briefs" component={BriefGenerator} />
-      <Route path="/settings" component={SettingsPage} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/" component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/signal-mining" component={() => <ProtectedRoute><SignalMining /></ProtectedRoute>} />
+      <Route path="/projects" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
+      <Route path="/brief-builder" component={() => <ProtectedRoute><BriefBuilder /></ProtectedRoute>} />
+      <Route path="/intelligence" component={() => <ProtectedRoute><IntelligenceHub /></ProtectedRoute>} />
+      <Route path="/analysis" component={() => <ProtectedRoute><AnalysisCenter /></ProtectedRoute>} />
+      <Route path="/briefs" component={() => <ProtectedRoute><BriefGenerator /></ProtectedRoute>} />
+      <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -33,13 +39,15 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <div className="pb-16 lg:pb-0">
-          <Router />
-        </div>
-        <MobileNavBar />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <div className="pb-16 lg:pb-0">
+            <Router />
+          </div>
+          <MobileNavBar />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

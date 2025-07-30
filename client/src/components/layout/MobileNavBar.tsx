@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Home,
   Globe,
@@ -7,7 +8,9 @@ import {
   FileText,
   Settings,
   FolderOpen,
-  PenTool
+  PenTool,
+  User,
+  LogOut
 } from "lucide-react";
 
 const navigation = [
@@ -20,6 +23,7 @@ const navigation = [
 
 export default function MobileNavBar() {
   const [location] = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
@@ -44,6 +48,17 @@ export default function MobileNavBar() {
             </Link>
           );
         })}
+        
+        {/* User Menu for Mobile */}
+        {user && (
+          <div
+            onClick={logout}
+            className="flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 cursor-pointer"
+          >
+            <LogOut className="h-5 w-5 mb-1" />
+            <span className="text-xs font-medium">Logout</span>
+          </div>
+        )}
       </nav>
     </div>
   );

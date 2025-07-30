@@ -807,6 +807,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { authService, registerSchema } = await import("./services/authService");
+      const validatedData = registerSchema.parse(req.body);
+      const user = await authService.register(validatedData);
+      
+      // Set session
+      req.session.userId = user.id;
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "Failed to save session" });
+        }
+        res.status(201).json({ 
+          success: true, 
+          user: { id: user.id, email: user.email, username: user.username } 
+        });
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      if (error instanceof Error) {
+        console.error("Registration error:", error);
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Failed to register user" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { authService, loginSchema } = await import("./services/authService");
+      const validatedData = loginSchema.parse(req.body);
+      const user = await authService.login(validatedData);
+      
+      // Set session
+      req.session.userId = user.id;
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "Failed to save session" });
+        }
+        res.json({ 
+          success: true, 
+          user: { id: user.id, email: user.email, username: user.username } 
+        });
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      if (error instanceof Error) {
+        console.error("Login error:", error);
+        return res.status(401).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ error: "Failed to logout" });
+      }
+      res.json({ success: true, message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const { authService } = await import("./services/authService");
+      const user = await authService.getUserById(req.session.userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json({ 
+        user: { id: user.id, email: user.email, username: user.username } 
+      });
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ error: "Failed to get user" });
+    }
+  });
+
   // Auto-scanning disabled by default - users must manually start it
   console.log('📋 Scheduler initialized (auto-scan disabled by default)');
 
