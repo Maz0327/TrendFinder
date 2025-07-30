@@ -80,7 +80,7 @@ export const captures = pgTable("captures", {
   // User notes and custom content
   userNote: text("user_note"),
   customCopy: text("custom_copy"), // User's custom copy variations
-  tags: jsonb("tags").$type<string[]>(),
+  tags: jsonb("tags").$type<string[]>().default('[]'),
   
   // Enhanced Google analysis
   googleAnalysis: jsonb("google_analysis").$type<{
@@ -132,47 +132,68 @@ export const captures = pgTable("captures", {
   platformIdx: index("idx_captures_platform").on(table.platform),
 }));
 
-// 4. Signals table - Processed strategic intelligence (keeping for Signal Mining)
+// 4. Signals table - Legacy signal mining system (actual database structure)
 export const signals = pgTable("signals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  title: text("title").notNull(),
-  url: text("url").notNull(),
-  content: text("content"),
-  
-  // AI Analysis Results
+  id: integer("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title"),
+  content: text("content").notNull(),
+  url: text("url"),
   summary: text("summary"),
-  hooks: jsonb("hooks").$type<string[]>(), // Multiple hooks instead of just 2
-  viralScore: decimal("viral_score", { precision: 3, scale: 1 }).default('0.0'),
+  sentiment: text("sentiment"),
+  tone: text("tone"),
+  keywords: text("keywords").array(),
+  tags: text("tags").array(),
+  confidence: text("confidence"),
+  status: text("status"),
   
-  // Truth Analysis Framework
-  truthAnalysis: jsonb("truth_analysis").$type<{
-    fact: { claims: string[]; sources: string[]; verificationStatus: string; confidence: number };
-    observation: { behaviorPatterns: string[]; audienceSignals: any; contextualFactors: string[] };
-    insight: { strategicImplications: string[]; opportunityMapping: any; riskAssessment: any };
-    humanTruth: { emotionalUndercurrent: any; culturalContext: any; psychologicalDrivers: any };
-  }>(),
+  // Truth Analysis Framework columns (existing)
+  truthFact: text("truth_fact"),
+  truthObservation: text("truth_observation"),
+  truthInsight: text("truth_insight"),
+  humanTruth: text("human_truth"),
   
-  // Categorization & Metrics
-  category: text("category").notNull(),
-  signalType: text("signal_type"), // 'trend', 'cultural_moment', 'competitive_intel', etc.
-  engagement: integer("engagement").default(0),
-  growthRate: decimal("growth_rate", { precision: 5, scale: 2 }).default('0.00'),
+  // Strategic Intelligence columns  
+  culturalMoment: text("cultural_moment"),
+  attentionValue: text("attention_value"),
+  platformContext: text("platform_context"),
+  viralPotential: text("viral_potential"),
+  cohortSuggestions: text("cohort_suggestions").array(),
+  competitiveInsights: text("competitive_insights").array(),
+  nextActions: text("next_actions").array(),
   
-  // Visual Intelligence
-  hasVisuals: boolean("has_visuals").default(false),
-  visualAnalysis: jsonb("visual_analysis"), // Gemini visual analysis results
-  screenshots: jsonb("screenshots").$type<Array<{url: string; context: string; platform: string}>>(),
+  // User and project management
+  userNotes: text("user_notes"),
+  promotionReason: text("promotion_reason"),
+  systemSuggestionReason: text("system_suggestion_reason"),
   
-  // Metadata & Timestamps
-  metadata: jsonb("metadata"), // platform-specific data
-  aiModel: text("ai_model"), // 'gemini-2.5-pro' or 'gpt-4o'
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  // Timestamps
+  flaggedAt: timestamp("flagged_at"),
+  promotedAt: timestamp("promoted_at"),
+  createdAt: timestamp("created_at"),
+  capturedAt: timestamp("captured_at"),
+  
+  // Additional fields
+  isDraft: boolean("is_draft"),
+  browserContext: jsonb("browser_context"),
+  visualAssets: jsonb("visual_assets"),
+  transcription: text("transcription"),
+  projectId: integer("project_id"),
+  templateSection: text("template_section"),
+  captureSessionId: text("capture_session_id"),
+  engagementData: jsonb("engagement_data"),
+  qualScore: text("qual_score"),
+  autoTags: text("auto_tags").array(),
+  workspaceNotes: text("workspace_notes"),
+  analysisStatus: text("analysis_status"),
+  briefSectionAssignment: text("brief_section_assignment"),
+  batchQueueStatus: boolean("batch_queue_status"),
+  workspacePriority: integer("workspace_priority"),
 }, (table) => ({
-  categoryIdx: index("idx_signals_category").on(table.category),
+  userIdx: index("idx_signals_user_id").on(table.userId),
+  projectIdx: index("idx_signals_project_id").on(table.projectId),
+  statusIdx: index("idx_signals_status").on(table.status),
   createdAtIdx: index("idx_signals_created_at").on(table.createdAt),
-  viralScoreIdx: index("idx_signals_viral_score").on(table.viralScore),
 }));
 
 // 5. Briefs table - Strategic brief documents
@@ -328,7 +349,9 @@ export const insertBriefCaptureSchema = createInsertSchema(briefCaptures).omit({
 export const insertSignalSchema = createInsertSchema(signals).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
+  flaggedAt: true,
+  promotedAt: true,
+  capturedAt: true,
 });
 
 export const insertSourceSchema = createInsertSchema(sources).omit({
@@ -375,11 +398,38 @@ export type SignalSource = typeof signalSources.$inferSelect;
 export type InsertUserPreference = z.infer<typeof insertUserPreferenceSchema>;
 export type UserPreference = typeof userPreferences.$inferSelect;
 
-// Legacy type aliases for backward compatibility (will refactor gradually)
-export type ContentRadar = Signal;
-export type InsertContentRadar = InsertSignal;
-export const contentRadar = signals; // Alias for gradual migration
-export const insertContentRadarSchema = insertSignalSchema;
+// ContentRadar table - Actual content_radar table structure (NOT signals alias)
+export const contentRadar = pgTable("content_radar", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  content: text("content"),
+  summary: text("summary"),
+  hook1: text("hook1"),
+  hook2: text("hook2"),
+  category: text("category").notNull(),
+  platform: text("platform").notNull(),
+  viralScore: decimal("viral_score", { precision: 10, scale: 2 }),
+  engagement: integer("engagement"),
+  growthRate: decimal("growth_rate", { precision: 10, scale: 2 }),
+  metadata: jsonb("metadata"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  categoryIdx: index("idx_content_radar_category").on(table.category),
+  platformIdx: index("idx_content_radar_platform").on(table.platform),
+  createdAtIdx: index("idx_content_radar_created_at").on(table.createdAt),
+}));
+
+export const insertContentRadarSchema = createInsertSchema(contentRadar).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ContentRadar = typeof contentRadar.$inferSelect;
+export type InsertContentRadar = z.infer<typeof insertContentRadarSchema>;
 
 // Temporary exports for scan history (will be replaced with proper logging)
 export const scanHistory = {

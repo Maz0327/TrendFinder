@@ -758,13 +758,53 @@ class DatabaseStorage implements IStorage {
   }
 
   async getCaptureById(id: string): Promise<Capture | undefined> {
-    const result = await this.db.select().from(captures).where(eq(captures.id, id)).limit(1);
-    return result[0];
+    try {
+      const result = await this.db.execute(sql`
+        SELECT * FROM captures WHERE id = ${id} LIMIT 1
+      `);
+      return result[0] as Capture;
+    } catch (error) {
+      console.error("❌ Error fetching capture:", error);
+      throw error;
+    }
   }
 
   async createCapture(capture: InsertCapture): Promise<Capture> {
-    const result = await this.db.insert(captures).values(capture).returning();
-    return result[0];
+    try {
+      // Use raw SQL to bypass Drizzle schema issues completely  
+      const result = await this.db.execute(sql`
+        INSERT INTO captures (
+          id, project_id, user_id, type, title, content, url, platform, 
+          metadata, status, created_at, updated_at, tags, screenshot_url, 
+          summary, analysis_status, truth_analysis
+        ) VALUES (
+          ${capture.id || sql`gen_random_uuid()`},
+          ${capture.projectId},
+          ${capture.userId || '777cc116-c924-4e13-87c0-e0a26b7596b6'},
+          ${capture.type},
+          ${capture.title || ''},
+          ${capture.content || ''},
+          ${capture.url || ''},
+          ${capture.platform || ''},
+          ${JSON.stringify(capture.metadata || {})},
+          ${capture.status || 'pending'},
+          NOW(),
+          NOW(),
+          ${JSON.stringify(capture.tags || [])},
+          ${capture.screenshotUrl || ''},
+          ${capture.summary || ''},
+          ${capture.analysisStatus || 'pending'},
+          ${JSON.stringify(capture.truthAnalysis || {})}
+        )
+        RETURNING *
+      `);
+      
+      console.log("✅ Capture created successfully using raw SQL");
+      return result[0] as Capture;
+    } catch (error) {
+      console.error("❌ Error creating capture with raw SQL:", error);
+      throw error;
+    }
   }
 
   async updateCapture(id: string, updates: Partial<Capture>): Promise<Capture | undefined> {
@@ -783,14 +823,14 @@ class DatabaseStorage implements IStorage {
 
   async getUserCaptures(userId: string): Promise<Capture[]> {
     try {
-      const result = await this.db
-        .select()
-        .from(captures)
-        .leftJoin(projects, eq(captures.projectId, projects.id))
-        .where(eq(projects.userId, userId))
-        .orderBy(desc(captures.createdAt));
+      const result = await this.db.execute(sql`
+        SELECT c.* FROM captures c
+        LEFT JOIN projects p ON c.project_id = p.id
+        WHERE p.user_id = ${userId}
+        ORDER BY c.created_at DESC
+      `);
       
-      return result.map(row => row.captures);
+      return result as Capture[];
     } catch (error) {
       console.error("❌ Error fetching user captures:", error);
       throw error;
@@ -832,42 +872,26 @@ class DatabaseStorage implements IStorage {
     offset?: number;
   }): Promise<ContentRadar[]> {
     try {
-      console.log("🔍 Fetching content items with filters:", filters);
-      let query = this.db.select().from(contentRadar).where(eq(contentRadar.isActive, true));
+      console.log("🔍 Fetching content items from content_radar table with filters:", filters);
       
-      // Apply filters
-      const conditions = [];
-      if (filters?.category && filters.category !== 'all') {
-        conditions.push(eq(contentRadar.category, filters.category));
-      }
-      if (filters?.platform && filters.platform !== 'all') {
-        conditions.push(eq(contentRadar.platform, filters.platform));
-      }
+      // Raw SQL query to bypass Drizzle schema issues
+      const result = await this.db.execute(sql`
+        SELECT id, title, url, content, summary, hook1, hook2, category, platform, 
+               viral_score as "viralScore", engagement, growth_rate as "growthRate", 
+               metadata, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
+        FROM content_radar 
+        WHERE is_active = true
+        ${filters?.category && filters.category !== 'all' ? sql`AND category = ${filters.category}` : sql``}
+        ${filters?.platform && filters.platform !== 'all' ? sql`AND platform = ${filters.platform}` : sql``}
+        ORDER BY ${filters?.sortBy === 'viralScore' ? sql`viral_score DESC` : 
+                  filters?.sortBy === 'engagement' ? sql`engagement DESC` : 
+                  sql`created_at DESC`}
+        ${filters?.limit ? sql`LIMIT ${filters.limit}` : sql``}
+        ${filters?.offset ? sql`OFFSET ${filters.offset}` : sql``}
+      `);
       
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-      
-      // Apply sorting
-      if (filters?.sortBy === 'viralScore') {
-        query = query.orderBy(desc(contentRadar.viralScore));
-      } else if (filters?.sortBy === 'engagement') {
-        query = query.orderBy(desc(contentRadar.engagement));
-      } else {
-        query = query.orderBy(desc(contentRadar.createdAt));
-      }
-      
-      // Apply pagination
-      if (filters?.limit) {
-        query = query.limit(filters.limit);
-      }
-      if (filters?.offset) {
-        query = query.offset(filters.offset);
-      }
-      
-      const result = await query;
-      console.log(`✅ Retrieved ${result.length} content items`);
-      return result;
+      console.log(`✅ Retrieved ${result.length} content items from content_radar table using raw SQL`);
+      return result as ContentRadar[];
     } catch (error) {
       console.error("❌ Error fetching content items:", error);
       throw error;
