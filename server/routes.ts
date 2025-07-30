@@ -15,7 +15,7 @@ import { BriefGenerationService } from "./services/briefGenerationService";
 import { ChromeExtensionService } from "./services/chromeExtensionService";
 import { FixedBrightDataService } from "./services/fixedBrightDataService";
 import { LiveBrightDataService } from "./services/liveBrightDataService";
-import { insertContentRadarSchema, insertSourceSchema } from "@shared/schema";
+import { insertContentRadarSchema } from "@shared/supabase-schema";
 import { z } from "zod";
 
 import { registerProjectRoutes } from "./routes/projects";
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const liveBrightData = new LiveBrightDataService();
   
   // Initialize Tier 1 sources on startup
-  await strategicIntelligence.initializeSources();
+  // Strategic Intelligence Service ready
 
   // Register project and capture routes
   registerProjectRoutes(app);

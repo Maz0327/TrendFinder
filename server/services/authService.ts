@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import type { InsertUser, User } from "@shared/schema";
+import type { InsertUser, User } from "@shared/supabase-schema";
 import { z } from "zod";
 import type { IStorage } from "../storage";
 import type { ISupabaseStorage } from "../storage-supabase";

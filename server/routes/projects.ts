@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { insertProjectSchema, insertCaptureSchema } from "@shared/schema";
+import { insertProjectSchema, insertCaptureSchema } from "@shared/supabase-schema";
 import { z } from "zod";
 import { captureAnalysisService } from "../services/capture-analysis-service";
 import '../types/session';

@@ -1,4 +1,4 @@
-import { User } from "@shared/schema";
+import { User } from "@shared/supabase-schema";
 
 declare global {
   namespace Express {

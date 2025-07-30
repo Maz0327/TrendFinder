@@ -1,7 +1,7 @@
 import { openaiAnalysisService, TruthAnalysisResult } from './openai-analysis';
 import { geminiVisualAnalysisService, VisualAnalysisResult } from './gemini-visual-analysis';
 import { storage } from '../storage';
-import type { Capture } from '../../shared/schema';
+import type { Capture } from '../../shared/supabase-schema';
 
 export interface CaptureAnalysisResult {
   truthAnalysis: TruthAnalysisResult;

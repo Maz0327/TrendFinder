@@ -1,6 +1,6 @@
 import { OpenAI } from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { Capture } from "@shared/schema";
+import type { Capture } from "@shared/supabase-schema";
 
 // Fixed Truth Analysis Engine - Single AI call for all 4 layers
 export class TruthAnalysisEngine {

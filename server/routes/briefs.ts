@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { insertBriefSchema } from "@shared/schema";
+import { insertBriefSchema } from "@shared/supabase-schema";
 import { z } from "zod";
 import fs from "fs/promises";
 import path from "path";

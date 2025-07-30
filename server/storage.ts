@@ -431,7 +431,7 @@ export class MemStorage implements IStorage {
     const signal = this.signals.get(id);
     if (!signal) return undefined;
     
-    const updated = { ...signal, ...updates, updatedAt: new Date() };
+    const updated = { ...signal, ...updates };
     this.signals.set(id, updated);
     return updated;
   }
@@ -518,7 +518,7 @@ export class MemStorage implements IStorage {
     const prefs = await this.getUserPreferences(userId);
     if (!prefs) return undefined;
     
-    const updated = { ...prefs, ...updates, updatedAt: new Date() };
+    const updated = { ...prefs, ...updates };
     this.userPreferences.set(prefs.id, updated);
     return updated;
   }
@@ -739,7 +739,7 @@ class DatabaseStorage implements IStorage {
   }
 
   async updateProject(id: string, updates: Partial<Project>): Promise<Project | undefined> {
-    const result = await this.db.update(projects).set({...updates, updatedAt: new Date()}).where(eq(projects.id, id)).returning();
+    const result = await this.db.update(projects).set(updates).where(eq(projects.id, id)).returning();
     return result[0];
   }
 
@@ -804,7 +804,7 @@ class DatabaseStorage implements IStorage {
   }
 
   async updateCapture(id: string, updates: Partial<Capture>): Promise<Capture | undefined> {
-    const result = await this.db.update(captures).set({...updates, updatedAt: new Date()}).where(eq(captures.id, id)).returning();
+    const result = await this.db.update(captures).set(updates).where(eq(captures.id, id)).returning();
     return result[0];
   }
 
@@ -907,7 +907,7 @@ class DatabaseStorage implements IStorage {
   async updateContentItem(id: string, updates: Partial<ContentRadar>): Promise<ContentRadar | undefined> {
     const result = await this.db
       .update(contentRadar)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updates)
       .where(eq(contentRadar.id, id))
       .returning();
     return result[0];
