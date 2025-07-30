@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { SupabaseStorage } from "./storage-supabase";
 import { captureAnalysisService } from "./services/capture-analysis-service";
 import { scheduler } from "./services/scheduler";
 import { BrightDataService } from "./services/brightDataService";

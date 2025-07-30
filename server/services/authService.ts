@@ -2,7 +2,6 @@ import bcrypt from "bcryptjs";
 import type { InsertUser, User } from "@shared/supabase-schema";
 import { z } from "zod";
 import type { IStorage } from "../storage";
-import type { ISupabaseStorage } from "../storage-supabase";
 
 export const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -19,7 +18,7 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 
 export class AuthService {
-  constructor(private storage: IStorage | ISupabaseStorage) {}
+  constructor(private storage: IStorage) {}
 
   async register(data: RegisterData): Promise<User> {
     // Check if user already exists
@@ -50,11 +49,17 @@ export class AuthService {
     // Find user by email
     const user = await this.storage.getUserByEmail(data.email);
     if (!user) {
+      console.log("❌ User not found for email:", data.email);
       throw new Error("Invalid email or password");
     }
 
+    console.log("🔍 Found user:", user.email, "Password hash starts with:", user.password.substring(0, 10));
+    console.log("🔍 Comparing password:", data.password, "with hash");
+    
     // Verify password
     const isValidPassword = await bcrypt.compare(data.password, user.password);
+    console.log("🔍 Password validation result:", isValidPassword);
+    
     if (!isValidPassword) {
       throw new Error("Invalid email or password");
     }
