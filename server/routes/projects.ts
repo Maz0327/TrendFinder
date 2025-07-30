@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { insertProjectSchema, insertCaptureSchema } from "@shared/schema";
 import { z } from "zod";
 import { captureAnalysisService } from "../services/capture-analysis-service";
+import '../types/session';
 
 export function registerProjectRoutes(app: Express) {
 
@@ -13,7 +14,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const projects = await storage.getProjects(req.session.user.id);
+      const projects = await storage.getProjects(req.session.userId);
       res.json(projects);
     } catch (error) {
       console.error("Failed to fetch projects:", error);
@@ -34,7 +35,7 @@ export function registerProjectRoutes(app: Express) {
       }
       
       // Verify ownership
-      if (project.userId !== req.session.user.id) {
+      if (project.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -54,7 +55,7 @@ export function registerProjectRoutes(app: Express) {
       
       const validatedData = insertProjectSchema.parse({
         ...req.body,
-        userId: req.session.user.id
+        userId: req.session.userId
       });
       
       const project = await storage.createProject(validatedData);
@@ -80,7 +81,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
       
-      if (project.userId !== req.session.user.id) {
+      if (project.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -104,7 +105,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
       
-      if (project.userId !== req.session.user.id) {
+      if (project.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -128,7 +129,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
       
-      if (project.userId !== req.session.user.id) {
+      if (project.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -155,7 +156,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
       
-      if (project.userId !== req.session.user.id) {
+      if (project.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -196,7 +197,7 @@ export function registerProjectRoutes(app: Express) {
       
       // Verify ownership through project
       const project = await storage.getProjectById(capture.projectId);
-      if (!project || project.userId !== req.session.user.id) {
+      if (!project || project.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -220,7 +221,7 @@ export function registerProjectRoutes(app: Express) {
       }
       
       const project = await storage.getProjectById(capture.projectId);
-      if (!project || project.userId !== req.session.user.id) {
+      if (!project || project.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
