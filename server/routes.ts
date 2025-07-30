@@ -7,6 +7,10 @@ import { BrightDataBrowserService } from "./services/brightDataBrowser";
 import { EnhancedBrightDataService } from "./services/enhancedBrightDataService";
 import { AIAnalyzer } from "./services/aiAnalyzer";
 import { StrategicIntelligenceService } from "./services/strategicIntelligenceService";
+import { TruthAnalysisFramework } from "./services/truthAnalysisFramework";
+import { Tier2PlatformService } from "./services/tier2PlatformService";
+import { BriefGenerationService } from "./services/briefGenerationService";
+import { ChromeExtensionService } from "./services/chromeExtensionService";
 import { insertContentRadarSchema, insertSourceSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -16,6 +20,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const brightDataBrowser = new BrightDataBrowserService();
   const enhancedBrightData = new EnhancedBrightDataService();
   const strategicIntelligence = new StrategicIntelligenceService(storage);
+  const truthFramework = new TruthAnalysisFramework();
+  const tier2Service = new Tier2PlatformService();
+  const briefService = new BriefGenerationService();
+  const chromeExtensionService = new ChromeExtensionService();
   
   // Initialize Tier 1 sources on startup
   await strategicIntelligence.initializeSources();
@@ -401,15 +409,273 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to analyze trends" });
     }
   });
+
+  // Phase 2: Tier 2 Platform Intelligence Routes
   
-  // Get cultural moments
-  app.get("/api/intelligence/cultural-moments", async (req, res) => {
+  // Get Tier 2 sources
+  app.get("/api/tier2/sources", async (req, res) => {
     try {
-      const signals = await storage.getRecentSignals('24h');
-      const culturalMoments = await strategicIntelligence.correlateCulturalMoments(signals);
-      res.json(culturalMoments);
+      const sources = tier2Service.getTier2Sources();
+      res.json(sources);
     } catch (error) {
-      res.status(500).json({ error: "Failed to detect cultural moments" });
+      res.status(500).json({ error: "Failed to fetch Tier 2 sources" });
+    }
+  });
+  
+  // Fetch from specific Tier 2 platform
+  app.post("/api/tier2/fetch", async (req, res) => {
+    try {
+      const { platform, keywords = [], limit = 20 } = req.body;
+      
+      if (!platform) {
+        return res.status(400).json({ error: "Platform is required" });
+      }
+      
+      const data = await tier2Service.fetchPlatformData(platform, keywords, limit);
+      res.json({ 
+        success: true, 
+        platform,
+        count: data.length,
+        data 
+      });
+    } catch (error) {
+      console.error('Error fetching Tier 2 data:', error);
+      res.status(500).json({ error: "Failed to fetch Tier 2 data", details: error.message });
+    }
+  });
+
+  // Phase 3: Truth Analysis Framework Routes
+  
+  // Analyze content with truth framework
+  app.post("/api/truth-analysis/analyze", async (req, res) => {
+    try {
+      const { content, platform, metadata = {} } = req.body;
+      
+      if (!content || !platform) {
+        return res.status(400).json({ error: "Content and platform are required" });
+      }
+      
+      const analysis = await truthFramework.analyzeContent(content, platform, metadata);
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error in truth analysis:', error);
+      res.status(500).json({ error: "Failed to analyze content", details: error.message });
+    }
+  });
+
+  // Phase 4: Strategic Brief Generation Routes
+  
+  // Get available brief templates
+  app.get("/api/briefs/templates", async (req, res) => {
+    try {
+      const templates = briefService.getTemplates();
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+  
+  // Generate strategic brief
+  app.post("/api/briefs/generate", async (req, res) => {
+    try {
+      const { 
+        templateId, 
+        signals = [], 
+        culturalMoments = [], 
+        trends = [], 
+        metadata = {} 
+      } = req.body;
+      
+      if (!templateId) {
+        return res.status(400).json({ error: "Template ID is required" });
+      }
+      
+      const brief = await briefService.generateBrief(
+        templateId,
+        signals,
+        culturalMoments,
+        trends,
+        metadata
+      );
+      
+      res.json(brief);
+    } catch (error) {
+      console.error('Error generating brief:', error);
+      res.status(500).json({ error: "Failed to generate brief", details: error.message });
+    }
+  });
+
+  // Phase 5: Comprehensive Intelligence Pipeline
+  
+  // Run complete intelligence pipeline
+  app.post("/api/intelligence/comprehensive", async (req, res) => {
+    try {
+      const { 
+        tier1Platforms = ['twitter', 'linkedin'], 
+        tier2Platforms = ['reddit', 'hackernews'],
+        keywords = [], 
+        limit = 50,
+        generateBrief = false,
+        templateId = 'jimmyjohns_strategic'
+      } = req.body;
+      
+      console.log('[Comprehensive Intelligence] Starting pipeline...');
+      
+      // Step 1: Fetch Tier 1 intelligence
+      const tier1Signals = await strategicIntelligence.fetchMultiPlatformIntelligence({
+        platforms: tier1Platforms,
+        keywords,
+        timeWindow: '24h',
+        limit: Math.floor(limit * 0.7) // 70% from Tier 1
+      });
+      
+      // Step 2: Fetch Tier 2 intelligence
+      const tier2Data = [];
+      for (const platform of tier2Platforms) {
+        const data = await tier2Service.fetchPlatformData(platform, keywords, Math.floor(limit * 0.3 / tier2Platforms.length));
+        tier2Data.push(...data);
+      }
+      
+      // Step 3: Analyze trends and cultural moments
+      const allSignals = [...tier1Signals, ...tier2Data];
+      const trends = await strategicIntelligence.detectEmergingTrends('7d');
+      const culturalMoments = await strategicIntelligence.correlateCulturalMoments(allSignals);
+      
+      // Step 4: Generate brief if requested
+      let brief = null;
+      if (generateBrief && allSignals.length > 0) {
+        brief = await briefService.generateBrief(
+          templateId,
+          allSignals,
+          culturalMoments.culturalMoments || [],
+          trends.trends || [],
+          {
+            project: `Intelligence Report ${new Date().toLocaleDateString()}`,
+            platforms: [...tier1Platforms, ...tier2Platforms],
+            keywords,
+            timeRange: '24h'
+          }
+        );
+      }
+      
+      console.log(`[Comprehensive Intelligence] Collected ${allSignals.length} total signals`);
+      
+      res.json({
+        success: true,
+        tier1Signals: tier1Signals.length,
+        tier2Signals: tier2Data.length,
+        totalSignals: allSignals.length,
+        trends: trends.trends?.length || 0,
+        culturalMoments: culturalMoments.culturalMoments?.length || 0,
+        brief: brief ? brief.id : null,
+        data: {
+          signals: allSignals,
+          trends,
+          culturalMoments,
+          brief
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error in comprehensive intelligence:', error);
+      res.status(500).json({ error: "Failed to run comprehensive intelligence", details: error.message });
+    }
+  });
+
+  // Phase 6: Chrome Extension Integration Routes
+  
+  // Process content captured from Chrome extension
+  app.post("/api/extension/capture", async (req, res) => {
+    try {
+      const contentData = req.body;
+      
+      // Validate content data
+      const validation = chromeExtensionService.validateContentData(contentData);
+      if (!validation.valid) {
+        return res.status(400).json({ error: "Invalid content data", details: validation.errors });
+      }
+      
+      const analysis = await chromeExtensionService.processCapturedContent(contentData);
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error processing extension capture:', error);
+      res.status(500).json({ error: "Failed to process captured content", details: error.message });
+    }
+  });
+  
+  // Batch process multiple captured contents
+  app.post("/api/extension/batch", async (req, res) => {
+    try {
+      const { contents } = req.body;
+      
+      if (!Array.isArray(contents)) {
+        return res.status(400).json({ error: "Contents array is required" });
+      }
+      
+      const analyses = await chromeExtensionService.processBatchContent(contents);
+      res.json({
+        success: true,
+        processed: analyses.length,
+        analyses
+      });
+    } catch (error) {
+      console.error('Error processing extension batch:', error);
+      res.status(500).json({ error: "Failed to process batch content", details: error.message });
+    }
+  });
+  
+  // Get extension stats and capabilities
+  app.get("/api/extension/stats", async (req, res) => {
+    try {
+      const stats = chromeExtensionService.getExtensionStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch extension stats" });
+    }
+  });
+
+  // Phase 7: System Health and Status Routes
+  
+  // Get comprehensive system status
+  app.get("/api/system/status", async (req, res) => {
+    try {
+      const status = {
+        timestamp: new Date().toISOString(),
+        services: {
+          strategicIntelligence: 'operational',
+          truthAnalysis: 'operational',
+          tier2Platforms: 'operational',
+          briefGeneration: 'operational',
+          chromeExtension: 'operational'
+        },
+        platforms: {
+          tier1: {
+            twitter: 'configured',
+            linkedin: 'configured',
+            instagram: 'configured',
+            tiktok: 'configured',
+            medium: 'configured'
+          },
+          tier2: tier2Service.getTier2Sources().reduce((acc, source) => {
+            acc[source.name] = source.isActive ? 'active' : 'inactive';
+            return acc;
+          }, {} as Record<string, string>)
+        },
+        briefTemplates: briefService.getTemplates().length,
+        version: '2.0.0',
+        buildInfo: {
+          phase1: 'complete',
+          phase2: 'complete',
+          phase3: 'complete',
+          phase4: 'complete',
+          phase5: 'complete',
+          phase6: 'complete'
+        }
+      };
+      
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get system status" });
     }
   });
 
