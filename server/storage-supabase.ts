@@ -20,6 +20,10 @@ export interface ISupabaseStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
+  // Legacy source methods for compatibility
+  getSourceByName(name: string): Promise<any>;
+  createSource(source: any): Promise<any>;
+  
   // Project methods
   getProjects(userId: string): Promise<Project[]>;
   getProjectById(id: string): Promise<Project | undefined>;
@@ -47,7 +51,7 @@ export interface ISupabaseStorage {
   addCaptureToBrief(briefCapture: InsertBriefCapture): Promise<BriefCapture>;
   removeCaptureFromBrief(briefId: string, captureId: string): Promise<boolean>;
   getBriefCaptures(briefId: string): Promise<BriefCapture[]>;
-  
+
   // Content Radar methods - Trending content analysis
   getContentItems(filters?: {
     category?: string;
@@ -77,6 +81,17 @@ export class SupabaseStorage implements ISupabaseStorage {
     const sql = neon(databaseUrl);
     this.db = drizzle(sql);
     console.log("✅ Supabase database connection established");
+  }
+
+  // Legacy source methods for compatibility
+  async getSourceByName(name: string): Promise<any> {
+    // Return null for legacy compatibility - sources not used in Supabase schema
+    return null;
+  }
+
+  async createSource(source: any): Promise<any> {
+    // No-op for legacy compatibility
+    return { id: 'legacy-source', name: source.name };
   }
 
   // User methods
