@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Dashboard from "@/pages/dashboard";
+import NewDashboard from "@/pages/new-dashboard";
 import IntelligenceHub from "@/pages/intelligence";
 import AnalysisCenter from "@/pages/analysis";
 import BriefGenerator from "@/pages/briefs";
@@ -12,6 +12,7 @@ import NotFound from "@/pages/not-found";
 import SignalMining from "@/pages/signal-mining";
 import Projects from "@/pages/projects";
 import BriefBuilder from "@/pages/brief-builder";
+import MyCaptures from "@/pages/my-captures";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import MobileNavBar from "@/components/layout/MobileNavBar";
@@ -26,9 +27,10 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      <Route path="/" component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/" component={() => <ProtectedRoute><NewDashboard /></ProtectedRoute>} />
       <Route path="/signal-mining" component={() => <ProtectedRoute><SignalMining /></ProtectedRoute>} />
       <Route path="/projects" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
+      <Route path="/my-captures" component={() => <ProtectedRoute><MyCaptures /></ProtectedRoute>} />
       <Route path="/brief-builder" component={() => <ProtectedRoute><BriefBuilder /></ProtectedRoute>} />
       <Route path="/intelligence" component={() => <ProtectedRoute><IntelligenceHub /></ProtectedRoute>} />
       <Route path="/analysis" component={() => <ProtectedRoute><AnalysisCenter /></ProtectedRoute>} />

@@ -68,8 +68,9 @@ export const captures = pgTable("captures", {
   screenshotUrl: text("screenshot_url"), // S3 or local path
   metadata: jsonb("metadata"), // Platform-specific data (likes, comments, etc.)
   
-  // User notes
+  // User notes and custom content
   userNote: text("user_note"),
+  customCopy: text("custom_copy"), // User's custom copy variations
   tags: jsonb("tags").$type<string[]>(),
   
   // Truth Analysis Framework (populated after AI processing)

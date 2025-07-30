@@ -39,6 +39,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerProjectRoutes(app);
   registerBriefRoutes(app);
 
+  // Get all captures for the user (for My Captures page)
+  app.get("/api/captures/all", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const captures = await storage.getUserCaptures(req.session.user.id);
+      res.json(captures);
+    } catch (error) {
+      console.error("Error fetching user captures:", error);
+      res.status(500).json({ error: "Failed to fetch captures" });
+    }
+  });
+
+  // Update capture notes, custom copy, and tags
+  app.patch("/api/captures/:id", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { id } = req.params;
+      const { notes, customCopy, tags } = req.body;
+
+      const updatedCapture = await storage.updateCapture(id, {
+        userNote: notes,
+        customCopy,
+        tags,
+        updatedAt: new Date()
+      });
+
+      res.json(updatedCapture);
+    } catch (error) {
+      console.error("Error updating capture:", error);
+      res.status(500).json({ error: "Failed to update capture" });
+    }
+  });
+
+  // Delete capture
+  app.delete("/api/captures/:id", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteCapture(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting capture:", error);
+      res.status(500).json({ error: "Failed to delete capture" });
+    }
+  });
+
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {
     try {

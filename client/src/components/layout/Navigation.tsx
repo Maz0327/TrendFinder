@@ -30,7 +30,7 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Projects", href: "/projects", icon: FolderOpen },
-  { name: "Intelligence", href: "/intelligence", icon: Globe },
+  { name: "My Captures", href: "/my-captures", icon: Puzzle },
   { name: "Analysis", href: "/analysis", icon: Brain },
   { name: "Brief Builder", href: "/brief-builder", icon: PenTool },
   { name: "Briefs", href: "/briefs", icon: FileText },

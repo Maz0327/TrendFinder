@@ -247,6 +247,35 @@ export class MemStorage implements IStorage {
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
+  // Get all captures for a user across all projects (for My Captures page)
+  async getUserCaptures(userId: string): Promise<any[]> {
+    const userProjects = Array.from(this.projects.values())
+      .filter(project => project.userId === userId);
+    
+    const projectIds = userProjects.map(p => p.id);
+    
+    return Array.from(this.captures.values())
+      .filter(capture => projectIds.includes(capture.projectId))
+      .map(capture => {
+        const project = userProjects.find(p => p.id === capture.projectId);
+        return {
+          id: capture.id,
+          title: capture.title || 'Untitled Capture',
+          content: capture.content || '',
+          type: capture.type,
+          url: capture.sourceUrl,
+          projectId: capture.projectId,
+          projectName: project?.name || 'Unknown Project',
+          notes: capture.userNote,
+          customCopy: capture.customCopy,
+          tags: capture.tags || [],
+          createdAt: capture.createdAt.toISOString(),
+          updatedAt: capture.updatedAt.toISOString(),
+        };
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
   // Brief methods
   async getBriefs(projectId: string): Promise<Brief[]> {
     return Array.from(this.briefs.values())

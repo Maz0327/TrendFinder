@@ -33,7 +33,7 @@ export default function Login() {
     },
     onSuccess: (data) => {
       setUser(data.user);
-      navigate("/projects");
+      navigate("/");
     },
   });
 

@@ -10,6 +10,7 @@ import SystemStatus from "@/components/dashboard/SystemStatus";
 import { LoadingSpinner, LoadingState } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
+import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { ContentRadarItem, ContentFilters as FilterType } from "@/types";
 import { Button } from "@/components/ui/button";
