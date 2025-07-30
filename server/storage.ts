@@ -38,6 +38,7 @@ export interface IStorage {
   updateCapture(id: string, updates: Partial<Capture>): Promise<Capture | undefined>;
   deleteCapture(id: string): Promise<boolean>;
   getPendingCaptures(): Promise<Capture[]>;
+  getUserCaptures(userId: string): Promise<Capture[]>;
   
   // Brief methods
   getBriefs(projectId: string): Promise<Brief[]>;
@@ -689,13 +690,17 @@ class DatabaseStorage implements IStorage {
   private db: any;
 
   constructor() {
-    if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL is required");
+    // Force use of local Neon database credentials instead of DATABASE_URL
+    const databaseUrl = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
+    
+    if (!process.env.PGUSER || !process.env.PGPASSWORD || !process.env.PGHOST || !process.env.PGDATABASE) {
+      throw new Error("PostgreSQL credentials (PGUSER, PGPASSWORD, PGHOST, PGDATABASE) are required");
     }
     try {
-      const sql = neon(process.env.DATABASE_URL);
+      console.log(`🔗 Connecting to database: ${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`);
+      const sql = neon(databaseUrl);
       this.db = drizzle(sql);
-      console.log("✅ Database connection established");
+      console.log("✅ Database connection established with local Neon instance");
     } catch (error) {
       console.error("❌ Database connection failed:", error);
       throw error;
@@ -712,10 +717,99 @@ class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await this.db.insert(users).values(insertUser).returning();
     return result[0];
   }
+
+  // Project methods for DatabaseStorage
+  async getProjects(userId: string): Promise<Project[]> {
+    return await this.db.select().from(projects).where(eq(projects.userId, userId)).orderBy(desc(projects.createdAt));
+  }
+
+  async getProjectById(id: string): Promise<Project | undefined> {
+    const result = await this.db.select().from(projects).where(eq(projects.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createProject(insertProject: InsertProject): Promise<Project> {
+    const result = await this.db.insert(projects).values(insertProject).returning();
+    return result[0];
+  }
+
+  async updateProject(id: string, updates: Partial<Project>): Promise<Project | undefined> {
+    const result = await this.db.update(projects).set({...updates, updatedAt: new Date()}).where(eq(projects.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteProject(id: string): Promise<boolean> {
+    const result = await this.db.delete(projects).where(eq(projects.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Capture methods for DatabaseStorage
+  async getCaptures(projectId: string): Promise<Capture[]> {
+    return await this.db.select().from(captures).where(eq(captures.projectId, projectId)).orderBy(desc(captures.createdAt));
+  }
+
+  async getCaptureById(id: string): Promise<Capture | undefined> {
+    const result = await this.db.select().from(captures).where(eq(captures.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createCapture(capture: InsertCapture): Promise<Capture> {
+    const result = await this.db.insert(captures).values(capture).returning();
+    return result[0];
+  }
+
+  async updateCapture(id: string, updates: Partial<Capture>): Promise<Capture | undefined> {
+    const result = await this.db.update(captures).set({...updates, updatedAt: new Date()}).where(eq(captures.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteCapture(id: string): Promise<boolean> {
+    const result = await this.db.delete(captures).where(eq(captures.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getPendingCaptures(): Promise<Capture[]> {
+    return await this.db.select().from(captures).where(eq(captures.status, 'pending')).orderBy(desc(captures.createdAt));
+  }
+
+  async getUserCaptures(userId: string): Promise<Capture[]> {
+    return await this.db.select().from(captures).where(eq(captures.userId, userId)).orderBy(desc(captures.createdAt));
+  }
+
+  // Stub methods for interfaces not yet implemented in database
+  async getBriefs(projectId: string): Promise<Brief[]> { return []; }
+  async getBriefById(id: string): Promise<Brief | undefined> { return undefined; }
+  async createBrief(brief: InsertBrief): Promise<Brief> { return {} as Brief; }
+  async updateBrief(id: string, updates: Partial<Brief>): Promise<Brief | undefined> { return undefined; }
+  async deleteBrief(id: string): Promise<boolean> { return false; }
+  async addCaptureToBrief(briefCapture: InsertBriefCapture): Promise<BriefCapture> { return {} as BriefCapture; }
+  async removeCaptureFromBrief(briefId: string, captureId: string): Promise<boolean> { return false; }
+  async getBriefCaptures(briefId: string): Promise<BriefCapture[]> { return []; }
+  async getSignals(filters?: any): Promise<Signal[]> { return []; }
+  async getSignalById(id: string): Promise<Signal | undefined> { return undefined; }
+  async createSignal(signal: InsertSignal): Promise<Signal> { return {} as Signal; }
+  async updateSignal(id: string, updates: Partial<Signal>): Promise<Signal | undefined> { return undefined; }
+  async deleteSignal(id: string): Promise<boolean> { return false; }
+  async getRecentSignals(timeWindow: string): Promise<Signal[]> { return []; }
+  async getSourceByName(name: string): Promise<Source | undefined> { return undefined; }
+  async getSourceById(id: string): Promise<Source | undefined> { return undefined; }
+  async getAllSources(tier?: number): Promise<Source[]> { return []; }
+  async createSource(source: InsertSource): Promise<Source> { return {} as Source; }
+  async updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined> { return undefined; }
+  async createSignalSource(signalSource: InsertSignalSource): Promise<SignalSource> { return {} as SignalSource; }
+  async getSignalSources(signalId: string): Promise<SignalSource[]> { return []; }
+  async getUserPreferences(userId: string): Promise<UserPreference | undefined> { return undefined; }
+  async createUserPreferences(prefs: InsertUserPreference): Promise<UserPreference> { return {} as UserPreference; }
+  async updateUserPreferences(userId: string, updates: Partial<UserPreference>): Promise<UserPreference | undefined> { return undefined; }
 
   async getContentItems(filters?: {
     category?: string;
@@ -823,16 +917,13 @@ class DatabaseStorage implements IStorage {
   }
 }
 
-// Use memory storage temporarily while fixing Supabase connection
-export const storage = new MemStorage();
-
-// Uncomment this when Supabase is working:
-// let storage: IStorage;
-// try {
-//   storage = new DatabaseStorage();
-//   console.log("✅ Using database storage");
-// } catch (error) {
-//   console.warn("⚠️ Database connection failed, using memory storage:", error);
-//   storage = new MemStorage();
-// }
-// export { storage };
+// Use database storage for persistent data
+let storage: IStorage;
+try {
+  storage = new DatabaseStorage();
+  console.log("✅ Using database storage");
+} catch (error) {
+  console.warn("⚠️ Database connection failed, using memory storage:", error);
+  storage = new MemStorage();
+}
+export { storage };
