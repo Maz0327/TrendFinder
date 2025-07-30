@@ -33,7 +33,8 @@ export default function Login() {
     },
     onSuccess: (data) => {
       setUser(data.user);
-      navigate("/");
+      // Force navigation to dashboard after successful login
+      window.location.href = "/";
     },
   });
 
