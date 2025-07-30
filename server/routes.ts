@@ -17,6 +17,7 @@ import { insertContentRadarSchema, insertSourceSchema } from "@shared/schema";
 import { z } from "zod";
 
 import { registerProjectRoutes } from "./routes/projects";
+import { registerBriefRoutes } from "./routes/briefs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const aiAnalyzer = new AIAnalyzer();
@@ -36,6 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register project and capture routes
   registerProjectRoutes(app);
+  registerBriefRoutes(app);
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {

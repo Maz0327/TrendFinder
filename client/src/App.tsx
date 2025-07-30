@@ -11,6 +11,7 @@ import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import SignalMining from "@/pages/signal-mining";
 import Projects from "@/pages/projects";
+import BriefBuilder from "@/pages/brief-builder";
 import MobileNavBar from "@/components/layout/MobileNavBar";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/signal-mining" component={SignalMining} />
       <Route path="/projects" component={Projects} />
+      <Route path="/brief-builder" component={BriefBuilder} />
       <Route path="/intelligence" component={IntelligenceHub} />
       <Route path="/analysis" component={AnalysisCenter} />
       <Route path="/briefs" component={BriefGenerator} />

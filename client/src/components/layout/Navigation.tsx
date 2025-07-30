@@ -8,13 +8,17 @@ import {
   FileText,
   Settings,
   Puzzle,
-  TrendingUp
+  TrendingUp,
+  FolderOpen,
+  PenTool
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
+  { name: "Projects", href: "/projects", icon: FolderOpen },
   { name: "Intelligence", href: "/intelligence", icon: Globe },
   { name: "Analysis", href: "/analysis", icon: Brain },
+  { name: "Brief Builder", href: "/brief-builder", icon: PenTool },
   { name: "Briefs", href: "/briefs", icon: FileText },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

@@ -5,13 +5,15 @@ import {
   Globe,
   Brain,
   FileText,
-  Settings
+  Settings,
+  FolderOpen,
+  PenTool
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
-  { name: "Intelligence", href: "/intelligence", icon: Globe },
-  { name: "Analysis", href: "/analysis", icon: Brain },
+  { name: "Projects", href: "/projects", icon: FolderOpen },
+  { name: "Brief Builder", href: "/brief-builder", icon: PenTool },
   { name: "Briefs", href: "/briefs", icon: FileText },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
