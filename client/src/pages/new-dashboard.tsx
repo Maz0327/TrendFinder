@@ -59,12 +59,12 @@ export default function NewDashboard() {
   const { user } = useAuth();
 
   // Fetch projects
-  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
 
   // Fetch recent captures across all projects
-  const { data: recentCaptures = [], isLoading: capturesLoading } = useQuery({
+  const { data: recentCaptures = [], isLoading: capturesLoading } = useQuery<RecentCapture[]>({
     queryKey: ["/api/captures/all"],
     queryFn: async () => {
       const response = await fetch("/api/captures/all");

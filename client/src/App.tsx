@@ -32,6 +32,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/dashboard" component={() => <ProtectedRoute><NewDashboard /></ProtectedRoute>} />
       <Route path="/" component={() => <ProtectedRoute><NewDashboard /></ProtectedRoute>} />
       
       {/* New Strategic Workflow */}
