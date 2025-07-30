@@ -93,7 +93,7 @@ export default function Projects() {
       <div className="mb-6 flex justify-end">
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button data-tour="projects">
                 <Plus className="mr-2 h-4 w-4" />
                 New Project
               </Button>

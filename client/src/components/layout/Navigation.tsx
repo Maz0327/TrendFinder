@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
+import { useTour } from "@/components/onboarding/OnboardingTour";
 import {
   Home,
   Globe,
@@ -39,6 +40,7 @@ const navigation = [
 export default function Navigation() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const { startTour } = useTour();
 
   return (
     <nav className="hidden lg:flex items-center space-x-4">
@@ -49,6 +51,7 @@ export default function Navigation() {
         return (
           <Link key={item.name} href={item.href}>
             <div
+              data-tour={item.name.toLowerCase().replace(/\s+/g, '-')}
               className={cn(
                 "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
                 isActive
@@ -64,7 +67,7 @@ export default function Navigation() {
       })}
       
       {/* Chrome Extension Status */}
-      <div className="ml-4 pl-4 border-l border-gray-200">
+      <div className="ml-4 pl-4 border-l border-gray-200" data-tour="extension-status">
         <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
           <Puzzle className="h-3 w-3 mr-1" />
           <span className="hidden xl:inline">Extension</span>
@@ -97,6 +100,10 @@ export default function Navigation() {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={startTour} className="cursor-pointer">
+                <Puzzle className="mr-2 h-4 w-4" />
+                <span>Take Tour</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="cursor-pointer">

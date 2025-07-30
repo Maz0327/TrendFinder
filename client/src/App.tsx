@@ -17,6 +17,9 @@ import Register from "@/pages/register";
 import MobileNavBar from "@/components/layout/MobileNavBar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { TourProvider } from "@/components/onboarding/OnboardingTour";
+import { ProgressiveDisclosureProvider } from "@/components/onboarding/ProgressiveDisclosure";
+import { SampleContentProvider } from "@/components/onboarding/SampleContent";
 
 function Router() {
   return (
@@ -40,13 +43,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <div className="pb-16 lg:pb-0">
-            <Router />
-          </div>
-          <MobileNavBar />
-        </TooltipProvider>
+        <TourProvider>
+          <ProgressiveDisclosureProvider>
+            <SampleContentProvider>
+              <TooltipProvider>
+                <Toaster />
+                <div className="pb-16 lg:pb-0">
+                  <Router />
+                </div>
+                <MobileNavBar />
+              </TooltipProvider>
+            </SampleContentProvider>
+          </ProgressiveDisclosureProvider>
+        </TourProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

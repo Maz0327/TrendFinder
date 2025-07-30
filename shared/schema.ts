@@ -13,6 +13,19 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   email: text("email"),
   role: text("role").default("strategist"), // 'user', 'admin', 'strategist'
+  
+  // Onboarding and progress tracking
+  onboardingCompleted: boolean("onboarding_completed").default(false),
+  tourCompleted: boolean("tour_completed").default(false),
+  progressData: jsonb("progress_data").$type<{
+    projectsCreated: number;
+    capturesMade: number;
+    briefsGenerated: number;
+    daysActive: number;
+    unlockedFeatures: string[];
+    lastActive: string;
+  }>(),
+  
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   usernameIdx: index("idx_users_username").on(table.username),
