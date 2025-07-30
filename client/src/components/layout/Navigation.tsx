@@ -31,15 +31,11 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Projects", href: "/projects", icon: FolderOpen },
-  { name: "My Captures", href: "/my-captures", icon: Puzzle },
-  { name: "Signal Mining", href: "/signal-mining", icon: Radar },
-  { name: "Intelligence", href: "/intelligence", icon: Search },
-  { name: "Analysis", href: "/analysis", icon: Brain },
-  { name: "Brief Builder", href: "/brief-builder", icon: PenTool },
-  { name: "Briefs", href: "/briefs", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Today's Briefing", href: "/", icon: Home },
+  { name: "Explore Signals", href: "/explore-signals", icon: Radar },
+  { name: "New Signal Capture", href: "/signal-capture", icon: Puzzle },
+  { name: "Strategic Brief Lab", href: "/brief-lab", icon: PenTool },
+  { name: "Manage", href: "/manage", icon: FolderOpen },
 ];
 
 export default function Navigation() {

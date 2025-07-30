@@ -173,36 +173,36 @@ export default function NewDashboard() {
         <FadeIn delay={100}>
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Access all your strategic intelligence tools</CardDescription>
+              <CardTitle>Today's Strategic Actions</CardTitle>
+              <CardDescription>Jump into your strategic workflow</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Link href="/projects">
+                <Link href="/explore-signals">
                   <Button className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift">
-                    <Plus className="h-6 w-6" />
-                    <span>New Project</span>
+                    <Radar className="h-6 w-6" />
+                    <span>Explore Signals</span>
                   </Button>
                 </Link>
                 
-                <Link href="/my-captures">
+                <Link href="/signal-capture">
                   <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift border-green-200 text-green-700 hover:bg-green-50">
                     <Puzzle className="h-6 w-6" />
-                    <span>Quick Capture</span>
+                    <span>New Capture</span>
                   </Button>
                 </Link>
                 
-                <Link href="/analysis">
+                <Link href="/brief-lab">
                   <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift border-purple-200 text-purple-700 hover:bg-purple-50">
                     <Brain className="h-6 w-6" />
-                    <span>AI Analysis</span>
+                    <span>Brief Lab</span>
                   </Button>
                 </Link>
                 
-                <Link href="/brief-builder">
+                <Link href="/manage">
                   <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift border-blue-200 text-blue-700 hover:bg-blue-50">
-                    <FileText className="h-6 w-6" />
-                    <span>Google Export</span>
+                    <FolderOpen className="h-6 w-6" />
+                    <span>Manage</span>
                   </Button>
                 </Link>
               </div>
@@ -238,7 +238,7 @@ export default function NewDashboard() {
                   <CheckCircle className="h-4 w-4 text-green-500" />
                   <span>Google Sheets for data analysis</span>
                 </div>
-                <Link href="/brief-builder">
+                <Link href="/brief-lab">
                   <Button size="sm" className="mt-3">
                     <FileText className="h-4 w-4 mr-2" />
                     Try Google Export
@@ -274,7 +274,7 @@ export default function NewDashboard() {
                   <CheckCircle className="h-4 w-4 text-green-500" />
                   <span>Automatic processing pipeline</span>
                 </div>
-                <Link href="/analysis">
+                <Link href="/explore-signals">
                   <Button size="sm" className="mt-3">
                     <Brain className="h-4 w-4 mr-2" />
                     View Analysis
@@ -294,33 +294,33 @@ export default function NewDashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Link href="/signal-mining">
+                <Link href="/explore-signals">
                   <Button variant="outline" className="w-full p-4 h-auto flex flex-col items-start space-y-2 hover-lift border-red-200 text-red-700 hover:bg-red-50">
                     <div className="flex items-center gap-2">
                       <Radar className="h-5 w-5" />
-                      <span className="font-medium">Signal Mining</span>
+                      <span className="font-medium">Explore Signals</span>
                     </div>
-                    <p className="text-xs text-gray-600">Bright Data powered content mining</p>
+                    <p className="text-xs text-gray-600">Unified discovery workspace with 4 modes</p>
                   </Button>
                 </Link>
 
-                <Link href="/intelligence">
+                <Link href="/signal-capture">
                   <Button variant="outline" className="w-full p-4 h-auto flex flex-col items-start space-y-2 hover-lift border-indigo-200 text-indigo-700 hover:bg-indigo-50">
                     <div className="flex items-center gap-2">
                       <Search className="h-5 w-5" />
-                      <span className="font-medium">Intelligence Hub</span>
+                      <span className="font-medium">Signal Capture</span>
                     </div>
-                    <p className="text-xs text-gray-600">Cross-platform intelligence gathering</p>
+                    <p className="text-xs text-gray-600">Content analysis workspace</p>
                   </Button>
                 </Link>
 
-                <Link href="/system-status">
+                <Link href="/manage">
                   <Button variant="outline" className="w-full p-4 h-auto flex flex-col items-start space-y-2 hover-lift border-teal-200 text-teal-700 hover:bg-teal-50">
                     <div className="flex items-center gap-2">
                       <Activity className="h-5 w-5" />
-                      <span className="font-medium">System Status</span>
+                      <span className="font-medium">Manage</span>
                     </div>
-                    <p className="text-xs text-gray-600">Platform health & API monitoring</p>
+                    <p className="text-xs text-gray-600">Organization hub & analytics</p>
                   </Button>
                 </Link>
               </div>

@@ -17,11 +17,11 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { name: "Home", href: "/", icon: Home },
-  { name: "Projects", href: "/projects", icon: FolderOpen },
-  { name: "Captures", href: "/my-captures", icon: Puzzle },
-  { name: "Mining", href: "/signal-mining", icon: Radar },
-  { name: "Intel", href: "/intelligence", icon: Search },
+  { name: "Briefing", href: "/", icon: Home },
+  { name: "Signals", href: "/explore-signals", icon: Radar },
+  { name: "Capture", href: "/signal-capture", icon: Puzzle },
+  { name: "Brief Lab", href: "/brief-lab", icon: PenTool },
+  { name: "Manage", href: "/manage", icon: FolderOpen },
 ];
 
 export default function MobileNavBar() {
