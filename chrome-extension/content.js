@@ -5,6 +5,11 @@ class ContentCapture {
         this.isInitialized = false;
         this.selectionOverlay = null;
         this.captureIndicator = null;
+        this.captureMode = 'precision'; // 'precision' or 'context'
+        this.isSelecting = false;
+        this.selectionStart = null;
+        this.contextHighlight = null;
+        this.activeProject = null;
         this.init();
     }
 
@@ -14,9 +19,17 @@ class ContentCapture {
         this.setupMessageListener();
         this.setupKeyboardShortcuts();
         this.createCaptureIndicator();
+        this.createSelectionOverlay();
+        this.createContextHighlight();
+        this.loadActiveProject();
         this.isInitialized = true;
         
         console.log('[Strategic Content Capture] Content script initialized');
+    }
+
+    async loadActiveProject() {
+        const stored = await chrome.storage.local.get(['activeProject']);
+        this.activeProject = stored.activeProject;
     }
 
     setupMessageListener() {
@@ -34,6 +47,22 @@ class ContentCapture {
                 case 'highlight-element':
                     this.highlightElement(message.selector);
                     break;
+                case 'set-capture-mode':
+                    this.setCaptureMode(message.mode);
+                    sendResponse({ success: true });
+                    break;
+                case 'start-precision-capture':
+                    this.startPrecisionCapture();
+                    sendResponse({ success: true });
+                    break;
+                case 'start-context-capture':
+                    this.startContextCapture();
+                    sendResponse({ success: true });
+                    break;
+                case 'update-active-project':
+                    this.activeProject = message.project;
+                    sendResponse({ success: true });
+                    break;
                 default:
                     sendResponse({ error: 'Unknown action' });
             }
@@ -43,18 +72,35 @@ class ContentCapture {
 
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (event) => {
-            // Ctrl+Shift+C for quick capture
-            if (event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
+            // Tab to toggle between capture modes
+            if (this.isSelecting && event.code === 'Tab') {
                 event.preventDefault();
-                this.quickCapture();
+                this.toggleCaptureMode();
             }
             
-            // Ctrl+Shift+S for screenshot capture
-            if (event.ctrlKey && event.shiftKey && event.code === 'KeyS') {
+            // Escape to cancel capture
+            if (this.isSelecting && event.code === 'Escape') {
                 event.preventDefault();
-                this.screenshotCapture();
+                this.cancelCapture();
             }
         });
+    }
+
+    setCaptureMode(mode) {
+        this.captureMode = mode;
+        if (this.isSelecting) {
+            if (mode === 'precision') {
+                this.showPrecisionMode();
+            } else {
+                this.showContextMode();
+            }
+        }
+    }
+
+    toggleCaptureMode() {
+        const newMode = this.captureMode === 'precision' ? 'context' : 'precision';
+        this.setCaptureMode(newMode);
+        this.showCaptureIndicator(`Switched to ${newMode} mode`);
     }
 
     createCaptureIndicator() {
@@ -90,6 +136,279 @@ class ContentCapture {
             this.captureIndicator.style.opacity = '0';
             this.captureIndicator.style.transform = 'translateY(-10px)';
         }, duration);
+    }
+
+    createSelectionOverlay() {
+        this.selectionOverlay = document.createElement('div');
+        this.selectionOverlay.id = 'strategic-selection-overlay';
+        this.selectionOverlay.style.cssText = `
+            position: fixed;
+            border: 2px dashed #FFD700;
+            background: rgba(255, 215, 0, 0.1);
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+        `;
+        document.body.appendChild(this.selectionOverlay);
+    }
+
+    createContextHighlight() {
+        this.contextHighlight = document.createElement('div');
+        this.contextHighlight.id = 'strategic-context-highlight';
+        this.contextHighlight.style.cssText = `
+            position: absolute;
+            border: 3px solid #4169E1;
+            background: rgba(65, 105, 225, 0.1);
+            pointer-events: none;
+            z-index: 9998;
+            display: none;
+            border-radius: 4px;
+        `;
+        document.body.appendChild(this.contextHighlight);
+    }
+
+    startPrecisionCapture() {
+        this.isSelecting = true;
+        this.captureMode = 'precision';
+        document.body.style.cursor = 'crosshair';
+        this.showCaptureIndicator('📍 Click and drag to select content');
+        
+        const handleMouseDown = (e) => {
+            e.preventDefault();
+            this.selectionStart = { x: e.clientX, y: e.clientY };
+            this.selectionOverlay.style.display = 'block';
+            this.selectionOverlay.style.left = e.clientX + 'px';
+            this.selectionOverlay.style.top = e.clientY + 'px';
+            this.selectionOverlay.style.width = '0px';
+            this.selectionOverlay.style.height = '0px';
+        };
+
+        const handleMouseMove = (e) => {
+            if (!this.selectionStart) return;
+            
+            const width = Math.abs(e.clientX - this.selectionStart.x);
+            const height = Math.abs(e.clientY - this.selectionStart.y);
+            const left = Math.min(e.clientX, this.selectionStart.x);
+            const top = Math.min(e.clientY, this.selectionStart.y);
+            
+            this.selectionOverlay.style.left = left + 'px';
+            this.selectionOverlay.style.top = top + 'px';
+            this.selectionOverlay.style.width = width + 'px';
+            this.selectionOverlay.style.height = height + 'px';
+        };
+
+        const handleMouseUp = async (e) => {
+            if (!this.selectionStart) return;
+            
+            document.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            
+            const bounds = this.selectionOverlay.getBoundingClientRect();
+            await this.captureSelection(bounds);
+            
+            this.cleanupCapture();
+        };
+
+        document.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    startContextCapture() {
+        this.isSelecting = true;
+        this.captureMode = 'context';
+        document.body.style.cursor = 'pointer';
+        this.showCaptureIndicator('🔷 Click on a thread or post to capture full context');
+        
+        const handleMouseMove = (e) => {
+            const element = this.findContextElement(e.target);
+            if (element) {
+                this.highlightContextElement(element);
+            } else {
+                this.contextHighlight.style.display = 'none';
+            }
+        };
+
+        const handleClick = async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const element = this.findContextElement(e.target);
+            if (element) {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('click', handleClick);
+                
+                await this.captureContextElement(element);
+                this.cleanupCapture();
+            }
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('click', handleClick, true);
+    }
+
+    findContextElement(target) {
+        // Look for common thread/post containers
+        const selectors = [
+            '[role="article"]',
+            '.post-container',
+            '.thread-container',
+            '.comment-thread',
+            'article',
+            '.reddit-post',
+            '.tweet',
+            '.instagram-post',
+            '.tiktok-video',
+            '.linkedin-post'
+        ];
+        
+        for (const selector of selectors) {
+            const element = target.closest(selector);
+            if (element) return element;
+        }
+        
+        // Fallback to finding semantic containers
+        let current = target;
+        while (current && current !== document.body) {
+            if (current.children.length > 2 && 
+                (current.textContent.length > 100 || current.querySelector('img'))) {
+                return current;
+            }
+            current = current.parentElement;
+        }
+        
+        return null;
+    }
+
+    highlightContextElement(element) {
+        const rect = element.getBoundingClientRect();
+        this.contextHighlight.style.display = 'block';
+        this.contextHighlight.style.left = (rect.left + window.scrollX - 5) + 'px';
+        this.contextHighlight.style.top = (rect.top + window.scrollY - 5) + 'px';
+        this.contextHighlight.style.width = (rect.width + 10) + 'px';
+        this.contextHighlight.style.height = (rect.height + 10) + 'px';
+    }
+
+    async captureSelection(bounds) {
+        try {
+            this.showCaptureIndicator('📸 Capturing selection...');
+            
+            const captureData = {
+                type: 'screenshot',
+                bounds: {
+                    x: bounds.left,
+                    y: bounds.top,
+                    width: bounds.width,
+                    height: bounds.height
+                },
+                sourceUrl: window.location.href,
+                platform: this.detectPlatform(),
+                projectId: this.activeProject?.id,
+                captureMode: 'precision'
+            };
+            
+            const response = await this.sendToBackground({
+                action: 'create-capture',
+                data: captureData
+            });
+            
+            if (response.success) {
+                this.showCaptureIndicator('✅ Content captured!');
+            } else {
+                throw new Error(response.error);
+            }
+        } catch (error) {
+            console.error('Capture failed:', error);
+            this.showCaptureIndicator('❌ Capture failed');
+        }
+    }
+
+    async captureContextElement(element) {
+        try {
+            this.showCaptureIndicator('📸 Capturing full context...');
+            
+            const captureData = {
+                type: 'thread',
+                content: element.innerText,
+                html: element.outerHTML,
+                sourceUrl: window.location.href,
+                platform: this.detectPlatform(),
+                projectId: this.activeProject?.id,
+                captureMode: 'context',
+                metadata: this.extractMetadata(element)
+            };
+            
+            const response = await this.sendToBackground({
+                action: 'create-capture',
+                data: captureData
+            });
+            
+            if (response.success) {
+                this.showCaptureIndicator('✅ Context captured!');
+            } else {
+                throw new Error(response.error);
+            }
+        } catch (error) {
+            console.error('Context capture failed:', error);
+            this.showCaptureIndicator('❌ Capture failed');
+        }
+    }
+
+    cancelCapture() {
+        this.cleanupCapture();
+        this.showCaptureIndicator('Capture cancelled');
+    }
+
+    cleanupCapture() {
+        this.isSelecting = false;
+        this.selectionStart = null;
+        document.body.style.cursor = '';
+        this.selectionOverlay.style.display = 'none';
+        this.contextHighlight.style.display = 'none';
+    }
+
+    detectPlatform() {
+        const hostname = window.location.hostname;
+        if (hostname.includes('reddit.com')) return 'reddit';
+        if (hostname.includes('twitter.com') || hostname.includes('x.com')) return 'twitter';
+        if (hostname.includes('instagram.com')) return 'instagram';
+        if (hostname.includes('tiktok.com')) return 'tiktok';
+        if (hostname.includes('linkedin.com')) return 'linkedin';
+        if (hostname.includes('youtube.com')) return 'youtube';
+        return 'web';
+    }
+
+    extractMetadata(element) {
+        const metadata = {};
+        
+        // Try to extract engagement metrics
+        const likes = element.querySelector('[aria-label*="like"], [aria-label*="Like"], .like-count');
+        if (likes) metadata.likes = likes.textContent;
+        
+        const comments = element.querySelector('[aria-label*="comment"], [aria-label*="Comment"], .comment-count');
+        if (comments) metadata.comments = comments.textContent;
+        
+        const shares = element.querySelector('[aria-label*="share"], [aria-label*="Share"], .share-count');
+        if (shares) metadata.shares = shares.textContent;
+        
+        // Extract timestamp
+        const time = element.querySelector('time, [datetime]');
+        if (time) metadata.timestamp = time.getAttribute('datetime') || time.textContent;
+        
+        // Extract author
+        const author = element.querySelector('[data-author], .author, .username');
+        if (author) metadata.author = author.textContent;
+        
+        return metadata;
+    }
+
+    async sendToBackground(message) {
+        return new Promise((resolve) => {
+            chrome.runtime.sendMessage(message, (response) => {
+                resolve(response);
+            });
+        });
     }
 
     async quickCapture() {

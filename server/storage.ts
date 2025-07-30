@@ -1,5 +1,9 @@
 import { 
   type User, type InsertUser,
+  type Project, type InsertProject,
+  type Capture, type InsertCapture,
+  type Brief, type InsertBrief,
+  type BriefCapture, type InsertBriefCapture,
   type Signal, type InsertSignal,
   type Source, type InsertSource,
   type SignalSource, type InsertSignalSource,
@@ -10,7 +14,7 @@ import {
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { users, signals, sources, signalSources, userPreferences, contentRadar, scanHistory } from "@shared/schema";
+import { users, projects, captures, briefs, briefCaptures, signals, sources, signalSources, userPreferences, contentRadar, scanHistory } from "@shared/schema";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
@@ -18,6 +22,33 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // Project methods
+  getProjects(userId: string): Promise<Project[]>;
+  getProjectById(id: string): Promise<Project | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: string, updates: Partial<Project>): Promise<Project | undefined>;
+  deleteProject(id: string): Promise<boolean>;
+  
+  // Capture methods
+  getCaptures(projectId: string): Promise<Capture[]>;
+  getCaptureById(id: string): Promise<Capture | undefined>;
+  createCapture(capture: InsertCapture): Promise<Capture>;
+  updateCapture(id: string, updates: Partial<Capture>): Promise<Capture | undefined>;
+  deleteCapture(id: string): Promise<boolean>;
+  getPendingCaptures(): Promise<Capture[]>;
+  
+  // Brief methods
+  getBriefs(projectId: string): Promise<Brief[]>;
+  getBriefById(id: string): Promise<Brief | undefined>;
+  createBrief(brief: InsertBrief): Promise<Brief>;
+  updateBrief(id: string, updates: Partial<Brief>): Promise<Brief | undefined>;
+  deleteBrief(id: string): Promise<boolean>;
+  
+  // Brief Capture relationship methods
+  addCaptureToBrief(briefCapture: InsertBriefCapture): Promise<BriefCapture>;
+  removeCaptureFromBrief(briefId: string, captureId: string): Promise<boolean>;
+  getBriefCaptures(briefId: string): Promise<BriefCapture[]>;
   
   // Signal methods (replacing content radar)
   getSignals(filters?: {
@@ -72,6 +103,10 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private projects: Map<string, Project>;
+  private captures: Map<string, Capture>;
+  private briefs: Map<string, Brief>;
+  private briefCaptures: Map<string, BriefCapture>;
   private signals: Map<string, Signal>;
   private sources: Map<string, Source>;
   private signalSources: Map<string, SignalSource>;
@@ -80,6 +115,10 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.projects = new Map();
+    this.captures = new Map();
+    this.briefs = new Map();
+    this.briefCaptures = new Map();
     this.signals = new Map();
     this.sources = new Map();
     this.signalSources = new Map();
@@ -102,12 +141,174 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
-      role: insertUser.role || 'user',
+      role: insertUser.role || 'strategist',
       email: insertUser.email || null,
       createdAt: new Date()
     };
     this.users.set(id, user);
     return user;
+  }
+
+  // Project methods
+  async getProjects(userId: string): Promise<Project[]> {
+    return Array.from(this.projects.values())
+      .filter(project => project.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getProjectById(id: string): Promise<Project | undefined> {
+    return this.projects.get(id);
+  }
+
+  async createProject(insertProject: InsertProject): Promise<Project> {
+    const id = randomUUID();
+    const project: Project = {
+      ...insertProject,
+      id,
+      briefTemplate: insertProject.briefTemplate || 'jimmy-johns',
+      status: insertProject.status || 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.projects.set(id, project);
+    return project;
+  }
+
+  async updateProject(id: string, updates: Partial<Project>): Promise<Project | undefined> {
+    const project = this.projects.get(id);
+    if (!project) return undefined;
+    
+    const updated = {
+      ...project,
+      ...updates,
+      id: project.id,
+      updatedAt: new Date()
+    };
+    this.projects.set(id, updated);
+    return updated;
+  }
+
+  async deleteProject(id: string): Promise<boolean> {
+    return this.projects.delete(id);
+  }
+
+  // Capture methods
+  async getCaptures(projectId: string): Promise<Capture[]> {
+    return Array.from(this.captures.values())
+      .filter(capture => capture.projectId === projectId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getCaptureById(id: string): Promise<Capture | undefined> {
+    return this.captures.get(id);
+  }
+
+  async createCapture(insertCapture: InsertCapture): Promise<Capture> {
+    const id = randomUUID();
+    const capture: Capture = {
+      ...insertCapture,
+      id,
+      status: insertCapture.status || 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.captures.set(id, capture);
+    return capture;
+  }
+
+  async updateCapture(id: string, updates: Partial<Capture>): Promise<Capture | undefined> {
+    const capture = this.captures.get(id);
+    if (!capture) return undefined;
+    
+    const updated = {
+      ...capture,
+      ...updates,
+      id: capture.id,
+      updatedAt: new Date()
+    };
+    this.captures.set(id, updated);
+    return updated;
+  }
+
+  async deleteCapture(id: string): Promise<boolean> {
+    return this.captures.delete(id);
+  }
+
+  async getPendingCaptures(): Promise<Capture[]> {
+    return Array.from(this.captures.values())
+      .filter(capture => capture.status === 'pending')
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  // Brief methods
+  async getBriefs(projectId: string): Promise<Brief[]> {
+    return Array.from(this.briefs.values())
+      .filter(brief => brief.projectId === projectId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getBriefById(id: string): Promise<Brief | undefined> {
+    return this.briefs.get(id);
+  }
+
+  async createBrief(insertBrief: InsertBrief): Promise<Brief> {
+    const id = randomUUID();
+    const brief: Brief = {
+      ...insertBrief,
+      id,
+      template: insertBrief.template || 'jimmy-johns',
+      status: insertBrief.status || 'draft',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.briefs.set(id, brief);
+    return brief;
+  }
+
+  async updateBrief(id: string, updates: Partial<Brief>): Promise<Brief | undefined> {
+    const brief = this.briefs.get(id);
+    if (!brief) return undefined;
+    
+    const updated = {
+      ...brief,
+      ...updates,
+      id: brief.id,
+      updatedAt: new Date()
+    };
+    this.briefs.set(id, updated);
+    return updated;
+  }
+
+  async deleteBrief(id: string): Promise<boolean> {
+    return this.briefs.delete(id);
+  }
+
+  // Brief Capture relationship methods
+  async addCaptureToBrief(insertBriefCapture: InsertBriefCapture): Promise<BriefCapture> {
+    const id = randomUUID();
+    const briefCapture: BriefCapture = {
+      ...insertBriefCapture,
+      id,
+      createdAt: new Date()
+    };
+    this.briefCaptures.set(id, briefCapture);
+    return briefCapture;
+  }
+
+  async removeCaptureFromBrief(briefId: string, captureId: string): Promise<boolean> {
+    const toRemove = Array.from(this.briefCaptures.values())
+      .find(bc => bc.briefId === briefId && bc.captureId === captureId);
+    
+    if (toRemove) {
+      return this.briefCaptures.delete(toRemove.id);
+    }
+    return false;
+  }
+
+  async getBriefCaptures(briefId: string): Promise<BriefCapture[]> {
+    return Array.from(this.briefCaptures.values())
+      .filter(bc => bc.briefId === briefId)
+      .sort((a, b) => a.position - b.position);
   }
 
   // Signal methods

@@ -22,7 +22,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { SidebarLayout } from "@/components/layout/SidebarLayout";
+import PageLayout from "@/components/layout/PageLayout";
 
 interface Signal {
   id: string;
@@ -152,7 +152,7 @@ export default function SignalMining() {
   };
 
   return (
-    <SidebarLayout>
+    <PageLayout title="Signal Mining Dashboard" description="Discover cultural moments and bridge-worthy content opportunities">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -383,6 +383,6 @@ export default function SignalMining() {
           </TabsContent>
         </Tabs>
       </div>
-    </SidebarLayout>
+    </PageLayout>
   );
 }

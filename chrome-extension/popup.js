@@ -2,6 +2,7 @@ class StrategicContentCapture {
     constructor() {
         this.apiBaseUrl = window.CONFIG?.API_BASE_URL || 'http://localhost:5000';
         this.currentTab = null;
+        this.activeProject = null;
         this.initializeExtension();
     }
 
@@ -9,6 +10,8 @@ class StrategicContentCapture {
         await this.getCurrentTab();
         this.setupEventListeners();
         this.updateStatus('ready');
+        await this.loadProjects();
+        await this.loadActiveProject();
         this.loadRecentCaptures();
     }
 
@@ -22,11 +25,63 @@ class StrategicContentCapture {
     }
 
     setupEventListeners() {
-        document.getElementById('captureButton').addEventListener('click', () => this.captureCurrentPage());
-        document.getElementById('captureSelectionButton').addEventListener('click', () => this.captureSelection());
-        document.getElementById('captureScreenshotButton').addEventListener('click', () => this.captureScreenshot());
+        document.getElementById('precisionCaptureButton').addEventListener('click', () => this.startPrecisionCapture());
+        document.getElementById('contextCaptureButton').addEventListener('click', () => this.startContextCapture());
+        document.getElementById('quickCaptureButton').addEventListener('click', () => this.captureCurrentPage());
+        document.getElementById('activeProject').addEventListener('change', (e) => this.switchProject(e.target.value));
         document.getElementById('settingsButton').addEventListener('click', () => this.openSettings());
         document.getElementById('dashboardButton').addEventListener('click', () => this.openDashboard());
+    }
+
+    async loadProjects() {
+        try {
+            const response = await this.sendMessage({ action: 'get-active-project' });
+            const projectSelect = document.getElementById('activeProject');
+            
+            if (response.activeProject) {
+                this.activeProject = response.activeProject;
+                projectSelect.innerHTML = `<option value="${response.activeProject.id}">${response.activeProject.name}</option>`;
+                projectSelect.value = response.activeProject.id;
+            } else {
+                projectSelect.innerHTML = '<option value="">No projects found</option>';
+            }
+        } catch (error) {
+            console.error('Failed to load projects:', error);
+        }
+    }
+
+    async loadActiveProject() {
+        try {
+            const stored = await chrome.storage.local.get(['activeProject']);
+            if (stored.activeProject) {
+                this.activeProject = stored.activeProject;
+                const projectSelect = document.getElementById('activeProject');
+                if (projectSelect && this.activeProject) {
+                    projectSelect.value = this.activeProject.id;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load active project:', error);
+        }
+    }
+
+    async switchProject(projectId) {
+        if (!projectId) return;
+        
+        try {
+            const response = await this.sendMessage({
+                action: 'switch-project',
+                projectId: projectId
+            });
+            
+            if (response.success) {
+                this.activeProject = response.activeProject;
+                this.updateStatus('ready', `Switched to ${response.activeProject.name}`);
+            }
+        } catch (error) {
+            console.error('Failed to switch project:', error);
+            this.updateStatus('error', 'Failed to switch project');
+        }
     }
 
     updateStatus(status, message = '') {
@@ -45,9 +100,62 @@ class StrategicContentCapture {
         text.textContent = config.text;
     }
 
+    async startPrecisionCapture() {
+        if (!this.currentTab) {
+            this.updateStatus('error', 'No active tab found');
+            return;
+        }
+
+        if (!this.activeProject) {
+            this.updateStatus('error', 'Please select a project first');
+            return;
+        }
+
+        this.updateStatus('processing', 'Starting precision capture...');
+        
+        try {
+            await chrome.tabs.sendMessage(this.currentTab.id, {
+                action: 'start-precision-capture'
+            });
+            window.close(); // Close popup to allow interaction
+        } catch (error) {
+            console.error('Failed to start precision capture:', error);
+            this.updateStatus('error', 'Failed to start capture mode');
+        }
+    }
+
+    async startContextCapture() {
+        if (!this.currentTab) {
+            this.updateStatus('error', 'No active tab found');
+            return;
+        }
+
+        if (!this.activeProject) {
+            this.updateStatus('error', 'Please select a project first');
+            return;
+        }
+
+        this.updateStatus('processing', 'Starting context capture...');
+        
+        try {
+            await chrome.tabs.sendMessage(this.currentTab.id, {
+                action: 'start-context-capture'
+            });
+            window.close(); // Close popup to allow interaction
+        } catch (error) {
+            console.error('Failed to start context capture:', error);
+            this.updateStatus('error', 'Failed to start capture mode');
+        }
+    }
+
     async captureCurrentPage() {
         if (!this.currentTab) {
             this.updateStatus('error', 'No active tab found');
+            return;
+        }
+
+        if (!this.activeProject) {
+            this.updateStatus('error', 'Please select a project first');
             return;
         }
 
@@ -61,7 +169,11 @@ class StrategicContentCapture {
             });
 
             if (result?.result) {
-                await this.sendContentToAPI(result.result, 'full_page');
+                await this.sendContentToBackground({
+                    ...result.result,
+                    captureMode: 'quick',
+                    projectId: this.activeProject.id
+                });
                 this.updateStatus('success');
                 this.loadRecentCaptures();
             } else {
@@ -73,236 +185,125 @@ class StrategicContentCapture {
         }
     }
 
-    async captureSelection() {
-        if (!this.currentTab) {
-            this.updateStatus('error', 'No active tab found');
-            return;
-        }
-
-        this.updateStatus('processing');
-        
-        try {
-            const [result] = await chrome.scripting.executeScript({
-                target: { tabId: this.currentTab.id },
-                func: this.extractSelectedContent
-            });
-
-            if (result?.result && result.result.content) {
-                await this.sendContentToAPI(result.result, 'selection');
-                this.updateStatus('success');
-                this.loadRecentCaptures();
-            } else {
-                throw new Error('No content selected or failed to extract');
-            }
-        } catch (error) {
-            console.error('Selection capture failed:', error);
-            this.updateStatus('error', 'Failed to capture selection');
-        }
-    }
-
-    async captureScreenshot() {
-        if (!this.currentTab) {
-            this.updateStatus('error', 'No active tab found');
-            return;
-        }
-
-        this.updateStatus('processing');
-        
-        try {
-            const screenshot = await chrome.tabs.captureVisibleTab();
-            
-            const contentData = {
-                url: this.currentTab.url,
-                title: this.currentTab.title,
-                screenshot: screenshot,
-                captureType: 'screenshot',
-                timestamp: new Date().toISOString()
-            };
-
-            await this.sendContentToAPI(contentData, 'screenshot');
-            this.updateStatus('success');
-            this.loadRecentCaptures();
-        } catch (error) {
-            console.error('Screenshot capture failed:', error);
-            this.updateStatus('error', 'Failed to capture screenshot');
-        }
-    }
-
-    async sendContentToAPI(contentData, captureType) {
-        const analysisMode = document.getElementById('analysisMode').value;
-        const priority = document.getElementById('priority').value;
-
-        const payload = {
-            ...contentData,
-            captureType,
-            analysisMode,
-            priority,
-            extensionVersion: '1.0.0',
-            browserContext: {
-                userAgent: navigator.userAgent,
-                timestamp: new Date().toISOString()
+    extractPageContent() {
+        const content = {
+            url: window.location.href,
+            title: document.title,
+            content: document.body.innerText,
+            type: 'full_page',
+            metadata: {
+                domain: window.location.hostname,
+                path: window.location.pathname,
+                timestamp: new Date().toISOString(),
+                viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                }
             }
         };
 
-        const response = await fetch(`${this.apiBaseUrl}/api/chrome-extension/capture`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
+        // Platform-specific extraction
+        const platform = window.location.hostname;
+        if (platform.includes('twitter') || platform.includes('x.com')) {
+            content.platform = 'twitter';
+            const tweets = document.querySelectorAll('[data-testid="tweet"]');
+            content.metadata.tweetCount = tweets.length;
+        } else if (platform.includes('reddit')) {
+            content.platform = 'reddit';
+            const posts = document.querySelectorAll('[data-testid="post-container"]');
+            content.metadata.postCount = posts.length;
+        } else if (platform.includes('instagram')) {
+            content.platform = 'instagram';
+        } else if (platform.includes('linkedin')) {
+            content.platform = 'linkedin';
         }
 
-        const result = await response.json();
-        
-        // Store capture in local storage for recent captures list
-        await this.storeCaptureRecord(payload, result);
-        
-        return result;
+        return content;
     }
 
-    async storeCaptureRecord(payload, result) {
+    async sendContentToBackground(data) {
         try {
-            const storage = await chrome.storage.local.get(['recentCaptures']);
-            let captures = storage.recentCaptures || [];
-            
-            const captureRecord = {
-                id: result.id || Date.now().toString(),
-                url: payload.url,
-                title: payload.title,
-                captureType: payload.captureType,
-                analysisMode: payload.analysisMode,
-                timestamp: payload.timestamp || new Date().toISOString(),
-                viralScore: result.viralScore,
-                summary: result.summary
-            };
-            
-            captures.unshift(captureRecord);
-            captures = captures.slice(0, 10); // Keep only last 10 captures
-            
-            await chrome.storage.local.set({ recentCaptures: captures });
+            const response = await this.sendMessage({
+                action: 'create-capture',
+                data: data
+            });
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            return response;
         } catch (error) {
-            console.error('Failed to store capture record:', error);
+            console.error('Failed to send content to background:', error);
+            throw error;
         }
+    }
+
+    async sendMessage(message) {
+        return new Promise((resolve) => {
+            chrome.runtime.sendMessage(message, (response) => {
+                resolve(response || {});
+            });
+        });
     }
 
     async loadRecentCaptures() {
         try {
             const storage = await chrome.storage.local.get(['recentCaptures']);
             const captures = storage.recentCaptures || [];
-            
-            const capturesList = document.getElementById('capturesList');
-            
-            if (captures.length === 0) {
-                capturesList.innerHTML = '<p class="no-captures">No recent captures</p>';
-                return;
-            }
-            
-            capturesList.innerHTML = captures.map(capture => `
-                <div class="capture-item">
-                    <div class="capture-title">${capture.title || 'Untitled'}</div>
-                    <div class="capture-meta">
-                        <span class="capture-type">${capture.captureType}</span>
-                        <span class="viral-score">Score: ${capture.viralScore || 'N/A'}</span>
-                    </div>
-                    <div class="capture-summary">${(capture.summary || '').substring(0, 100)}...</div>
-                </div>
-            `).join('');
+            this.displayRecentCaptures(captures.slice(0, 5));
         } catch (error) {
             console.error('Failed to load recent captures:', error);
         }
     }
 
+    displayRecentCaptures(captures) {
+        const container = document.getElementById('recentCaptures');
+        if (!captures.length) {
+            container.innerHTML = '<div class="empty-state">No recent captures</div>';
+            return;
+        }
+
+        container.innerHTML = captures.map(capture => `
+            <div class="capture-item">
+                <div class="capture-header">
+                    <span class="capture-title">${this.truncate(capture.title, 50)}</span>
+                    <span class="capture-time">${this.formatTime(capture.timestamp)}</span>
+                </div>
+                <div class="capture-meta">
+                    <span class="capture-type">${capture.captureType || 'quick'}</span>
+                    ${capture.viralScore ? `<span class="viral-score">Score: ${capture.viralScore}</span>` : ''}
+                </div>
+                ${capture.summary ? `<p class="capture-summary">${this.truncate(capture.summary, 100)}</p>` : ''}
+            </div>
+        `).join('');
+    }
+
+    truncate(text, length) {
+        return text.length > length ? text.substring(0, length) + '...' : text;
+    }
+
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) return 'just now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+        return date.toLocaleDateString();
+    }
+
     openSettings() {
-        chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
+        chrome.runtime.openOptionsPage();
     }
 
     openDashboard() {
-        chrome.tabs.create({ url: `${this.apiBaseUrl}/dashboard` });
-    }
-
-    // Content extraction functions (executed in page context)
-    extractPageContent() {
-        const title = document.title;
-        const url = window.location.href;
-        
-        // Extract main content
-        let content = '';
-        
-        // Try common content selectors
-        const contentSelectors = [
-            'main',
-            'article',
-            '[role="main"]',
-            '.content',
-            '.post-content',
-            '.entry-content',
-            '#content'
-        ];
-        
-        for (const selector of contentSelectors) {
-            const element = document.querySelector(selector);
-            if (element) {
-                content = element.innerText || element.textContent;
-                break;
-            }
-        }
-        
-        // Fallback to body if no specific content found
-        if (!content) {
-            content = document.body.innerText || document.body.textContent;
-        }
-        
-        // Extract metadata
-        const metaTags = {};
-        document.querySelectorAll('meta').forEach(meta => {
-            const name = meta.getAttribute('name') || meta.getAttribute('property');
-            const content = meta.getAttribute('content');
-            if (name && content) {
-                metaTags[name] = content;
-            }
-        });
-        
-        return {
-            title,
-            url,
-            content: content.substring(0, 5000), // Limit content length
-            metadata: {
-                domain: window.location.hostname,
-                metaTags,
-                timestamp: new Date().toISOString()
-            }
-        };
-    }
-
-    extractSelectedContent() {
-        const selection = window.getSelection();
-        const selectedText = selection.toString();
-        
-        if (!selectedText) {
-            return { content: null };
-        }
-        
-        return {
-            url: window.location.href,
-            title: document.title,
-            content: selectedText,
-            metadata: {
-                domain: window.location.hostname,
-                selectionRange: {
-                    start: selection.anchorOffset,
-                    end: selection.focusOffset
-                },
-                timestamp: new Date().toISOString()
-            }
-        };
+        chrome.tabs.create({ url: this.apiBaseUrl });
     }
 }
 
-// Initialize the extension when DOM is loaded
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new StrategicContentCapture();
 });

@@ -18,20 +18,30 @@
             <span class="status-text" id="statusText">Ready to capture</span>
         </div>
 
+        <div class="project-selector">
+            <label for="activeProject">Active Project:</label>
+            <select id="activeProject" class="project-select">
+                <option value="">Loading projects...</option>
+            </select>
+        </div>
+
         <div class="main-actions">
-            <button class="primary-button" id="captureButton">
-                <span class="button-icon">📝</span>
-                Capture Current Page
+            <button class="primary-button" id="precisionCaptureButton">
+                <span class="button-icon">📍</span>
+                Precision Capture
+                <span class="button-hint">Click & drag to select</span>
             </button>
             
-            <button class="secondary-button" id="captureSelectionButton">
-                <span class="button-icon">✂️</span>
-                Capture Selection
+            <button class="secondary-button" id="contextCaptureButton">
+                <span class="button-icon">🔷</span>
+                Context Capture
+                <span class="button-hint">Full thread/post</span>
             </button>
             
-            <button class="secondary-button" id="captureScreenshotButton">
-                <span class="button-icon">📸</span>
-                Screenshot Analysis
+            <button class="secondary-button" id="quickCaptureButton">
+                <span class="button-icon">⚡</span>
+                Quick Page Capture
+                <span class="button-hint">Entire page</span>
             </button>
         </div>
 

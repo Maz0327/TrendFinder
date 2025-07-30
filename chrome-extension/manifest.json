@@ -8,8 +8,39 @@
     "storage",
     "contextMenus",
     "notifications",
-    "alarms"
+    "alarms",
+    "tabs"
   ],
+  "commands": {
+    "quick-capture": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Quick capture (selected content)"
+    },
+    "context-capture": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+C",
+        "mac": "Command+Shift+C"
+      },
+      "description": "Context capture (full thread)"
+    },
+    "switch-project": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+P",
+        "mac": "Command+Shift+P"
+      },
+      "description": "Switch active project"
+    },
+    "add-note": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+N",
+        "mac": "Command+Shift+N"
+      },
+      "description": "Add note to last capture"
+    }
+  },
   "host_permissions": [
     "http://localhost:*/*",
     "https://*.replit.app/*",

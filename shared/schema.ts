@@ -3,7 +3,8 @@ import { pgTable, text, varchar, timestamp, integer, decimal, jsonb, boolean, in
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Clean 5-table architecture for strategic intelligence platform
+// Strategic Intelligence Platform - Project-Based Architecture
+// Phase 1: Core schema for Projects → Captures → Analysis → Briefs workflow
 
 // 1. Users table - User accounts and authentication
 export const users = pgTable("users", {
@@ -11,13 +12,79 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email"),
-  role: text("role").default("user"), // 'user', 'admin', 'strategist'
+  role: text("role").default("strategist"), // 'user', 'admin', 'strategist'
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   usernameIdx: index("idx_users_username").on(table.username),
 }));
 
-// 2. Signals table - All intelligence data from platforms
+// 2. Projects table - Strategic campaigns and initiatives
+export const projects = pgTable("projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(), // "Nike Spring Campaign", "Mother's Day 2025"
+  description: text("description"),
+  briefTemplate: text("brief_template").default("jimmy-johns"), // 'jimmy-johns', 'custom'
+  status: text("status").default("active"), // 'active', 'archived', 'completed'
+  
+  // Project metadata
+  client: text("client"),
+  deadline: timestamp("deadline"),
+  tags: jsonb("tags").$type<string[]>(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdx: index("idx_projects_user_id").on(table.userId),
+  statusIdx: index("idx_projects_status").on(table.status),
+}));
+
+// 3. Captures table - Content captured via Chrome Extension or manual input
+export const captures = pgTable("captures", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  
+  // Capture metadata
+  type: text("type").notNull(), // 'screenshot', 'text', 'url', 'video-frame', 'thread'
+  sourceUrl: text("source_url"),
+  platform: text("platform"), // 'reddit', 'twitter', 'tiktok', 'instagram', etc.
+  
+  // Content
+  title: text("title"),
+  content: text("content"), // Raw text content or OCR result
+  screenshotUrl: text("screenshot_url"), // S3 or local path
+  metadata: jsonb("metadata"), // Platform-specific data (likes, comments, etc.)
+  
+  // User notes
+  userNote: text("user_note"),
+  tags: jsonb("tags").$type<string[]>(),
+  
+  // Truth Analysis Framework (populated after AI processing)
+  truthAnalysis: jsonb("truth_analysis").$type<{
+    fact: { claims: string[]; metrics: any; timestamp: string };
+    observation: { patterns: string[]; behaviors: string[]; context: string };
+    insight: { implications: string[]; opportunities: string[]; risks: string[] };
+    humanTruth: { core: string; emotional: string; cultural: string; psychological: string };
+  }>(),
+  
+  // Strategic Intelligence
+  suggestedBriefSection: text("suggested_brief_section"), // 'performance', 'cultural-signals', etc.
+  culturalRelevance: decimal("cultural_relevance", { precision: 3, scale: 1 }),
+  strategicValue: decimal("strategic_value", { precision: 3, scale: 1 }),
+  
+  // Processing status
+  status: text("status").default("pending"), // 'pending', 'processing', 'analyzed', 'error'
+  processedAt: timestamp("processed_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  projectIdx: index("idx_captures_project_id").on(table.projectId),
+  statusIdx: index("idx_captures_status").on(table.status),
+  platformIdx: index("idx_captures_platform").on(table.platform),
+}));
+
+// 4. Signals table - Processed strategic intelligence (keeping for Signal Mining)
 export const signals = pgTable("signals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
@@ -60,7 +127,54 @@ export const signals = pgTable("signals", {
   viralScoreIdx: index("idx_signals_viral_score").on(table.viralScore),
 }));
 
-// 3. Sources table - Platform definitions and configurations
+// 5. Briefs table - Strategic brief documents
+export const briefs = pgTable("briefs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  
+  // Brief metadata
+  title: text("title").notNull(),
+  template: text("template").default("jimmy-johns"), // Template used
+  status: text("status").default("draft"), // 'draft', 'review', 'final', 'delivered'
+  
+  // Brief sections (Jimmy John's format)
+  sections: jsonb("sections").$type<{
+    performance?: { title: string; content: string; captures: string[] };
+    culturalSignals?: { title: string; content: string; captures: string[] };
+    platformSignals?: { title: string; content: string; captures: string[] };
+    opportunities?: { title: string; content: string; captures: string[] };
+    cohorts?: { title: string; content: string; captures: string[] };
+    ideation?: { title: string; content: string; captures: string[] };
+  }>(),
+  
+  // Export metadata
+  lastExportedAt: timestamp("last_exported_at"),
+  exportFormats: jsonb("export_formats").$type<string[]>(), // ['pdf', 'slides', 'docx']
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  projectIdx: index("idx_briefs_project_id").on(table.projectId),
+  statusIdx: index("idx_briefs_status").on(table.status),
+}));
+
+// 6. Brief Captures table - Relationship between briefs and captures
+export const briefCaptures = pgTable("brief_captures", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  briefId: varchar("brief_id").notNull().references(() => briefs.id, { onDelete: "cascade" }),
+  captureId: varchar("capture_id").notNull().references(() => captures.id, { onDelete: "cascade" }),
+  
+  section: text("section").notNull(), // 'performance', 'cultural-signals', etc.
+  position: integer("position").notNull().default(0), // Order within section
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  briefIdx: index("idx_brief_captures_brief_id").on(table.briefId),
+  captureIdx: index("idx_brief_captures_capture_id").on(table.captureId),
+  sectionIdx: index("idx_brief_captures_section").on(table.section),
+}));
+
+// 7. Sources table - Platform definitions and configurations (keeping for compatibility)
 export const sources = pgTable("sources", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(), // 'linkedin', 'instagram', 'tiktok', etc.
@@ -138,6 +252,31 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
 });
 
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCaptureSchema = createInsertSchema(captures).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  processedAt: true,
+});
+
+export const insertBriefSchema = createInsertSchema(briefs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastExportedAt: true,
+});
+
+export const insertBriefCaptureSchema = createInsertSchema(briefCaptures).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertSignalSchema = createInsertSchema(signals).omit({
   id: true,
   createdAt: true,
@@ -163,6 +302,18 @@ export const insertUserPreferenceSchema = createInsertSchema(userPreferences).om
 // Type exports for type safety across the application
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projects.$inferSelect;
+
+export type InsertCapture = z.infer<typeof insertCaptureSchema>;
+export type Capture = typeof captures.$inferSelect;
+
+export type InsertBrief = z.infer<typeof insertBriefSchema>;
+export type Brief = typeof briefs.$inferSelect;
+
+export type InsertBriefCapture = z.infer<typeof insertBriefCaptureSchema>;
+export type BriefCapture = typeof briefCaptures.$inferSelect;
 
 export type InsertSignal = z.infer<typeof insertSignalSchema>;
 export type Signal = typeof signals.$inferSelect;

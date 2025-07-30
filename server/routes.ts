@@ -16,6 +16,8 @@ import { LiveBrightDataService } from "./services/liveBrightDataService";
 import { insertContentRadarSchema, insertSourceSchema } from "@shared/schema";
 import { z } from "zod";
 
+import { registerProjectRoutes } from "./routes/projects";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const aiAnalyzer = new AIAnalyzer();
   const brightData = new BrightDataService();
@@ -31,6 +33,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Initialize Tier 1 sources on startup
   await strategicIntelligence.initializeSources();
+
+  // Register project and capture routes
+  registerProjectRoutes(app);
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {

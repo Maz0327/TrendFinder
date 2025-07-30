@@ -3,7 +3,11 @@
 class BackgroundService {
     constructor() {
         this.apiBaseUrl = 'http://localhost:5000';
+        this.activeProject = null;
+        this.captureQueue = [];
+        this.isProcessing = false;
         this.setupEventListeners();
+        this.initializeProjectData();
     }
 
     setupEventListeners() {
@@ -37,6 +41,50 @@ class BackgroundService {
         chrome.alarms.onAlarm.addListener((alarm) => {
             this.handleAlarm(alarm);
         });
+
+        // Keyboard commands
+        chrome.commands.onCommand.addListener((command) => {
+            this.handleCommand(command);
+        });
+    }
+
+    async initializeProjectData() {
+        try {
+            // Get stored active project
+            const stored = await chrome.storage.local.get(['activeProject', 'projects']);
+            if (stored.activeProject) {
+                this.activeProject = stored.activeProject;
+            }
+            
+            // Fetch projects from API
+            await this.refreshProjects();
+            
+            // Set up periodic refresh
+            chrome.alarms.create('refresh-projects', { periodInMinutes: 5 });
+        } catch (error) {
+            console.error('Failed to initialize project data:', error);
+        }
+    }
+
+    async refreshProjects() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/projects`, {
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const projects = await response.json();
+                await chrome.storage.local.set({ projects });
+                
+                // If no active project, set the first one
+                if (!this.activeProject && projects.length > 0) {
+                    this.activeProject = projects[0];
+                    await chrome.storage.local.set({ activeProject: this.activeProject });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to refresh projects:', error);
+        }
     }
 
     handleInstallation(details) {
@@ -49,9 +97,12 @@ class BackgroundService {
                     autoCapture: false,
                     defaultAnalysis: 'quick',
                     notifications: true,
-                    apiUrl: this.apiBaseUrl
+                    apiUrl: this.apiBaseUrl,
+                    captureMode: 'precision' // 'precision' or 'context'
                 },
-                recentCaptures: []
+                recentCaptures: [],
+                activeProject: null,
+                projects: []
             });
 
             // Show welcome notification
@@ -324,6 +375,15 @@ class BackgroundService {
             case 'clear-captures':
                 this.clearCaptures(sendResponse);
                 break;
+            case 'create-capture':
+                this.handleCreateCapture(message.data, sendResponse);
+                break;
+            case 'get-active-project':
+                this.handleGetActiveProject(sendResponse);
+                break;
+            case 'switch-project':
+                this.handleSwitchProject(message.projectId, sendResponse);
+                break;
             default:
                 sendResponse({ error: 'Unknown action' });
         }
@@ -385,6 +445,116 @@ class BackgroundService {
     handleAlarm(alarm) {
         // Handle periodic tasks if needed
         console.log('Alarm triggered:', alarm.name);
+        if (alarm.name === 'refresh-projects') {
+            this.refreshProjects();
+        }
+    }
+
+    handleCommand(command) {
+        switch (command) {
+            case 'quick-capture':
+                this.triggerCapture('precision');
+                break;
+            case 'context-capture':
+                this.triggerCapture('context');
+                break;
+            case 'switch-project':
+                this.showProjectSwitcher();
+                break;
+            case 'add-note':
+                this.addNoteToLastCapture();
+                break;
+        }
+    }
+
+    async triggerCapture(mode) {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab && tab.id) {
+            chrome.tabs.sendMessage(tab.id, {
+                action: mode === 'precision' ? 'start-precision-capture' : 'start-context-capture'
+            });
+        }
+    }
+
+    async handleCreateCapture(data, sendResponse) {
+        try {
+            if (!this.activeProject) {
+                sendResponse({ error: 'No active project. Please select a project first.' });
+                return;
+            }
+
+            const response = await fetch(`${this.apiBaseUrl}/api/extension/capture`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    ...data,
+                    projectId: this.activeProject.id
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            sendResponse(result);
+        } catch (error) {
+            console.error('Failed to create capture:', error);
+            sendResponse({ error: error.message });
+        }
+    }
+
+    async handleGetActiveProject(sendResponse) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/extension/active-project`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.activeProject) {
+                this.activeProject = result.activeProject;
+                await chrome.storage.local.set({ activeProject: this.activeProject });
+            }
+            sendResponse(result);
+        } catch (error) {
+            console.error('Failed to get active project:', error);
+            sendResponse({ error: error.message });
+        }
+    }
+
+    async handleSwitchProject(projectId, sendResponse) {
+        try {
+            const stored = await chrome.storage.local.get(['projects']);
+            const project = stored.projects?.find(p => p.id === projectId);
+            
+            if (project) {
+                this.activeProject = project;
+                await chrome.storage.local.set({ activeProject: project });
+                sendResponse({ success: true, activeProject: project });
+            } else {
+                sendResponse({ error: 'Project not found' });
+            }
+        } catch (error) {
+            console.error('Failed to switch project:', error);
+            sendResponse({ error: error.message });
+        }
+    }
+
+    async showProjectSwitcher() {
+        // Create a notification or open the popup to select a project
+        chrome.action.openPopup();
+    }
+
+    async addNoteToLastCapture() {
+        // TODO: Implement note addition functionality
+        console.log('Add note to last capture - not yet implemented');
     }
 }
 
