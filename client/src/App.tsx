@@ -9,12 +9,16 @@ import AnalysisCenter from "@/pages/analysis";
 import BriefGenerator from "@/pages/briefs";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
+import SignalMining from "@/pages/signal-mining";
+import Projects from "@/pages/projects";
 import MobileNavBar from "@/components/layout/MobileNavBar";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/signal-mining" component={SignalMining} />
+      <Route path="/projects" component={Projects} />
       <Route path="/intelligence" component={IntelligenceHub} />
       <Route path="/analysis" component={AnalysisCenter} />
       <Route path="/briefs" component={BriefGenerator} />
