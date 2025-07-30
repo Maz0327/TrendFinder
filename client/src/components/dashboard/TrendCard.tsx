@@ -30,7 +30,7 @@ export default function TrendCard({ trend, onClick }: TrendCardProps) {
   const timeAgo = trend.createdAt ? getTimeAgo(new Date(trend.createdAt)) : 'Unknown';
   
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
+    <Card className="hover-lift cursor-pointer transition-all duration-200 group" onClick={onClick}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-2">

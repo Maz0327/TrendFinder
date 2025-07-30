@@ -87,19 +87,19 @@ export default function Header({ onRefresh }: HeaderProps) {
                 placeholder="Search trends, topics..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-60 xl:w-80"
+                className="pl-10 pr-4 py-2 w-60 xl:w-80 transition-all duration-200 focus:ring-2 focus:ring-primary"
               />
             </form>
             
             {/* Search button for mobile/tablet */}
-            <Button variant="ghost" size="sm" className="xl:hidden">
+            <Button variant="ghost" size="sm" className="xl:hidden hover-lift">
               <Search className="h-4 w-4" />
             </Button>
             
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative">
+            <Button variant="ghost" size="sm" className="relative hover-lift">
               <Bell className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
             </Button>
             
             {/* Run Scan Button */}
@@ -107,7 +107,7 @@ export default function Header({ onRefresh }: HeaderProps) {
               onClick={() => runScanMutation.mutate()}
               disabled={runScanMutation.isPending}
               size="sm"
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 hover-lift"
             >
               {runScanMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -120,7 +120,7 @@ export default function Header({ onRefresh }: HeaderProps) {
             </Button>
             
             {/* User Avatar */}
-            <Avatar className="h-8 w-8">
+            <Avatar className="h-8 w-8 hover-lift cursor-pointer transition-all duration-200">
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
           </div>

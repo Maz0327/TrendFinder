@@ -53,7 +53,7 @@ export default function Navigation() {
             <div
               data-tour={item.name.toLowerCase().replace(/\s+/g, '-')}
               className={cn(
-                "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+                "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer hover-lift",
                 isActive
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
@@ -68,7 +68,7 @@ export default function Navigation() {
       
       {/* Chrome Extension Status */}
       <div className="ml-4 pl-4 border-l border-gray-200" data-tour="extension-status">
-        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
+        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 animate-pulse-scale">
           <Puzzle className="h-3 w-3 mr-1" />
           <span className="hidden xl:inline">Extension</span>
         </Badge>

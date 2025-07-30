@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 import { Plus, Folder, Archive, Clock, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -141,8 +144,16 @@ export default function Projects() {
                 <Button 
                   onClick={() => createProjectMutation.mutate(newProject)}
                   disabled={!newProject.name || createProjectMutation.isPending}
+                  className="hover-lift"
                 >
-                  {createProjectMutation.isPending ? "Creating..." : "Create Project"}
+                  {createProjectMutation.isPending ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Project"
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -152,46 +163,61 @@ export default function Projects() {
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="space-y-2">
-                <div className="h-4 bg-muted rounded w-3/4" />
-                <div className="h-3 bg-muted rounded w-1/2" />
+            <Card key={i} className="animate-fade-in">
+              <CardHeader className="space-y-3">
+                <Skeleton className="h-5 w-3/4" />
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="h-20 bg-muted rounded" />
+              <CardContent className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/2" />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : projects.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Folder className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No projects yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first project to start organizing your strategic campaigns
-            </p>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create First Project
-            </Button>
-          </CardContent>
-        </Card>
+        <FadeIn>
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="animate-pulse-scale">
+                <Folder className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              </div>
+              <h3 className="text-lg font-medium mb-2">No projects yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Create your first project to start organizing your strategic campaigns
+              </p>
+              <Button 
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="hover-lift"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create First Project
+              </Button>
+            </CardContent>
+          </Card>
+        </FadeIn>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <StaggeredFadeIn 
+          staggerDelay={50}
+          className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+        >
           {projects.map((project: any) => (
-            <Card 
-              key={project.id} 
-              className="cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate(`/projects/${project.id}`)}
-            >
+              <Card 
+                key={project.id} 
+                className="cursor-pointer hover-lift transition-all duration-200 group"
+                onClick={() => navigate(`/projects/${project.id}`)}
+              >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {getProjectStatusIcon(project.status)}
                     <CardTitle className="text-lg">{project.name}</CardTitle>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                 </div>
                 <CardDescription className="flex items-center justify-between">
                   <span>{project.client || "No client"}</span>
@@ -209,7 +235,7 @@ export default function Projects() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </StaggeredFadeIn>
       )}
     </PageLayout>
   );

@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { LoadingSpinner, LoadingState } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FadeIn } from "@/components/ui/fade-in";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
@@ -125,7 +128,7 @@ export default function BriefBuilder() {
   );
 
   // Fetch projects
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["/api/projects"],
   });
 
@@ -332,18 +335,22 @@ export default function BriefBuilder() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label>Project</Label>
-                <Select value={selectedProject} onValueChange={setSelectedProject}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(projects as any[]).map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {projectsLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(projects as any[]).map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               
               <div className="space-y-2 lg:col-span-2">
@@ -356,13 +363,14 @@ export default function BriefBuilder() {
               </div>
               
               <div className="flex items-end gap-2">
-                <Button onClick={saveBrief} className="flex-1">
+                <Button onClick={saveBrief} className="flex-1 hover-lift">
                   <Save className="h-4 w-4 mr-2" />
                   Save
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={() => setShowExportDialog(true)}
+                  className="hover-lift"
                 >
                   <Download className="h-4 w-4" />
                 </Button>
@@ -393,29 +401,40 @@ export default function BriefBuilder() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[calc(100vh-400px)]">
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  modifiers={[restrictToVerticalAxis]}
-                >
+                {capturesLoading ? (
                   <div className="space-y-2">
-                    {availableCaptures.map((capture: CaptureItem) => (
-                      <DraggableCapture key={capture.id} capture={capture} />
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="p-3 border rounded-lg">
+                        <Skeleton className="h-4 w-3/4 mb-2" />
+                        <Skeleton className="h-3 w-full" />
+                      </div>
                     ))}
                   </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    modifiers={[restrictToVerticalAxis]}
+                  >
+                    <StaggeredFadeIn staggerDelay={100} className="space-y-2">
+                      {availableCaptures.map((capture: CaptureItem) => (
+                        <DraggableCapture key={capture.id} capture={capture} />
+                      ))}
+                    </StaggeredFadeIn>
                   
-                  <DragOverlay>
-                    {activeCapture && (
-                      <div className="bg-white border rounded-lg p-3 shadow-lg opacity-90">
-                        <div className="font-medium text-sm truncate">
-                          {activeCapture.title}
+                    <DragOverlay>
+                      {activeCapture && (
+                        <div className="bg-white border rounded-lg p-3 shadow-lg opacity-90 hover-lift">
+                          <div className="font-medium text-sm truncate">
+                            {activeCapture.title}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </DragOverlay>
-                </DndContext>
+                      )}
+                    </DragOverlay>
+                  </DndContext>
+                )}
               </ScrollArea>
             </CardContent>
           </Card>
@@ -433,9 +452,19 @@ export default function BriefBuilder() {
                 <Button 
                   onClick={generateBriefWithAI}
                   disabled={isGenerating}
+                  className="hover-lift"
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  {isGenerating ? "Generating..." : "Generate with AI"}
+                  {isGenerating ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate with AI
+                    </>
+                  )}
                 </Button>
               </div>
             </CardHeader>
@@ -483,7 +512,7 @@ export default function BriefBuilder() {
           <div className="grid gap-4 py-4">
             <Button
               variant="outline"
-              className="justify-start"
+              className="justify-start hover-lift"
               onClick={() => {
                 exportBrief('markdown');
                 setShowExportDialog(false);
@@ -494,7 +523,7 @@ export default function BriefBuilder() {
             </Button>
             <Button
               variant="outline"
-              className="justify-start"
+              className="justify-start hover-lift"
               onClick={() => {
                 exportBrief('pdf');
                 setShowExportDialog(false);
@@ -505,7 +534,7 @@ export default function BriefBuilder() {
             </Button>
             <Button
               variant="outline"
-              className="justify-start"
+              className="justify-start hover-lift"
               onClick={() => {
                 exportBrief('slides');
                 setShowExportDialog(false);

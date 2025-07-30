@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { FadeIn } from "@/components/ui/fade-in";
 import { Brain, Sparkles, Target, Users, Loader2, Copy, CheckCircle2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
@@ -146,11 +148,11 @@ export default function AnalysisCenter() {
                 <Button
                   onClick={handleAnalyze}
                   disabled={analyzeTruth.isPending || !content.trim()}
-                  className="w-full"
+                  className="w-full hover-lift"
                 >
                   {analyzeTruth.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <LoadingSpinner size="sm" className="mr-2" />
                       Analyzing...
                     </>
                   ) : (
@@ -174,7 +176,7 @@ export default function AnalysisCenter() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start"
+                    className="w-full justify-start hover-lift"
                     onClick={() => {
                       setContent("AI is revolutionizing how we work. Companies are implementing AI tools at record pace, transforming productivity and creating new opportunities.");
                       setPlatform("linkedin");
@@ -186,7 +188,7 @@ export default function AnalysisCenter() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start"
+                    className="w-full justify-start hover-lift"
                     onClick={() => {
                       setContent("The minimalist lifestyle is more than decluttering - it's about intentional living and finding joy in simplicity. #MinimalismLife");
                       setPlatform("instagram");
@@ -203,7 +205,8 @@ export default function AnalysisCenter() {
           {/* Analysis Results */}
           <div className="space-y-6">
             {analysisResult ? (
-              <Card>
+              <FadeIn>
+                <Card>
                 <CardHeader>
                   <CardTitle>Analysis Results</CardTitle>
                   <CardDescription>
@@ -373,16 +376,21 @@ export default function AnalysisCenter() {
                   </div>
                 </CardContent>
               </Card>
+              </FadeIn>
             ) : (
-              <Card>
-                <CardContent className="py-16 text-center">
-                  <Brain className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-600 mb-2">No Analysis Yet</h3>
-                  <p className="text-sm text-gray-500">
-                    Enter content and click analyze to see the four-layer truth framework in action
-                  </p>
-                </CardContent>
-              </Card>
+              <FadeIn>
+                <Card>
+                  <CardContent className="py-16 text-center">
+                    <div className="animate-pulse-scale">
+                      <Brain className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">No Analysis Yet</h3>
+                    <p className="text-sm text-gray-500">
+                      Enter content and click analyze to see the four-layer truth framework in action
+                    </p>
+                  </CardContent>
+                </Card>
+              </FadeIn>
             )}
           </div>
         </div>
