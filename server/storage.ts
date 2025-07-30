@@ -680,22 +680,23 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Database storage implementation
+// Database storage implementation - Updated for Supabase public schema
 class DatabaseStorage implements IStorage {
   private db: any;
 
   constructor() {
-    // Force use of local Neon database credentials instead of DATABASE_URL
+    // Force use of individual credentials instead of DATABASE_URL (bypasses faulty SUPABASE_DATABASE_URL)
     const databaseUrl = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
     
     if (!process.env.PGUSER || !process.env.PGPASSWORD || !process.env.PGHOST || !process.env.PGDATABASE) {
       throw new Error("PostgreSQL credentials (PGUSER, PGPASSWORD, PGHOST, PGDATABASE) are required");
     }
+    
     try {
       console.log(`🔗 Connecting to database: ${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`);
       const sql = neon(databaseUrl);
-      this.db = drizzle(sql);
-      console.log("✅ Database connection established with local Neon instance");
+      this.db = drizzle(sql, { schema: { users, projects, captures, briefs, briefCaptures, contentRadar } });
+      console.log("✅ Database connection established using individual credentials");
     } catch (error) {
       console.error("❌ Database connection failed:", error);
       throw error;
