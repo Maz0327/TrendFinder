@@ -12,6 +12,7 @@ import { Tier2PlatformService } from "./services/tier2PlatformService";
 import { BriefGenerationService } from "./services/briefGenerationService";
 import { ChromeExtensionService } from "./services/chromeExtensionService";
 import { FixedBrightDataService } from "./services/fixedBrightDataService";
+import { LiveBrightDataService } from "./services/liveBrightDataService";
 import { insertContentRadarSchema, insertSourceSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -26,6 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const briefService = new BriefGenerationService();
   const chromeExtensionService = new ChromeExtensionService();
   const fixedBrightData = new FixedBrightDataService();
+  const liveBrightData = new LiveBrightDataService();
   
   // Initialize Tier 1 sources on startup
   await strategicIntelligence.initializeSources();
@@ -761,6 +763,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: error.message,
         platform: req.body.platform 
       });
+    }
+  });
+
+  // Fetch LIVE data using enhanced Bright Data service with browser automation
+  app.post("/api/bright-data/live", async (req, res) => {
+    try {
+      const { platform, keywords = [], limit = 20 } = req.body;
+      
+      if (!platform) {
+        return res.status(400).json({ error: "Platform is required" });
+      }
+      
+      console.log(`[Live API] Fetching live data from ${platform} with browser automation`);
+      
+      const result = await liveBrightData.fetchLiveData(platform, keywords, limit);
+      res.json(result);
+      
+    } catch (error) {
+      console.error('Error fetching live data:', error);
+      res.status(500).json({ 
+        error: "Failed to fetch live data", 
+        details: error.message,
+        platform: req.body.platform 
+      });
+    }
+  });
+
+  // Get live system status
+  app.get("/api/bright-data/live/status", async (req, res) => {
+    try {
+      const status = liveBrightData.getSystemStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get live system status" });
     }
   });
 
