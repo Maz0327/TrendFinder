@@ -832,6 +832,7 @@ class DatabaseStorage implements IStorage {
     offset?: number;
   }): Promise<ContentRadar[]> {
     try {
+      console.log("🔍 Fetching content items with filters:", filters);
       let query = this.db.select().from(contentRadar).where(eq(contentRadar.isActive, true));
       
       // Apply filters

@@ -171,9 +171,37 @@ export function registerProjectRoutes(app: Express) {
       
       const capture = await storage.createCapture(captureData);
       
-      // Trigger automatic AI analysis in background
-      console.log(`🧠 Triggering AI analysis for capture: ${capture.title}`);
-      captureAnalysisService.processInBackground(capture.id);
+      // Trigger Truth Analysis Framework processing in background
+      const { CaptureTruthAnalysisService } = await import("../services/capture-truth-analysis");
+      const truthAnalysisService = new CaptureTruthAnalysisService();
+      
+      // Process Truth Analysis asynchronously
+      truthAnalysisService.analyzeCaptureContent({
+        id: capture.id,
+        title: capture.title,
+        content: capture.content,
+        platform: capture.platform,
+        metadata: capture.metadata
+      }).then(async (analysis) => {
+        // Update capture with Truth Analysis results
+        await storage.updateCapture(capture.id, {
+          truthAnalysis: analysis.truthAnalysis,
+          summary: analysis.summary,
+          culturalRelevance: analysis.culturalRelevance.toString(),
+          strategicValue: analysis.strategicValue.toString(),
+          suggestedBriefSection: analysis.suggestedBriefSection,
+          status: 'analyzed',
+          processedAt: new Date()
+        });
+        console.log(`✅ Truth Analysis completed for capture ${capture.id}`);
+      }).catch(error => {
+        console.error(`❌ Truth Analysis failed for capture ${capture.id}:`, error);
+        // Mark as error but don't fail the capture creation
+        storage.updateCapture(capture.id, {
+          status: 'error',
+          processedAt: new Date()
+        }).catch(console.error);
+      });
       
       res.status(201).json(capture);
     } catch (error) {
