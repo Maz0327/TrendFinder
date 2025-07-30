@@ -104,18 +104,18 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Platform Settings</h1>
-          <p className="text-gray-600">Configure API integrations and platform connections</p>
+      <div className="container mx-auto p-4 lg:p-6">
+        <div className="mb-6 lg:mb-8">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Platform Settings</h1>
+          <p className="text-sm lg:text-base text-gray-600">Configure API integrations and platform connections</p>
         </div>
 
-        <Tabs defaultValue="api-keys" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="api-keys">API Keys</TabsTrigger>
-            <TabsTrigger value="bright-data">Bright Data</TabsTrigger>
-            <TabsTrigger value="chrome-extension">Chrome Extension</TabsTrigger>
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
+        <Tabs defaultValue="api-keys" className="space-y-4 lg:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+            <TabsTrigger value="api-keys" className="text-xs lg:text-sm">API Keys</TabsTrigger>
+            <TabsTrigger value="bright-data" className="text-xs lg:text-sm">Bright Data</TabsTrigger>
+            <TabsTrigger value="chrome-extension" className="text-xs lg:text-sm">Extension</TabsTrigger>
+            <TabsTrigger value="preferences" className="text-xs lg:text-sm">Preferences</TabsTrigger>
           </TabsList>
 
           {/* API Keys Tab */}

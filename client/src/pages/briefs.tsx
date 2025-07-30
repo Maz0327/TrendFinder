@@ -113,13 +113,13 @@ export default function BriefGenerator() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Strategic Brief Generator</h1>
-          <p className="text-gray-600">Create professional strategic briefs with AI-powered insights</p>
+      <div className="container mx-auto p-4 lg:p-6">
+        <div className="mb-6 lg:mb-8">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Strategic Brief Generator</h1>
+          <p className="text-sm lg:text-base text-gray-600">Create professional strategic briefs with AI-powered insights</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Configuration Panel */}
           <div className="lg:col-span-1 space-y-6">
             <Card>

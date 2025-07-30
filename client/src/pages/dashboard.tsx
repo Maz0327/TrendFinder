@@ -59,11 +59,11 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Header onRefresh={() => refetchContent()} />
       
-      <div className="flex pt-16">
+      <div className="flex">
         <Sidebar filters={filters} onFiltersChange={handleFilterChange} />
         
-        <main className="flex-1 ml-64 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <main className="flex-1 lg:ml-64 p-4 lg:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-4 lg:mb-6">
             <div className="lg:col-span-2">
               <StatsOverview stats={stats} />
             </div>
@@ -88,7 +88,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
                 {paginatedContent.map((trend) => (
                   <TrendCard
                     key={trend.id}

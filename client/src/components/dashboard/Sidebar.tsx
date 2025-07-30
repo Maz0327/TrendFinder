@@ -96,7 +96,7 @@ export default function Sidebar({ filters, onFiltersChange }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-white shadow-sm border-r border-gray-200 fixed left-0 top-16 bottom-0 overflow-y-auto">
+    <aside className="hidden lg:block w-64 bg-white shadow-sm border-r border-gray-200 fixed left-0 top-0 bottom-0 overflow-y-auto pt-16">
       <div className="p-6">
         {/* Category Filters */}
         <div className="mb-8">

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
   Home,
   Globe,
@@ -22,7 +23,7 @@ export default function Navigation() {
   const [location] = useLocation();
 
   return (
-    <nav className="flex items-center space-x-6">
+    <nav className="hidden lg:flex items-center space-x-4">
       {navigation.map((item) => {
         const isActive = location === item.href;
         const Icon = item.icon;
@@ -31,23 +32,25 @@ export default function Navigation() {
           <Link key={item.name} href={item.href}>
             <div
               className={cn(
-                "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
                 isActive
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
               )}
             >
               <Icon className="h-4 w-4" />
-              <span>{item.name}</span>
+              <span className="hidden xl:inline">{item.name}</span>
             </div>
           </Link>
         );
       })}
       
-      {/* Chrome Extension Indicator */}
-      <div className="flex items-center space-x-2 px-3 py-2 text-sm">
-        <Puzzle className="h-4 w-4 text-green-600" />
-        <span className="text-gray-600">Extension Active</span>
+      {/* Chrome Extension Status */}
+      <div className="ml-4 pl-4 border-l border-gray-200">
+        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
+          <Puzzle className="h-3 w-3 mr-1" />
+          <span className="hidden xl:inline">Extension</span>
+        </Badge>
       </div>
     </nav>
   );

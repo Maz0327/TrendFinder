@@ -8,6 +8,7 @@ import { Bell, Play, Search, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/layout/Navigation";
+import MobileNav from "@/components/layout/MobileNav";
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -51,25 +52,33 @@ export default function Header({ onRefresh }: HeaderProps) {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
-      <div className="px-6 py-4">
+    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <div className="px-4 lg:px-6 py-3 lg:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
+            {/* Mobile Menu */}
+            <MobileNav />
+            
+            {/* Logo */}
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <i className="fas fa-radar-chart text-white text-sm"></i>
               </div>
-              <h1 className="text-xl font-semibold text-gray-900">Content Radar</h1>
+              <h1 className="text-lg lg:text-xl font-semibold text-gray-900">
+                <span className="hidden sm:inline">Content Radar</span>
+                <span className="sm:hidden">Radar</span>
+              </h1>
             </div>
             
-            {/* Navigation */}
+            {/* Desktop Navigation */}
             <div className="ml-8">
               <Navigation />
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <form onSubmit={handleSearch} className="relative hidden lg:block">
+          <div className="flex items-center space-x-2 lg:space-x-4">
+            {/* Search - Hidden on mobile */}
+            <form onSubmit={handleSearch} className="relative hidden xl:block">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-gray-400" />
               </div>
@@ -78,18 +87,26 @@ export default function Header({ onRefresh }: HeaderProps) {
                 placeholder="Search trends, topics..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-80"
+                className="pl-10 pr-4 py-2 w-60 xl:w-80"
               />
             </form>
             
+            {/* Search button for mobile/tablet */}
+            <Button variant="ghost" size="sm" className="xl:hidden">
+              <Search className="h-4 w-4" />
+            </Button>
+            
+            {/* Notifications */}
             <Button variant="ghost" size="sm" className="relative">
               <Bell className="h-4 w-4" />
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
             </Button>
             
+            {/* Run Scan Button */}
             <Button 
               onClick={() => runScanMutation.mutate()}
               disabled={runScanMutation.isPending}
+              size="sm"
               className="flex items-center space-x-2"
             >
               {runScanMutation.isPending ? (
@@ -97,9 +114,12 @@ export default function Header({ onRefresh }: HeaderProps) {
               ) : (
                 <Play className="h-4 w-4" />
               )}
-              <span>{runScanMutation.isPending ? "Scanning..." : "Run Scan"}</span>
+              <span className="hidden sm:inline">
+                {runScanMutation.isPending ? "Scanning..." : "Run Scan"}
+              </span>
             </Button>
             
+            {/* User Avatar */}
             <Avatar className="h-8 w-8">
               <AvatarFallback>U</AvatarFallback>
             </Avatar>

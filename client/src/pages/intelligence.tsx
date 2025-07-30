@@ -94,13 +94,13 @@ export default function IntelligenceHub() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Strategic Intelligence Hub</h1>
-          <p className="text-gray-600">Monitor and analyze content across multiple platforms in real-time</p>
+      <div className="container mx-auto p-4 lg:p-6">
+        <div className="mb-6 lg:mb-8">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Strategic Intelligence Hub</h1>
+          <p className="text-sm lg:text-base text-gray-600">Monitor and analyze content across multiple platforms in real-time</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
           {/* Platform Status Card */}
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -111,7 +111,7 @@ export default function IntelligenceHub() {
               <CardDescription>Real-time connectivity and data availability</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {platformStatuses.map((platform) => (
                   <div key={platform.platform} className="flex items-center gap-2 p-3 rounded-lg border">
                     {platform.status === 'active' ? (

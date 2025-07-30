@@ -9,6 +9,7 @@ import AnalysisCenter from "@/pages/analysis";
 import BriefGenerator from "@/pages/briefs";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
+import MobileNavBar from "@/components/layout/MobileNavBar";
 
 function Router() {
   return (
@@ -28,7 +29,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <div className="pb-16 lg:pb-0">
+          <Router />
+        </div>
+        <MobileNavBar />
       </TooltipProvider>
     </QueryClientProvider>
   );
