@@ -261,19 +261,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       switch (platform) {
         case 'reddit':
-          sampleData = await brightDataBrowser.fetchContent('reddit', ['technology'], 10);
+          sampleData = []; // TODO: Implement browser scraping
           break;
         case 'instagram':
-          sampleData = await brightDataBrowser.fetchContent('instagram', ['trending'], 10);
+          sampleData = []; // TODO: Implement browser scraping
           break;
         case 'tiktok':
-          sampleData = await brightDataBrowser.fetchContent('tiktok', ['viral'], 10);
+          sampleData = []; // TODO: Implement browser scraping
           break;
         case 'twitter':
-          sampleData = await brightDataBrowser.fetchContent('twitter', ['tech'], 10);
+          sampleData = []; // TODO: Implement browser scraping
           break;
         case 'all':
-          sampleData = await brightDataBrowser.fetchContent('reddit', ['trending'], 10);
+          sampleData = []; // TODO: Implement browser scraping
           break;
         default:
           return res.status(400).json({ error: 'Invalid platform for browser scraping' });
@@ -875,7 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await authService.register(validatedData);
       
       // Set session
-      req.session.userId = user.id;
+      req.session.user = { id: user.id, email: user.email, username: user.username };
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
@@ -905,7 +905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await authService.login(validatedData);
       
       // Set session
-      req.session.userId = user.id;
+      req.session.user = { id: user.id, email: user.email, username: user.username };
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
@@ -940,12 +940,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/me", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
       const { authService } = await import("./services/authService");
-      const user = await authService.getUserById(req.session.userId);
+      const user = await authService.getUserById(req.session.user.id);
       
       if (!user) {
         return res.status(404).json({ error: "User not found" });

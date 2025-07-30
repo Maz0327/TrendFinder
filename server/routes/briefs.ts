@@ -9,7 +9,7 @@ export function registerBriefRoutes(app: Express) {
   // Get all briefs for a project
   app.get("/api/briefs", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
@@ -29,7 +29,7 @@ export function registerBriefRoutes(app: Express) {
   // Get single brief
   app.get("/api/briefs/:id", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
@@ -48,7 +48,7 @@ export function registerBriefRoutes(app: Express) {
   // Create new brief
   app.post("/api/briefs", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
@@ -56,7 +56,7 @@ export function registerBriefRoutes(app: Express) {
       
       // Verify project ownership
       const project = await storage.getProjectById(validatedData.projectId);
-      if (!project || project.userId !== req.session.userId) {
+      if (!project || project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -74,7 +74,7 @@ export function registerBriefRoutes(app: Express) {
   // Update brief
   app.patch("/api/briefs/:id", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
@@ -85,7 +85,7 @@ export function registerBriefRoutes(app: Express) {
       
       // Verify project ownership
       const project = await storage.getProjectById(brief.projectId);
-      if (!project || project.userId !== req.session.userId) {
+      if (!project || project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -100,7 +100,7 @@ export function registerBriefRoutes(app: Express) {
   // Generate brief content with AI
   app.post("/api/briefs/generate", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
@@ -108,7 +108,7 @@ export function registerBriefRoutes(app: Express) {
       
       // Verify project ownership
       const project = await storage.getProjectById(projectId);
-      if (!project || project.userId !== req.session.userId) {
+      if (!project || project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -159,7 +159,7 @@ export function registerBriefRoutes(app: Express) {
   // Export brief
   app.post("/api/briefs/export", async (req, res) => {
     try {
-      if (!req.session?.userId) {
+      if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       

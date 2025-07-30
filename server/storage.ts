@@ -782,7 +782,19 @@ class DatabaseStorage implements IStorage {
   }
 
   async getUserCaptures(userId: string): Promise<Capture[]> {
-    return await this.db.select().from(captures).where(eq(captures.userId, userId)).orderBy(desc(captures.createdAt));
+    try {
+      const result = await this.db
+        .select()
+        .from(captures)
+        .leftJoin(projects, eq(captures.projectId, projects.id))
+        .where(eq(projects.userId, userId))
+        .orderBy(desc(captures.createdAt));
+      
+      return result.map(row => row.captures);
+    } catch (error) {
+      console.error("❌ Error fetching user captures:", error);
+      throw error;
+    }
   }
 
   // Stub methods for interfaces not yet implemented in database
