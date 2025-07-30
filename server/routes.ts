@@ -27,10 +27,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const brightData = new BrightDataService();
   const brightDataBrowser = new BrightDataBrowserService();
   const enhancedBrightData = new EnhancedBrightDataService();
-  // Use Supabase storage if available, otherwise fallback to existing storage
-  const db = process.env.SUPABASE_DATABASE_URL 
-    ? new SupabaseStorage(process.env.SUPABASE_DATABASE_URL)
-    : storage;
+  // Use working database storage - fallback to standard storage if Supabase fails
+  let db;
+  try {
+    if (process.env.SUPABASE_DATABASE_URL) {
+      console.log("🔄 Attempting Supabase connection...");
+      db = new SupabaseStorage(process.env.SUPABASE_DATABASE_URL);
+      // Test connection immediately
+      await db.getStats();
+      console.log("✅ Supabase connection successful");
+    } else {
+      throw new Error("No SUPABASE_DATABASE_URL configured");
+    }
+  } catch (error) {
+    console.warn("⚠️ Supabase connection failed, falling back to standard storage:", error.message);
+    db = storage;
+  }
   
   const strategicIntelligence = new StrategicIntelligenceService(db);
   const truthFramework = new TruthAnalysisFramework();

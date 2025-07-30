@@ -332,45 +332,7 @@ export class SupabaseStorage implements ISupabaseStorage {
   }
 
   async getBriefCaptures(briefId: string): Promise<BriefCapture[]> {
-    return await this.db.select().from(briefCaptures).where(eq(briefCaptures.briefId, briefId));
-  }
-    return result[0];
-  }
-
-  async updateBrief(id: string, updates: Partial<Brief>): Promise<Brief | undefined> {
-    const result = await this.db
-      .update(briefs)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(briefs.id, id))
-      .returning();
-    return result[0];
-  }
-
-  async deleteBrief(id: string): Promise<boolean> {
-    const result = await this.db.delete(briefs).where(eq(briefs.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Brief Capture relationship methods
-  async addCaptureToBrief(briefCapture: InsertBriefCapture): Promise<BriefCapture> {
-    const result = await this.db.insert(briefCaptures).values({
-      ...briefCapture,
-      id: randomUUID(),
-    }).returning();
-    return result[0];
-  }
-
-  async removeCaptureFromBrief(briefId: string, captureId: string): Promise<boolean> {
-    const result = await this.db
-      .delete(briefCaptures)
-      .where(and(eq(briefCaptures.briefId, briefId), eq(briefCaptures.captureId, captureId)));
-    return result.rowCount > 0;
-  }
-
-  async getBriefCaptures(briefId: string): Promise<BriefCapture[]> {
-    return await this.db
-      .select()
-      .from(briefCaptures)
+    return await this.db.select().from(briefCaptures)
       .where(eq(briefCaptures.briefId, briefId))
       .orderBy(briefCaptures.orderIndex);
   }
