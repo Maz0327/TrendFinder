@@ -63,7 +63,7 @@ export default function Header({ onRefresh }: HeaderProps) {
             </div>
             
             {/* Navigation */}
-            <div className="hidden lg:block ml-8">
+            <div className="ml-8">
               <Navigation />
             </div>
           </div>

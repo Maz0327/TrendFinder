@@ -29,9 +29,9 @@ export default function Navigation() {
         
         return (
           <Link key={item.name} href={item.href}>
-            <a
+            <div
               className={cn(
-                "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer",
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
@@ -39,7 +39,7 @@ export default function Navigation() {
             >
               <Icon className="h-4 w-4" />
               <span>{item.name}</span>
-            </a>
+            </div>
           </Link>
         );
       })}
