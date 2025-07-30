@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { SupabaseStorage } from "./storage-supabase";
 import { captureAnalysisService } from "./services/capture-analysis-service";
 import { scheduler } from "./services/scheduler";
 import { BrightDataService } from "./services/brightDataService";
@@ -26,7 +27,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const brightData = new BrightDataService();
   const brightDataBrowser = new BrightDataBrowserService();
   const enhancedBrightData = new EnhancedBrightDataService();
-  const strategicIntelligence = new StrategicIntelligenceService(storage);
+  // Use Supabase storage if available, otherwise fallback to existing storage
+  const db = process.env.SUPABASE_DATABASE_URL 
+    ? new SupabaseStorage(process.env.SUPABASE_DATABASE_URL)
+    : storage;
+  
+  const strategicIntelligence = new StrategicIntelligenceService(db);
   const truthFramework = new TruthAnalysisFramework();
   const tier2Service = new Tier2PlatformService();
   const briefService = new BriefGenerationService();
@@ -51,7 +57,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const captures = await storage.getUserCaptures(req.session.user.id);
+      const captures = await db.getUserCaptures(req.session.user.id);
       res.json(captures);
     } catch (error) {
       console.error("Error fetching user captures:", error);
@@ -69,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { notes, customCopy, tags } = req.body;
 
-      const updatedCapture = await storage.updateCapture(id, {
+      const updatedCapture = await db.updateCapture(id, {
         userNote: notes,
         customCopy,
         tags,
