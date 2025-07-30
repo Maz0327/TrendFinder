@@ -147,7 +147,7 @@ export class BriefGenerationService {
           sections.push({
             sectionId: sectionDef.id,
             title: sectionDef.title,
-            content: `Section generation failed: ${error.message}`,
+            content: `Section generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
             aiGenerated: false,
             userModified: false,
             sources: []

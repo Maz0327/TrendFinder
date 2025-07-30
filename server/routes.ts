@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Bright Data API test error:', error);
       res.status(500).json({ 
         error: "Bright Data API test failed", 
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
         platform: req.body.platform || 'unknown'
       });
     }
@@ -194,19 +194,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       switch (platform) {
         case 'reddit':
-          sampleData = await brightDataBrowser.fetchInstagramContent(['reddit', 'technology']);
+          sampleData = await brightDataBrowser.fetchContent('reddit', ['technology'], 10);
           break;
         case 'instagram':
-          sampleData = await brightDataBrowser.fetchInstagramContent(['trending', 'tech']);
+          sampleData = await brightDataBrowser.fetchContent('instagram', ['trending'], 10);
           break;
         case 'tiktok':
-          sampleData = await brightDataBrowser.fetchTikTokTrends();
+          sampleData = await brightDataBrowser.fetchContent('tiktok', ['viral'], 10);
           break;
         case 'twitter':
-          sampleData = await brightDataBrowser.fetchInstagramContent(['twitter', 'tech']);
+          sampleData = await brightDataBrowser.fetchContent('twitter', ['tech'], 10);
           break;
         case 'all':
-          sampleData = await brightDataBrowser.fetchInstagramContent(['trending', 'viral']);
+          sampleData = await brightDataBrowser.fetchContent('reddit', ['trending'], 10);
           break;
         default:
           return res.status(400).json({ error: 'Invalid platform for browser scraping' });
@@ -225,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Bright Data Browser test error:', error);
       res.status(500).json({ 
         error: "Bright Data Browser test failed", 
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
         platform: req.body.platform || 'unknown'
       });
     }
@@ -250,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Content not found" });
       }
 
-      const existingHooks = [item.hook1, item.hook2].filter(Boolean) as string[];
+      const existingHooks = item.hooks || [];
       const newHooks = await aiAnalyzer.generateAdditionalHooks(
         item.title,
         item.content || '',
@@ -399,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error fetching intelligence:', error);
-      res.status(500).json({ error: "Failed to fetch intelligence", details: error.message });
+      res.status(500).json({ error: "Failed to fetch intelligence", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
   
@@ -444,7 +444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error fetching Tier 2 data:', error);
-      res.status(500).json({ error: "Failed to fetch Tier 2 data", details: error.message });
+      res.status(500).json({ error: "Failed to fetch Tier 2 data", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -463,7 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(analysis);
     } catch (error) {
       console.error('Error in truth analysis:', error);
-      res.status(500).json({ error: "Failed to analyze content", details: error.message });
+      res.status(500).json({ error: "Failed to analyze content", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -505,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(brief);
     } catch (error) {
       console.error('Error generating brief:', error);
-      res.status(500).json({ error: "Failed to generate brief", details: error.message });
+      res.status(500).json({ error: "Failed to generate brief", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -551,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         brief = await briefService.generateBrief(
           templateId,
           allSignals,
-          culturalMoments.culturalMoments || [],
+          Array.isArray(culturalMoments) ? culturalMoments : [],
           trends.trends || [],
           {
             project: `Intelligence Report ${new Date().toLocaleDateString()}`,
@@ -570,7 +570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tier2Signals: tier2Data.length,
         totalSignals: allSignals.length,
         trends: trends.trends?.length || 0,
-        culturalMoments: culturalMoments.culturalMoments?.length || 0,
+        culturalMoments: Array.isArray(culturalMoments) ? culturalMoments.length : 0,
         brief: brief ? brief.id : null,
         data: {
           signals: allSignals,
@@ -582,14 +582,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error) {
       console.error('Error in comprehensive intelligence:', error);
-      res.status(500).json({ error: "Failed to run comprehensive intelligence", details: error.message });
+      res.status(500).json({ error: "Failed to run comprehensive intelligence", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Phase 6: Chrome Extension Integration Routes
   
   // Process content captured from Chrome extension
-  app.post("/api/extension/capture", async (req, res) => {
+  app.post("/api/chrome-extension/capture", async (req, res) => {
     try {
       const contentData = req.body;
       
@@ -603,12 +603,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(analysis);
     } catch (error) {
       console.error('Error processing extension capture:', error);
-      res.status(500).json({ error: "Failed to process captured content", details: error.message });
+      res.status(500).json({ error: "Failed to process captured content", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
   
   // Batch process multiple captured contents
-  app.post("/api/extension/batch", async (req, res) => {
+  app.post("/api/chrome-extension/batch", async (req, res) => {
     try {
       const { contents } = req.body;
       
@@ -624,12 +624,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error processing extension batch:', error);
-      res.status(500).json({ error: "Failed to process batch content", details: error.message });
+      res.status(500).json({ error: "Failed to process batch content", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
   
   // Get extension stats and capabilities
-  app.get("/api/extension/stats", async (req, res) => {
+  app.get("/api/chrome-extension/stats", async (req, res) => {
     try {
       const stats = chromeExtensionService.getExtensionStats();
       res.json(stats);
@@ -694,7 +694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         status: 'error', 
         message: 'Failed to test Bright Data connection',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
   });
@@ -760,7 +760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error fetching via fixed Bright Data:', error);
       res.status(500).json({ 
         error: "Failed to fetch data", 
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
         platform: req.body.platform 
       });
     }
@@ -784,7 +784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error fetching live data:', error);
       res.status(500).json({ 
         error: "Failed to fetch live data", 
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
         platform: req.body.platform 
       });
     }

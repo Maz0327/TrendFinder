@@ -454,4 +454,36 @@ summary, hooks (5+), viralScore, category, and detailed truthAnalysis following 
 
     return result.hooks.filter(hook => !existingHooks.includes(hook));
   }
+
+  /**
+   * Direct Gemini analysis method for compatibility with existing services
+   */
+  async analyzeWithGemini(
+    prompt: string,
+    context: any = {}
+  ): Promise<any> {
+    try {
+      const result = await this.geminiModel.generateContent(prompt);
+      const response = result.response.text();
+      
+      // Try to parse as JSON if it looks like JSON
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.warn('Failed to parse Gemini response as JSON, returning raw text');
+        }
+      }
+      
+      return {
+        content: response,
+        analysis: response,
+        result: response
+      };
+    } catch (error) {
+      console.error('Error with analyzeWithGemini:', error);
+      throw error;
+    }
+  }
 }

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategic Content Capture</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="images/icon48.png" alt="Strategic Content Capture" class="logo">
+            <h1>Strategic Content Capture</h1>
+        </div>
+        
+        <div class="status" id="status">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span class="status-text" id="statusText">Ready to capture</span>
+        </div>
+
+        <div class="main-actions">
+            <button class="primary-button" id="captureButton">
+                <span class="button-icon">📝</span>
+                Capture Current Page
+            </button>
+            
+            <button class="secondary-button" id="captureSelectionButton">
+                <span class="button-icon">✂️</span>
+                Capture Selection
+            </button>
+            
+            <button class="secondary-button" id="captureScreenshotButton">
+                <span class="button-icon">📸</span>
+                Screenshot Analysis
+            </button>
+        </div>
+
+        <div class="analysis-options">
+            <label for="analysisMode">Analysis Mode:</label>
+            <select id="analysisMode">
+                <option value="quick">Quick Analysis</option>
+                <option value="deep">Deep Cultural Analysis</option>
+                <option value="strategic">Strategic Brief</option>
+                <option value="competitive">Competitive Intelligence</option>
+            </select>
+            
+            <label for="priority">Priority Level:</label>
+            <select id="priority">
+                <option value="normal">Normal</option>
+                <option value="high">High Priority</option>
+                <option value="urgent">Urgent</option>
+            </select>
+        </div>
+
+        <div class="recent-captures" id="recentCaptures">
+            <h3>Recent Captures</h3>
+            <div class="captures-list" id="capturesList">
+                <p class="no-captures">No recent captures</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="settings-button" id="settingsButton">Settings</button>
+            <button class="dashboard-button" id="dashboardButton">Open Dashboard</button>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
