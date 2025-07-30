@@ -50,6 +50,32 @@ interface CaptureItem {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  // AI Analysis Fields
+  analysisStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  truthAnalysis?: {
+    fact: string;
+    observation: string;
+    insight: string;
+    humanTruth: string;
+    culturalMoment?: string;
+    strategicValue: number;
+    viralPotential: number;
+    briefSectionSuggestion: 'define' | 'shift' | 'deliver';
+    keywords: string[];
+    tone: string;
+    confidence: number;
+  };
+  visualAnalysis?: {
+    brandElements: string[];
+    culturalMoments: string[];
+    competitiveInsights: string[];
+    strategicRecommendations: string[];
+    visualScore: number;
+    confidenceScore: number;
+  };
+  strategicValue?: number;
+  viralPotential?: number;
+  confidenceScore?: number;
 }
 
 interface Project {

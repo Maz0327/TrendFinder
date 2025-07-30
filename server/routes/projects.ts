@@ -2,10 +2,9 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { insertProjectSchema, insertCaptureSchema } from "@shared/schema";
 import { z } from "zod";
-import { TruthAnalysisEngine } from "../services/truthAnalysisEngine";
+import { captureAnalysisService } from "../services/capture-analysis-service";
 
 export function registerProjectRoutes(app: Express) {
-  const truthEngine = new TruthAnalysisEngine();
 
   // Get all projects for a user
   app.get("/api/projects", async (req, res) => {
@@ -14,7 +13,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const projects = await storage.getProjects(req.session.userId);
+      const projects = await storage.getProjects(req.session.user.id);
       res.json(projects);
     } catch (error) {
       console.error("Failed to fetch projects:", error);
@@ -35,7 +34,7 @@ export function registerProjectRoutes(app: Express) {
       }
       
       // Verify ownership
-      if (project.userId !== req.session.userId) {
+      if (project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -55,7 +54,7 @@ export function registerProjectRoutes(app: Express) {
       
       const validatedData = insertProjectSchema.parse({
         ...req.body,
-        userId: req.session.userId
+        userId: req.session.user.id
       });
       
       const project = await storage.createProject(validatedData);
@@ -81,7 +80,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
       
-      if (project.userId !== req.session.userId) {
+      if (project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -105,7 +104,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
       
-      if (project.userId !== req.session.userId) {
+      if (project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -129,7 +128,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
       
-      if (project.userId !== req.session.userId) {
+      if (project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -156,28 +155,22 @@ export function registerProjectRoutes(app: Express) {
         return res.status(404).json({ error: "Project not found" });
       }
       
-      if (project.userId !== req.session.userId) {
+      if (project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const capture = await storage.createCapture(validatedData);
+      // Set initial analysis status
+      const captureData = {
+        ...validatedData,
+        status: 'pending',
+        analysisStatus: 'pending'
+      };
       
-      // Trigger async Truth Analysis
-      truthEngine.analyzeCapture(capture).then(async (analysis) => {
-        await storage.updateCapture(capture.id, {
-          truthAnalysis: analysis.truthAnalysis,
-          suggestedBriefSection: analysis.suggestedBriefSection,
-          culturalRelevance: analysis.culturalRelevance,
-          strategicValue: analysis.strategicValue,
-          status: 'analyzed',
-          processedAt: new Date()
-        });
-      }).catch(error => {
-        console.error("Truth Analysis failed:", error);
-        storage.updateCapture(capture.id, {
-          status: 'error'
-        });
-      });
+      const capture = await storage.createCapture(captureData);
+      
+      // Trigger automatic AI analysis in background
+      console.log(`🧠 Triggering AI analysis for capture: ${capture.title}`);
+      captureAnalysisService.processInBackground(capture.id);
       
       res.status(201).json(capture);
     } catch (error) {
@@ -203,7 +196,7 @@ export function registerProjectRoutes(app: Express) {
       
       // Verify ownership through project
       const project = await storage.getProjectById(capture.projectId);
-      if (!project || project.userId !== req.session.userId) {
+      if (!project || project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -227,7 +220,7 @@ export function registerProjectRoutes(app: Express) {
       }
       
       const project = await storage.getProjectById(capture.projectId);
-      if (!project || project.userId !== req.session.userId) {
+      if (!project || project.userId !== req.session.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -304,7 +297,7 @@ export function registerProjectRoutes(app: Express) {
       const { projectId, type, content, sourceUrl, platform, metadata, captureMode } = req.body;
 
       // Validate project belongs to user
-      const project = await storage.getProjectById(projectId, userId);
+      const project = await storage.getProjectById(projectId);
       if (!project) {
         return res.status(404).json({ error: 'Project not found' });
       }
@@ -317,22 +310,14 @@ export function registerProjectRoutes(app: Express) {
         sourceUrl,
         platform,
         metadata,
-        captureMode
+        tags: [],
+        status: 'pending',
+        analysisStatus: 'pending'
       });
 
-      // Trigger async Truth Analysis
-      truthEngine.analyzeCapture(capture).then(async (analysis) => {
-        await storage.updateCapture(capture.id, {
-          truthAnalysis: analysis.truthAnalysis,
-          suggestedBriefSection: analysis.suggestedBriefSection,
-          culturalRelevance: analysis.culturalRelevance,
-          strategicValue: analysis.strategicValue,
-          status: 'analyzed',
-          processedAt: new Date()
-        });
-      }).catch(error => {
-        console.error('Truth Analysis failed:', error);
-      });
+      // Trigger automatic AI analysis in background
+      console.log(`🧠 Triggering AI analysis for capture: ${capture.title || 'Extension Capture'}`);
+      captureAnalysisService.processInBackground(capture.id);
 
       res.json({ success: true, capture });
     } catch (error) {
