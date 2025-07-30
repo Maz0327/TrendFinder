@@ -294,7 +294,7 @@ export function registerProjectRoutes(app: Express) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const { projectId, type, content, sourceUrl, platform, metadata, captureMode } = req.body;
+      const { projectId, type, content, sourceUrl, platform, metadata } = req.body;
 
       // Validate project belongs to user
       const project = await storage.getProjectById(projectId);

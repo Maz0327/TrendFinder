@@ -34,7 +34,15 @@ import {
   FolderOpen,
   Tag,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Brain,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+  Zap,
+  Target,
+  Lightbulb
 } from "lucide-react";
 
 interface CaptureItem {
@@ -95,6 +103,8 @@ export default function MyCaptures() {
   const [editNotes, setEditNotes] = useState("");
   const [editCustomCopy, setEditCustomCopy] = useState("");
   const [editTags, setEditTags] = useState("");
+  const [isAnalysisDialogOpen, setIsAnalysisDialogOpen] = useState(false);
+  const [analysisCapture, setAnalysisCapture] = useState<CaptureItem | null>(null);
 
   // Fetch projects for filtering
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -164,6 +174,11 @@ export default function MyCaptures() {
     setEditCustomCopy(capture.customCopy || "");
     setEditTags(capture.tags.join(", "));
     setIsEditDialogOpen(true);
+  };
+
+  const handleViewAnalysis = (capture: CaptureItem) => {
+    setAnalysisCapture(capture);
+    setIsAnalysisDialogOpen(true);
   };
 
   const handleSaveEdit = () => {
@@ -340,6 +355,12 @@ export default function MyCaptures() {
                           <Edit3 className="h-4 w-4 mr-2" />
                           Edit Notes
                         </DropdownMenuItem>
+                        {capture.truthAnalysis && (
+                          <DropdownMenuItem onClick={() => handleViewAnalysis(capture)}>
+                            <Brain className="h-4 w-4 mr-2" />
+                            View AI Analysis
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => copyToClipboard(capture.content)}>
                           <Copy className="h-4 w-4 mr-2" />
                           Copy Content
@@ -391,6 +412,48 @@ export default function MyCaptures() {
                       )}
                     </div>
                   )}
+
+                  {/* AI Analysis Status */}
+                  <div className="flex items-center gap-2 mb-2">
+                    {capture.analysisStatus === 'pending' && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Analysis Queued
+                      </Badge>
+                    )}
+                    {capture.analysisStatus === 'processing' && (
+                      <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                        <Brain className="h-3 w-3 mr-1" />
+                        AI Processing
+                      </Badge>
+                    )}
+                    {capture.analysisStatus === 'completed' && (
+                      <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Analysis Complete
+                      </Badge>
+                    )}
+                    {capture.analysisStatus === 'failed' && (
+                      <Badge variant="destructive" className="text-xs">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Analysis Failed
+                      </Badge>
+                    )}
+
+                    {/* Strategic Scores */}
+                    {capture.strategicValue && (
+                      <Badge variant="outline" className="text-xs">
+                        <Target className="h-3 w-3 mr-1" />
+                        Strategic: {capture.strategicValue}/10
+                      </Badge>
+                    )}
+                    {capture.viralPotential && (
+                      <Badge variant="outline" className="text-xs">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        Viral: {capture.viralPotential}/10
+                      </Badge>
+                    )}
+                  </div>
 
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center">
@@ -482,6 +545,209 @@ export default function MyCaptures() {
               ) : (
                 "Save Changes"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Analysis Details Dialog */}
+      <Dialog open={isAnalysisDialogOpen} onOpenChange={setIsAnalysisDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              AI Strategic Analysis
+            </DialogTitle>
+            <DialogDescription>
+              {analysisCapture?.title}
+            </DialogDescription>
+          </DialogHeader>
+
+          {analysisCapture?.truthAnalysis && (
+            <div className="space-y-6">
+              {/* Strategic Scores */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Target className="h-5 w-5 text-blue-600" />
+                      <span className="font-semibold">Strategic Value</span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {analysisCapture.truthAnalysis.strategicValue}/10
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      <span className="font-semibold">Viral Potential</span>
+                    </div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {analysisCapture.truthAnalysis.viralPotential}/10
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Zap className="h-5 w-5 text-purple-600" />
+                      <span className="font-semibold">Confidence</span>
+                    </div>
+                    <div className="text-2xl font-bold text-purple-600">
+                      {analysisCapture.truthAnalysis.confidence}%
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Truth Analysis Framework */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Truth Analysis Framework</h3>
+                
+                <div className="grid gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-blue-600">FACT</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <p className="text-sm">{analysisCapture.truthAnalysis.fact}</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-green-600">OBSERVATION</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <p className="text-sm">{analysisCapture.truthAnalysis.observation}</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-orange-600">INSIGHT</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <p className="text-sm">{analysisCapture.truthAnalysis.insight}</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-purple-600">HUMAN TRUTH</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <p className="text-sm">{analysisCapture.truthAnalysis.humanTruth}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Strategic Intelligence */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4" />
+                    Strategic Keywords
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {analysisCapture.truthAnalysis.keywords?.map((keyword, index) => (
+                      <Badge key={index} variant="outline">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3">Brief Section Suggestion</h4>
+                  <Badge variant="default" className="capitalize">
+                    {analysisCapture.truthAnalysis.briefSectionSuggestion}
+                  </Badge>
+                </div>
+
+                {analysisCapture.truthAnalysis.culturalMoment && (
+                  <div className="md:col-span-2">
+                    <h4 className="font-semibold mb-3">Cultural Moment</h4>
+                    <p className="text-sm text-gray-600">{analysisCapture.truthAnalysis.culturalMoment}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Visual Analysis (if available) */}
+              {analysisCapture.visualAnalysis && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Visual Intelligence</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold mb-3">Brand Elements</h4>
+                      <ul className="space-y-1">
+                        {analysisCapture.visualAnalysis.brandElements?.map((element, index) => (
+                          <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
+                            <span className="text-blue-500">•</span>
+                            {element}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-3">Cultural Moments</h4>
+                      <ul className="space-y-1">
+                        {analysisCapture.visualAnalysis.culturalMoments?.map((moment, index) => (
+                          <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
+                            <span className="text-green-500">•</span>
+                            {moment}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-3">Competitive Insights</h4>
+                      <ul className="space-y-1">
+                        {analysisCapture.visualAnalysis.competitiveInsights?.map((insight, index) => (
+                          <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
+                            <span className="text-orange-500">•</span>
+                            {insight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-3">Strategic Recommendations</h4>
+                      <ul className="space-y-1">
+                        {analysisCapture.visualAnalysis.strategicRecommendations?.map((rec, index) => (
+                          <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
+                            <span className="text-purple-500">•</span>
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!analysisCapture?.truthAnalysis && (
+            <div className="text-center py-8">
+              <Brain className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No analysis results available yet.</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Analysis may still be processing or failed to complete.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button onClick={() => setIsAnalysisDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
