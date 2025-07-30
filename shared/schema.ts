@@ -26,6 +26,15 @@ export const users = pgTable("users", {
     lastActive: string;
   }>(),
   
+  // Google integration tokens
+  googleTokens: jsonb("google_tokens").$type<{
+    access_token: string;
+    refresh_token: string;
+    expiry_date: number;
+    token_type: string;
+    scope: string;
+  }>(),
+  
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   usernameIdx: index("idx_users_username").on(table.username),
@@ -72,6 +81,31 @@ export const captures = pgTable("captures", {
   userNote: text("user_note"),
   customCopy: text("custom_copy"), // User's custom copy variations
   tags: jsonb("tags").$type<string[]>(),
+  
+  // Enhanced Google analysis
+  googleAnalysis: jsonb("google_analysis").$type<{
+    vision?: {
+      brandElements: any[];
+      objectsDetected: any[];
+      textContent: string[];
+      dominantColors: any[];
+      faces: any[];
+      safetyAnalysis: any;
+      strategicInsights: string[];
+    };
+    nlp?: {
+      sentiment: {
+        score: number;
+        magnitude: number;
+        label: string;
+        confidence: number;
+      };
+      entities: any[];
+      keyPhrases: any[];
+      strategicInsights: string[];
+    };
+  }>(),
+  imageData: text("image_data"), // Base64 image for Google Vision analysis
   
   // Truth Analysis Framework (populated after AI processing)
   truthAnalysis: jsonb("truth_analysis").$type<{

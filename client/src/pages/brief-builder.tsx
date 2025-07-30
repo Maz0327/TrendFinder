@@ -40,6 +40,7 @@ import {
   Globe,
   Brain
 } from "lucide-react";
+import { GoogleExportPanel } from "@/components/google-export-panel";
 
 // Brief sections based on Jimmy John's format
 const BRIEF_SECTIONS = [
@@ -119,6 +120,7 @@ export default function BriefBuilder() {
   );
   const [isGenerating, setIsGenerating] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showGoogleExportDialog, setShowGoogleExportDialog] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -543,7 +545,35 @@ export default function BriefBuilder() {
               <FileText className="h-4 w-4 mr-2" />
               Export as Slides
             </Button>
+            <Button
+              variant="outline"
+              className="justify-start hover-lift"
+              onClick={() => {
+                setShowExportDialog(false);
+                setShowGoogleExportDialog(true);
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export to Google Services
+            </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Google Export Panel */}
+      <Dialog open={showGoogleExportDialog} onOpenChange={setShowGoogleExportDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Export to Google Services</DialogTitle>
+            <DialogDescription>
+              Create professional presentations and documents in Google Workspace
+            </DialogDescription>
+          </DialogHeader>
+          <GoogleExportPanel
+            projectId={selectedProject?.id || ''}
+            briefId={briefTitle || 'untitled-brief'}
+            briefTitle={briefTitle || 'Strategic Intelligence Brief'}
+          />
         </DialogContent>
       </Dialog>
     </PageLayout>

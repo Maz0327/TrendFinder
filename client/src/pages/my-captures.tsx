@@ -44,6 +44,7 @@ import {
   Target,
   Lightbulb
 } from "lucide-react";
+import { EnhancedAnalysisPanel } from "@/components/enhanced-analysis-panel";
 
 interface CaptureItem {
   id: string;
@@ -732,6 +733,20 @@ export default function MyCaptures() {
                   </div>
                 </div>
               )}
+
+              {/* Enhanced Google Analysis Section */}
+              <div className="pt-6 border-t">
+                <EnhancedAnalysisPanel
+                  captureId={analysisCapture?.id || ''}
+                  captureType={analysisCapture?.type || 'text'}
+                  hasImageData={!!analysisCapture?.imageData}
+                  existingAnalysis={analysisCapture}
+                  onAnalysisComplete={(analysis) => {
+                    // Refresh captures after analysis
+                    queryClient.invalidateQueries({ queryKey: ['/api/captures'] });
+                  }}
+                />
+              </div>
             </div>
           )}
 
