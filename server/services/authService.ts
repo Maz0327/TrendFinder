@@ -1,7 +1,8 @@
 import bcrypt from "bcryptjs";
-import { storage } from "../storage";
 import type { InsertUser, User } from "@shared/schema";
 import { z } from "zod";
+import type { IStorage } from "../storage";
+import type { ISupabaseStorage } from "../storage-supabase";
 
 export const loginSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -18,14 +19,16 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 
 export class AuthService {
+  constructor(private storage: IStorage | ISupabaseStorage) {}
+
   async register(data: RegisterData): Promise<User> {
     // Check if user already exists
-    const existingUser = await storage.getUserByEmail(data.email);
+    const existingUser = await this.storage.getUserByEmail(data.email);
     if (existingUser) {
       throw new Error("User with this email already exists");
     }
 
-    const existingUsername = await storage.getUserByUsername(data.username);
+    const existingUsername = await this.storage.getUserByUsername(data.username);
     if (existingUsername) {
       throw new Error("Username already taken");
     }
@@ -34,7 +37,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     // Create user
-    const user = await storage.createUser({
+    const user = await this.storage.createUser({
       email: data.email,
       username: data.username,
       password: hashedPassword,
@@ -45,7 +48,7 @@ export class AuthService {
 
   async login(data: LoginData): Promise<User> {
     // Find user by email
-    const user = await storage.getUserByEmail(data.email);
+    const user = await this.storage.getUserByEmail(data.email);
     if (!user) {
       throw new Error("Invalid email or password");
     }
@@ -60,8 +63,6 @@ export class AuthService {
   }
 
   async getUserById(id: string): Promise<User | undefined> {
-    return storage.getUser(id);
+    return this.storage.getUser(id);
   }
 }
-
-export const authService = new AuthService();

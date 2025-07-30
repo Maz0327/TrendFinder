@@ -876,7 +876,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { authService, registerSchema } = await import("./services/authService");
+      const { AuthService, registerSchema } = await import("./services/authService");
+      const authService = new AuthService(db);
       const validatedData = registerSchema.parse(req.body);
       const user = await authService.register(validatedData);
       
@@ -906,7 +907,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { authService, loginSchema } = await import("./services/authService");
+      const { AuthService, loginSchema } = await import("./services/authService");
+      const authService = new AuthService(db);
       const validatedData = loginSchema.parse(req.body);
       const user = await authService.login(validatedData);
       
@@ -950,7 +952,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const { authService } = await import("./services/authService");
+      const { AuthService } = await import("./services/authService");
+      const authService = new AuthService(db);
       const user = await authService.getUserById(req.session.user.id);
       
       if (!user) {

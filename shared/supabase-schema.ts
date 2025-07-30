@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
   email: text("email").notNull().unique(),
   username: text("username").unique(),
+  password: text("password").notNull(),
   role: text("role").default("user"),
   onboardingCompleted: boolean("onboarding_completed").default(false),
   tourCompleted: boolean("tour_completed").default(false),

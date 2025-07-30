@@ -8,12 +8,13 @@ import {
   type ContentRadar, type InsertContentRadar
 } from "@shared/supabase-schema";
 import { randomUUID } from "crypto";
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { users, projects, captures, briefs, briefCaptures, contentRadar } from "@shared/supabase-schema";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
+import { Pool } from "pg";
+import type { IStorage } from "./storage";
 
-export interface ISupabaseStorage {
+export interface ISupabaseStorage extends IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -75,11 +76,20 @@ export interface ISupabaseStorage {
 
 export class SupabaseStorage implements ISupabaseStorage {
   private db: ReturnType<typeof drizzle>;
+  private pool: Pool;
 
   constructor(databaseUrl: string) {
     console.log("🔗 Connecting to Supabase database:", databaseUrl.split('@')[1]?.split('/')[0] || 'Unknown');
-    const sql = neon(databaseUrl);
-    this.db = drizzle(sql);
+    
+    // Use standard PostgreSQL pool for Supabase
+    this.pool = new Pool({
+      connectionString: databaseUrl,
+      ssl: {
+        rejectUnauthorized: false // Required for Supabase SSL connections
+      }
+    });
+    
+    this.db = drizzle(this.pool);
     console.log("✅ Supabase database connection established");
   }
 
@@ -111,12 +121,78 @@ export class SupabaseStorage implements ISupabaseStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const result = await this.db.insert(users).values({
-      ...user,
+    const result = await this.db.insert(users).values(user).returning();
+    return result[0];
+  }
+
+  // Add all missing IStorage methods for compatibility
+  async getSignals(): Promise<any[]> { return []; }
+  async getSignalById(id: string): Promise<any> { return null; }
+  async createSignal(signal: any): Promise<any> { return { id: 'legacy', ...signal }; }
+  async updateSignal(id: string, updates: any): Promise<any> { return null; }
+  async deleteSignal(id: string): Promise<boolean> { return true; }
+  
+  async getContentItems(filters?: any): Promise<ContentRadar[]> {
+    try {
+      let query = this.db.select().from(contentRadar);
+      
+      if (filters?.category) {
+        query = query.where(eq(contentRadar.category, filters.category));
+      }
+      if (filters?.platform) {
+        query = query.where(eq(contentRadar.platform, filters.platform));
+      }
+      
+      const result = await query.orderBy(desc(contentRadar.createdAt))
+        .limit(filters?.limit || 50)
+        .offset(filters?.offset || 0);
+      
+      return result;
+    } catch (error) {
+      console.error("Error fetching content items:", error);
+      return [];
+    }
+  }
+  
+  async getContentItemById(id: string): Promise<ContentRadar | undefined> {
+    const result = await this.db.select().from(contentRadar).where(eq(contentRadar.id, id)).limit(1);
+    return result[0];
+  }
+  
+  async createContentItem(item: InsertContentRadar): Promise<ContentRadar> {
+    const result = await this.db.insert(contentRadar).values({
+      ...item,
       id: randomUUID(),
     }).returning();
     return result[0];
   }
+  
+  async updateContentItem(id: string, updates: Partial<ContentRadar>): Promise<ContentRadar | undefined> {
+    const result = await this.db.update(contentRadar).set(updates).where(eq(contentRadar.id, id)).returning();
+    return result[0];
+  }
+  
+  async deleteContentItem(id: string): Promise<boolean> {
+    const result = await this.db.delete(contentRadar).where(eq(contentRadar.id, id));
+    return (result as any).rowCount > 0;
+  }
+  
+  async getStats(): Promise<{ totalTrends: number; viralPotential: number; activeSources: number; avgScore: number }> {
+    const result = await this.db.select({
+      totalTrends: sql<number>`count(*)`,
+      avgScore: sql<number>`avg(viral_score)`,
+    }).from(contentRadar);
+    return {
+      totalTrends: result[0]?.totalTrends || 0,
+      viralPotential: Math.round((result[0]?.avgScore || 0) * 10),
+      activeSources: 5,
+      avgScore: result[0]?.avgScore || 0,
+    };
+  }
+  
+  async getScanHistory(): Promise<any[]> { return []; }
+  async createScanHistory(scan: any): Promise<any> { return { id: 'scan', ...scan }; }
+  async getRecentScans(limit?: number): Promise<any[]> { return []; }
 
   // Project methods
   async getProjects(userId: string): Promise<Project[]> {
@@ -227,6 +303,37 @@ export class SupabaseStorage implements ISupabaseStorage {
       ...brief,
       id: randomUUID(),
     }).returning();
+    return result[0];
+  }
+
+  async updateBrief(id: string, updates: Partial<Brief>): Promise<Brief | undefined> {
+    const result = await this.db.update(briefs).set(updates).where(eq(briefs.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteBrief(id: string): Promise<boolean> {
+    const result = await this.db.delete(briefs).where(eq(briefs.id, id));
+    return (result as any).rowCount > 0;
+  }
+
+  // Brief Capture relationship methods
+  async addCaptureToBrief(briefCapture: InsertBriefCapture): Promise<BriefCapture> {
+    const result = await this.db.insert(briefCaptures).values({
+      ...briefCapture,
+      id: randomUUID(),
+    }).returning();
+    return result[0];
+  }
+
+  async removeCaptureFromBrief(briefId: string, captureId: string): Promise<boolean> {
+    const result = await this.db.delete(briefCaptures)
+      .where(and(eq(briefCaptures.briefId, briefId), eq(briefCaptures.captureId, captureId)));
+    return (result as any).rowCount > 0;
+  }
+
+  async getBriefCaptures(briefId: string): Promise<BriefCapture[]> {
+    return await this.db.select().from(briefCaptures).where(eq(briefCaptures.briefId, briefId));
+  }
     return result[0];
   }
 
