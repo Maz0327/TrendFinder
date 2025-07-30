@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,7 +21,7 @@ import IntelligenceHub from "@/pages/intelligence";
 import AnalysisCenter from "@/pages/analysis";
 import BriefGenerator from "@/pages/briefs";
 import MobileNavBar from "@/components/layout/MobileNavBar";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TourProvider } from "@/components/onboarding/OnboardingTour";
 import { ProgressiveDisclosureProvider } from "@/components/onboarding/ProgressiveDisclosure";
@@ -63,16 +63,35 @@ function App() {
             <SampleContentProvider>
               <TooltipProvider>
                 <Toaster />
-                <div className="pb-16 lg:pb-0">
-                  <Router />
-                </div>
-                <MobileNavBar />
+                <AppContent />
               </TooltipProvider>
             </SampleContentProvider>
           </ProgressiveDisclosureProvider>
         </TourProvider>
       </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function AppContent() {
+  const { user, isLoading } = useAuth();
+  const [location] = useLocation();
+  
+  const isAuthPage = location === '/login' || location === '/register';
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className={user && !isAuthPage ? "pb-16 lg:pb-0" : ""}>
+      <Router />
+      {user && !isAuthPage && <MobileNavBar />}
+    </div>
   );
 }
 
