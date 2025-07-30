@@ -6,6 +6,7 @@ import StatsOverview from "@/components/dashboard/StatsOverview";
 import ContentFilters from "@/components/dashboard/ContentFilters";
 import TrendCard from "@/components/dashboard/TrendCard";
 import TrendModal from "@/components/dashboard/TrendModal";
+import SystemStatus from "@/components/dashboard/SystemStatus";
 import { api } from "@/lib/api";
 import type { ContentRadarItem, ContentFilters as FilterType } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,14 @@ export default function Dashboard() {
         <Sidebar filters={filters} onFiltersChange={handleFilterChange} />
         
         <main className="flex-1 ml-64 p-6">
-          <StatsOverview stats={stats} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="lg:col-span-2">
+              <StatsOverview stats={stats} />
+            </div>
+            <div className="lg:col-span-1">
+              <SystemStatus />
+            </div>
+          </div>
           
           <ContentFilters filters={filters} onFiltersChange={handleFilterChange} />
           

@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, Play, Search, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import Navigation from "@/components/layout/Navigation";
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -60,11 +61,10 @@ export default function Header({ onRefresh }: HeaderProps) {
               </div>
               <h1 className="text-xl font-semibold text-gray-900">Content Radar</h1>
             </div>
-            <div className="hidden md:flex items-center space-x-2 ml-8">
-              <Badge variant={scheduleStatus?.isActive ? "default" : "secondary"} className="bg-green-100 text-green-800">
-                {scheduleStatus?.isActive ? "Live" : "Paused"}
-              </Badge>
-              <span className="text-sm text-gray-600">Last scan: 2 minutes ago</span>
+            
+            {/* Navigation */}
+            <div className="hidden lg:block ml-8">
+              <Navigation />
             </div>
           </div>
           

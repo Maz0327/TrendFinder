@@ -60,4 +60,11 @@ export const api = {
 
   getScheduleStatus: (): Promise<{ isActive: boolean }> =>
     apiRequest("GET", "/api/schedule/status").then(res => res.json()),
+
+  // Generic GET and POST methods for new endpoints
+  get: (url: string): Promise<any> =>
+    apiRequest("GET", url).then(res => res.json()),
+  
+  post: (url: string, data: any): Promise<any> =>
+    apiRequest("POST", url, data).then(res => res.json()),
 };
