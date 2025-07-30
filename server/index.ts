@@ -59,6 +59,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Use Supabase database if SUPABASE_DATABASE_URL is available
+  const DATABASE_URL = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+  console.log("🔗 Database URL source:", process.env.SUPABASE_DATABASE_URL ? "Supabase" : "Neon");
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

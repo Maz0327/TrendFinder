@@ -4,17 +4,12 @@ import {
   type Capture, type InsertCapture,
   type Brief, type InsertBrief,
   type BriefCapture, type InsertBriefCapture,
-  type Signal, type InsertSignal,
-  type Source, type InsertSource,
-  type SignalSource, type InsertSignalSource,
-  type UserPreference, type InsertUserPreference,
-  type ContentRadar, type InsertContentRadar,
-  type ScanHistory, type InsertScanHistory
-} from "@shared/schema";
+  type ContentRadar, type InsertContentRadar
+} from "@shared/supabase-schema";
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { users, projects, captures, briefs, briefCaptures, signals, sources, signalSources, userPreferences, contentRadar, scanHistory } from "@shared/schema";
+import { users, projects, captures, briefs, briefCaptures, contentRadar } from "@shared/supabase-schema";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
