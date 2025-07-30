@@ -10,15 +10,18 @@ import {
   FolderOpen,
   PenTool,
   User,
-  LogOut
+  LogOut,
+  Puzzle,
+  Search,
+  Radar
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
+  { name: "Home", href: "/", icon: Home },
   { name: "Projects", href: "/projects", icon: FolderOpen },
-  { name: "Brief Builder", href: "/brief-builder", icon: PenTool },
-  { name: "Briefs", href: "/briefs", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Captures", href: "/my-captures", icon: Puzzle },
+  { name: "Mining", href: "/signal-mining", icon: Radar },
+  { name: "Intel", href: "/intelligence", icon: Search },
 ];
 
 export default function MobileNavBar() {

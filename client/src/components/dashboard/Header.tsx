@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, Play, Search, Loader2 } from "lucide-react";
+import { Bell, Play, Search, Loader2, Plus, Sparkles, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/layout/Navigation";
@@ -102,6 +102,23 @@ export default function Header({ onRefresh }: HeaderProps) {
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
             </Button>
             
+            {/* Quick Capture Button */}
+            <Button 
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2 hover-lift border-green-200 text-green-700 hover:bg-green-50"
+              onClick={() => window.open('/my-captures', '_self')}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Quick Capture</span>
+            </Button>
+
+            {/* Google API Status */}
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100 animate-pulse-scale">
+              <Sparkles className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Google AI</span>
+            </Badge>
+
             {/* Run Scan Button */}
             <Button 
               onClick={() => runScanMutation.mutate()}

@@ -15,6 +15,7 @@ import BriefBuilder from "@/pages/brief-builder";
 import MyCaptures from "@/pages/my-captures";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import SystemStatus from "@/pages/system-status";
 import MobileNavBar from "@/components/layout/MobileNavBar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/analysis" component={() => <ProtectedRoute><AnalysisCenter /></ProtectedRoute>} />
       <Route path="/briefs" component={() => <ProtectedRoute><BriefGenerator /></ProtectedRoute>} />
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/system-status" component={() => <ProtectedRoute><SystemStatus /></ProtectedRoute>} />
       <Route component={NotFound} />
     </Switch>
   );

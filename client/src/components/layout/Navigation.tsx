@@ -24,13 +24,18 @@ import {
   FolderOpen,
   PenTool,
   User,
-  LogOut
+  LogOut,
+  Search,
+  Target,
+  Radar
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Projects", href: "/projects", icon: FolderOpen },
   { name: "My Captures", href: "/my-captures", icon: Puzzle },
+  { name: "Signal Mining", href: "/signal-mining", icon: Radar },
+  { name: "Intelligence", href: "/intelligence", icon: Search },
   { name: "Analysis", href: "/analysis", icon: Brain },
   { name: "Brief Builder", href: "/brief-builder", icon: PenTool },
   { name: "Briefs", href: "/briefs", icon: FileText },

@@ -19,7 +19,15 @@ import {
   ArrowRight,
   Image,
   Link as LinkIcon,
-  MessageSquare
+  MessageSquare,
+  Brain,
+  Search,
+  Radar,
+  Sparkles,
+  CheckCircle,
+  Activity,
+  Zap,
+  Eye
 } from "lucide-react";
 
 interface Project {
@@ -166,10 +174,10 @@ export default function NewDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Jump into your strategic workflow</CardDescription>
+              <CardDescription>Access all your strategic intelligence tools</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link href="/projects">
                   <Button className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift">
                     <Plus className="h-6 w-6" />
@@ -178,16 +186,141 @@ export default function NewDashboard() {
                 </Link>
                 
                 <Link href="/my-captures">
-                  <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift">
+                  <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift border-green-200 text-green-700 hover:bg-green-50">
                     <Puzzle className="h-6 w-6" />
-                    <span>Organize Captures</span>
+                    <span>Quick Capture</span>
+                  </Button>
+                </Link>
+                
+                <Link href="/analysis">
+                  <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift border-purple-200 text-purple-700 hover:bg-purple-50">
+                    <Brain className="h-6 w-6" />
+                    <span>AI Analysis</span>
                   </Button>
                 </Link>
                 
                 <Link href="/brief-builder">
-                  <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift">
+                  <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2 hover-lift border-blue-200 text-blue-700 hover:bg-blue-50">
                     <FileText className="h-6 w-6" />
-                    <span>Build Brief</span>
+                    <span>Google Export</span>
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </FadeIn>
+
+        {/* Platform Features */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <FadeIn delay={200}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-blue-500" />
+                  Google API Integration
+                </CardTitle>
+                <CardDescription>Complete Google Workspace ecosystem</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Google Slides for presentations</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Google Docs for detailed reports</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Google Vision & NLP analysis</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Google Sheets for data analysis</span>
+                </div>
+                <Link href="/brief-builder">
+                  <Button size="sm" className="mt-3">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Try Google Export
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </FadeIn>
+
+          <FadeIn delay={250}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  AI Analysis Pipeline
+                </CardTitle>
+                <CardDescription>Multi-AI processing with Truth Analysis</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>OpenAI GPT-4o for strategic analysis</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Gemini for visual intelligence</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Truth Analysis Framework</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Automatic processing pipeline</span>
+                </div>
+                <Link href="/analysis">
+                  <Button size="sm" className="mt-3">
+                    <Brain className="h-4 w-4 mr-2" />
+                    View Analysis
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </FadeIn>
+        </div>
+
+        {/* Platform Access */}
+        <FadeIn delay={300}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Platform Access</CardTitle>
+              <CardDescription>Explore all Content Radar capabilities</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link href="/signal-mining">
+                  <Button variant="outline" className="w-full p-4 h-auto flex flex-col items-start space-y-2 hover-lift border-red-200 text-red-700 hover:bg-red-50">
+                    <div className="flex items-center gap-2">
+                      <Radar className="h-5 w-5" />
+                      <span className="font-medium">Signal Mining</span>
+                    </div>
+                    <p className="text-xs text-gray-600">Bright Data powered content mining</p>
+                  </Button>
+                </Link>
+
+                <Link href="/intelligence">
+                  <Button variant="outline" className="w-full p-4 h-auto flex flex-col items-start space-y-2 hover-lift border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                    <div className="flex items-center gap-2">
+                      <Search className="h-5 w-5" />
+                      <span className="font-medium">Intelligence Hub</span>
+                    </div>
+                    <p className="text-xs text-gray-600">Cross-platform intelligence gathering</p>
+                  </Button>
+                </Link>
+
+                <Link href="/system-status">
+                  <Button variant="outline" className="w-full p-4 h-auto flex flex-col items-start space-y-2 hover-lift border-teal-200 text-teal-700 hover:bg-teal-50">
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      <span className="font-medium">System Status</span>
+                    </div>
+                    <p className="text-xs text-gray-600">Platform health & API monitoring</p>
                   </Button>
                 </Link>
               </div>
