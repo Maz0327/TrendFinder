@@ -881,7 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await authService.register(validatedData);
       
       // Set session
-      req.session.user = { id: user.id, email: user.email, username: user.username };
+      req.session.user = { id: user.id, email: user.email, username: user.username || "" };
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
@@ -889,7 +889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         res.status(201).json({ 
           success: true, 
-          user: { id: user.id, email: user.email, username: user.username } 
+          user: { id: user.id, email: user.email, username: user.username || "" } 
         });
       });
     } catch (error) {
@@ -912,7 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await authService.login(validatedData);
       
       // Set session
-      req.session.user = { id: user.id, email: user.email, username: user.username };
+      req.session.user = { id: user.id, email: user.email, username: user.username || "" };
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
@@ -920,7 +920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         res.json({ 
           success: true, 
-          user: { id: user.id, email: user.email, username: user.username } 
+          user: { id: user.id, email: user.email, username: user.username || "" } 
         });
       });
     } catch (error) {

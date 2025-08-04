@@ -35,6 +35,63 @@ export class StrategicIntelligenceService {
     };
   }
 
+  // Additional methods for routes.ts compatibility
+  async fetchMultiPlatformIntelligence(params: any): Promise<any[]> {
+    try {
+      const content = await this.storage.getContentItems({
+        platform: params.platform,
+        limit: params.limit || 10
+      });
+      return content.map(item => ({
+        ...item,
+        platform: item.platform,
+        title: item.title,
+        content: item.content,
+        engagement: item.engagement,
+        url: item.url
+      }));
+    } catch (error) {
+      console.error('Error fetching multi-platform intelligence:', error);
+      return [];
+    }
+  }
+
+  async detectEmergingTrends(params: any): Promise<any> {
+    try {
+      const content = await this.storage.getContentItems({
+        sortBy: 'growth',
+        limit: 20
+      });
+      
+      const trends = content.map(item => ({
+        topic: item.title,
+        momentum: item.growthRate,
+        platforms: [item.platform],
+        examples: [item]
+      }));
+
+      return {
+        trends: trends.slice(0, 5),
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error detecting trends:', error);
+      return { trends: [], timestamp: new Date().toISOString() };
+    }
+  }
+
+  async correlateCulturalMoments(data: any[]): Promise<any> {
+    // Simple cultural moment correlation
+    return {
+      moments: data.slice(0, 3).map(item => ({
+        theme: item.title || 'Trending Topic',
+        signals: [item],
+        impact: 'Medium',
+        opportunity: 'Monitor for engagement'
+      }))
+    };
+  }
+
   private calculateViralScore(item: any): number {
     const engagement = (item.upvotes || 0) + (item.comments || 0) * 2;
     const recency = this.getRecencyScore(item.created_at);
