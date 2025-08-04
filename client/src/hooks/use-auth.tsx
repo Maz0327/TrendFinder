@@ -26,7 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { isLoading, data } = useQuery({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
-      const response = await fetch("/api/auth/me");
+      const response = await fetch("/api/auth/me", {
+        credentials: 'include' // Ensure cookies are sent
+      });
       if (!response.ok) {
         if (response.status === 401) {
           return null;
@@ -37,12 +39,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return data.user;
     },
     retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Update user when data changes
   useEffect(() => {
     setUser(data || null);
   }, [data]);
+
+  // Redirect authenticated users away from auth pages
+  const [location] = useLocation();
+  useEffect(() => {
+    if (user && (location === '/login' || location === '/register')) {
+      navigate('/dashboard');
+    }
+  }, [user, location, navigate]);
 
   const logoutMutation = useMutation({
     mutationFn: async () => {

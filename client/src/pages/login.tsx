@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -21,6 +22,7 @@ export default function Login() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Ensure cookies are sent and received
         body: JSON.stringify(data),
       });
       
@@ -32,9 +34,16 @@ export default function Login() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Set user first
       setUser(data.user);
-      // Navigate to explicit dashboard route
-      navigate("/dashboard");
+      
+      // Invalidate auth query to force refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      // Small delay to ensure state is updated before navigation
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 100);
     },
   });
 
