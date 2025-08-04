@@ -1,6 +1,7 @@
-// Final Working Storage Implementation - Using DATABASE_URL
-import { Client } from 'pg';
-import bcrypt from 'bcryptjs';
+// Simplified Storage Implementation - Direct SQL queries only
+import { sql } from "drizzle-orm";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import type { 
   User, Project, Capture, ContentRadar, Brief,
   InsertUser, InsertProject, InsertCapture, InsertBrief 
@@ -30,71 +31,35 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  private client: Client;
+  private db: any;
 
   constructor() {
-    // Use DATABASE_URL directly for Neon/Supabase connection
-    this.client = new Client({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
-    });
-    
-    this.client.connect().then(() => {
-      console.log("✅ Connected using DATABASE_URL");
-      
-      // Test with a simple user creation and retrieval
-      this.initializeTestUser();
-    }).catch(err => {
-      console.error("❌ DATABASE_URL connection failed:", err);
-    });
+    const databaseUrl = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`;
+    const sql_conn = neon(databaseUrl);
+    this.db = drizzle(sql_conn);
+    console.log("✅ Simple database storage initialized");
   }
 
-  private async initializeTestUser() {
-    try {
-      // Check if test user already exists
-      const existing = await this.client.query(
-        'SELECT id FROM users WHERE email = $1',
-        ['test@example.com']
-      );
-      
-      if (existing.rows.length === 0) {
-        // Create a working test user
-        // Generate a fresh hash for 'test123'
-        const passwordHash = bcrypt.hashSync('test123', 10);
-        
-        await this.client.query(`
-          INSERT INTO users (id, email, username, password, role, onboarding_completed, tour_completed, progress_data, google_tokens, created_at, updated_at)
-          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-        `, [
-          'test@example.com',
-          'testuser',
-          passwordHash, // Fresh hash for "test123"
-          'user',
-          false,
-          false,
-          JSON.stringify({}),
-          JSON.stringify({})
-        ]);
-        
-        console.log("✅ Created test user: test@example.com / test123");
-      } else {
-        console.log("✅ Test user already exists: test@example.com / test123");
-      }
-    } catch (error) {
-      console.error("❌ Error initializing test user:", error);
-    }
-  }
-
+  // User methods - simplified to avoid SQL alias issues
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
-      const result = await this.client.query(
-        'SELECT * FROM users WHERE email = $1 LIMIT 1',
-        [email]
-      );
+      console.log("🔍 Looking up user by email:", email);
       
-      if (result.rows.length > 0) {
+      // First, let's check if we can query the database at all
+      const allUsersResult = await this.db.execute(sql`SELECT COUNT(*) as count FROM users`);
+      console.log("🔍 Total users in database:", allUsersResult.rows[0]?.count);
+      
+      // Try a more explicit query approach
+      const result = await this.db.execute(sql`
+        SELECT id, email, username, password, role, onboarding_completed, tour_completed, progress_data, google_tokens, created_at, updated_at 
+        FROM users WHERE email = ${email} LIMIT 1
+      `);
+      
+      console.log("🔍 Database query result:", result.rows?.length || 0, "rows");
+      console.log("🔍 Full query result:", result);
+      
+      if (result.rows && result.rows.length > 0) {
         const row = result.rows[0];
-        
         return {
           id: row.id,
           email: row.email,
@@ -112,19 +77,18 @@ export class DatabaseStorage implements IStorage {
       
       return undefined;
     } catch (error) {
-      console.error("❌ Database error:", error);
+      console.error("❌ Error fetching user by email:", error);
       return undefined;
     }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const result = await this.client.query(
-        'SELECT * FROM users WHERE username = $1 LIMIT 1',
-        [username]
-      );
+      const result = await this.db.execute(sql`
+        SELECT * FROM users WHERE username = ${username} LIMIT 1
+      `);
       
-      if (result.rows.length > 0) {
+      if (result.rows && result.rows.length > 0) {
         const row = result.rows[0];
         return {
           id: row.id,
@@ -150,12 +114,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: string): Promise<User | undefined> {
     try {
-      const result = await this.client.query(
-        'SELECT * FROM users WHERE id = $1 LIMIT 1',
-        [id]
-      );
+      const result = await this.db.execute(sql`
+        SELECT * FROM users WHERE id = ${id} LIMIT 1
+      `);
       
-      if (result.rows.length > 0) {
+      if (result.rows && result.rows.length > 0) {
         const row = result.rows[0];
         return {
           id: row.id,
@@ -181,20 +144,14 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
-      const result = await this.client.query(`
+      const result = await this.db.execute(sql`
         INSERT INTO users (id, email, username, password, role, onboarding_completed, tour_completed, progress_data, google_tokens, created_at, updated_at)
-        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        VALUES (uuid_generate_v4(), ${insertUser.email}, ${insertUser.username}, ${insertUser.password}, 
+                ${insertUser.role || 'user'}, ${insertUser.onboardingCompleted || false}, 
+                ${insertUser.tourCompleted || false}, ${JSON.stringify(insertUser.progressData || {})}, 
+                ${JSON.stringify(insertUser.googleTokens || {})}, NOW(), NOW())
         RETURNING *
-      `, [
-        insertUser.email,
-        insertUser.username,
-        insertUser.password,
-        insertUser.role || 'user',
-        insertUser.onboardingCompleted || false,
-        insertUser.tourCompleted || false,
-        JSON.stringify(insertUser.progressData || {}),
-        JSON.stringify(insertUser.googleTokens || {})
-      ]);
+      `);
       
       const row = result.rows[0];
       return {
@@ -217,19 +174,57 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Placeholder implementations for other methods
-  async getProjects(userId: string): Promise<Project[]> { return []; }
-  async getProjectById(id: string): Promise<Project | undefined> { return undefined; }
-  async createProject(project: InsertProject): Promise<Project> { throw new Error("Not implemented"); }
-  async updateProject(id: string, updates: Partial<InsertProject>): Promise<Project> { throw new Error("Not implemented"); }
-  async deleteProject(id: string): Promise<void> { throw new Error("Not implemented"); }
-  async getCaptures(projectId: string): Promise<Capture[]> { return []; }
-  async getCaptureById(id: string): Promise<Capture | undefined> { return undefined; }
-  async createCapture(capture: InsertCapture): Promise<Capture> { throw new Error("Not implemented"); }
-  async updateCapture(id: string, updates: Partial<InsertCapture>): Promise<Capture> { throw new Error("Not implemented"); }
-  async deleteCapture(id: string): Promise<void> { throw new Error("Not implemented"); }
-  async getContentItems(filter: {}): Promise<ContentRadar[]> { return []; }
-  async getBriefs(projectId: string): Promise<Brief[]> { return []; }
-  async createBrief(brief: InsertBrief): Promise<Brief> { throw new Error("Not implemented"); }
+  async getProjects(userId: string): Promise<Project[]> {
+    return [];
+  }
+
+  async getProjectById(id: string): Promise<Project | undefined> {
+    return undefined;
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    throw new Error("Not implemented");
+  }
+
+  async updateProject(id: string, updates: Partial<InsertProject>): Promise<Project> {
+    throw new Error("Not implemented");
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    throw new Error("Not implemented");
+  }
+
+  async getCaptures(projectId: string): Promise<Capture[]> {
+    return [];
+  }
+
+  async getCaptureById(id: string): Promise<Capture | undefined> {
+    return undefined;
+  }
+
+  async createCapture(capture: InsertCapture): Promise<Capture> {
+    throw new Error("Not implemented");
+  }
+
+  async updateCapture(id: string, updates: Partial<InsertCapture>): Promise<Capture> {
+    throw new Error("Not implemented");
+  }
+
+  async deleteCapture(id: string): Promise<void> {
+    throw new Error("Not implemented");
+  }
+
+  async getContentItems(filter: {}): Promise<ContentRadar[]> {
+    return [];
+  }
+
+  async getBriefs(projectId: string): Promise<Brief[]> {
+    return [];
+  }
+
+  async createBrief(brief: InsertBrief): Promise<Brief> {
+    throw new Error("Not implemented");
+  }
 }
 
 export const storage = new DatabaseStorage();

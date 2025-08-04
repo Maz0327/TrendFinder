@@ -49,17 +49,11 @@ export class AuthService {
     // Find user by email
     const user = await this.storage.getUserByEmail(data.email);
     if (!user) {
-      console.log("❌ User not found for email:", data.email);
       throw new Error("Invalid email or password");
     }
 
-    console.log("🔍 Found user:", user.email, "Password hash starts with:", user.password.substring(0, 10));
-    console.log("🔍 Comparing password:", data.password, "with hash");
-    
     // Verify password
     const isValidPassword = await bcrypt.compare(data.password, user.password);
-    console.log("🔍 Password validation result:", isValidPassword);
-    
     if (!isValidPassword) {
       throw new Error("Invalid email or password");
     }

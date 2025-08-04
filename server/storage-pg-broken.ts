@@ -1,6 +1,5 @@
-// Final Working Storage Implementation - Using DATABASE_URL
+// Direct PostgreSQL connection without Drizzle ORM
 import { Client } from 'pg';
-import bcrypt from 'bcryptjs';
 import type { 
   User, Project, Capture, ContentRadar, Brief,
   InsertUser, InsertProject, InsertCapture, InsertBrief 
@@ -33,67 +32,42 @@ export class DatabaseStorage implements IStorage {
   private client: Client;
 
   constructor() {
-    // Use DATABASE_URL directly for Neon/Supabase connection
     this.client = new Client({
-      connectionString: process.env.DATABASE_URL,
+      host: process.env.PGHOST,
+      port: parseInt(process.env.PGPORT || '5432'),
+      database: process.env.PGDATABASE,
+      user: process.env.PGUSER,
+      password: process.env.PGPASSWORD,
       ssl: { rejectUnauthorized: false }
     });
     
     this.client.connect().then(() => {
-      console.log("✅ Connected using DATABASE_URL");
-      
-      // Test with a simple user creation and retrieval
-      this.initializeTestUser();
+      console.log("✅ Direct PostgreSQL connection established");
+      // Test connection immediately
+      this.client.query('SELECT COUNT(*) as count FROM users').then(result => {
+        console.log("✅ Database test query successful, user count:", result.rows[0].count);
+      }).catch(err => {
+        console.error("❌ Database test query failed:", err);
+      });
     }).catch(err => {
-      console.error("❌ DATABASE_URL connection failed:", err);
+      console.error("❌ PostgreSQL connection failed:", err);
     });
-  }
-
-  private async initializeTestUser() {
-    try {
-      // Check if test user already exists
-      const existing = await this.client.query(
-        'SELECT id FROM users WHERE email = $1',
-        ['test@example.com']
-      );
-      
-      if (existing.rows.length === 0) {
-        // Create a working test user
-        // Generate a fresh hash for 'test123'
-        const passwordHash = bcrypt.hashSync('test123', 10);
-        
-        await this.client.query(`
-          INSERT INTO users (id, email, username, password, role, onboarding_completed, tour_completed, progress_data, google_tokens, created_at, updated_at)
-          VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-        `, [
-          'test@example.com',
-          'testuser',
-          passwordHash, // Fresh hash for "test123"
-          'user',
-          false,
-          false,
-          JSON.stringify({}),
-          JSON.stringify({})
-        ]);
-        
-        console.log("✅ Created test user: test@example.com / test123");
-      } else {
-        console.log("✅ Test user already exists: test@example.com / test123");
-      }
-    } catch (error) {
-      console.error("❌ Error initializing test user:", error);
-    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
+      console.log("🔍 Direct PostgreSQL lookup for email:", email);
+      
       const result = await this.client.query(
         'SELECT * FROM users WHERE email = $1 LIMIT 1',
         [email]
       );
       
+      console.log("🔍 Direct query result:", result.rows.length, "rows");
+      
       if (result.rows.length > 0) {
         const row = result.rows[0];
+        console.log("🔍 Found user:", row.email);
         
         return {
           id: row.id,
@@ -112,7 +86,7 @@ export class DatabaseStorage implements IStorage {
       
       return undefined;
     } catch (error) {
-      console.error("❌ Database error:", error);
+      console.error("❌ Direct PostgreSQL error:", error);
       return undefined;
     }
   }
@@ -216,7 +190,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Placeholder implementations for other methods
+  // Placeholder implementations
   async getProjects(userId: string): Promise<Project[]> { return []; }
   async getProjectById(id: string): Promise<Project | undefined> { return undefined; }
   async createProject(project: InsertProject): Promise<Project> { throw new Error("Not implemented"); }
