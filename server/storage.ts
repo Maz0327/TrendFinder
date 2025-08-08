@@ -85,7 +85,7 @@ export class DatabaseStorage implements IStorage {
       if (existing.rows.length === 0) {
         // Create a working test user
         // Generate a fresh hash for 'test123'
-        const passwordHash = bcrypt.hashSync('test123', 10);
+        const passwordHash = await bcrypt.hash('test123', 10);
         
         await this.client.query(`
           INSERT INTO users (id, email, username, password, role, onboarding_completed, tour_completed, progress_data, google_tokens, created_at, updated_at)
@@ -739,9 +739,9 @@ export class DatabaseStorage implements IStorage {
         hook2: row.hook2,
         category: row.category,
         platform: row.platform,
-        viralScore: parseFloat(row.viral_score),
+        viralScore: row.viral_score,
         engagement: row.engagement,
-        growthRate: parseFloat(row.growth_rate),
+        growthRate: row.growth_rate,
         metadata: row.metadata,
         isActive: row.is_active,
         createdAt: row.created_at,
@@ -772,9 +772,9 @@ export class DatabaseStorage implements IStorage {
           hook2: row.hook2,
           category: row.category,
           platform: row.platform,
-          viralScore: parseFloat(row.viral_score),
+          viralScore: row.viral_score,
           engagement: row.engagement,
-          growthRate: parseFloat(row.growth_rate),
+          growthRate: row.growth_rate,
           metadata: row.metadata,
           isActive: row.is_active,
           createdAt: row.created_at,
@@ -829,9 +829,9 @@ export class DatabaseStorage implements IStorage {
         hook2: row.hook2,
         category: row.category,
         platform: row.platform,
-        viralScore: parseFloat(row.viral_score),
+        viralScore: row.viral_score,
         engagement: row.engagement,
-        growthRate: parseFloat(row.growth_rate),
+        growthRate: row.growth_rate,
         metadata: row.metadata,
         isActive: row.is_active,
         createdAt: row.created_at,
@@ -895,9 +895,9 @@ export class DatabaseStorage implements IStorage {
         hook2: row.hook2,
         category: row.category,
         platform: row.platform,
-        viralScore: parseFloat(row.viral_score),
+        viralScore: row.viral_score,
         engagement: row.engagement,
-        growthRate: parseFloat(row.growth_rate),
+        growthRate: row.growth_rate,
         metadata: row.metadata,
         isActive: row.is_active,
         createdAt: row.created_at,

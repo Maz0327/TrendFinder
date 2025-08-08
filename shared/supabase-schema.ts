@@ -93,6 +93,22 @@ export const captures = pgTable("captures", {
     };
   }>(),
   
+  // Additional capture fields from database
+  autoTags: jsonb("auto_tags").default('[]'),
+  signalScore: text("signal_score").default('0.0'),
+  viralPotential: text("viral_potential").default('0.0'),
+  promotionReason: text("promotion_reason"),
+  workspaceNotes: text("workspace_notes"),
+  briefSectionAssignment: text("brief_section_assignment"),
+  batchQueueStatus: boolean("batch_queue_status").default(false),
+  workspacePriority: integer("workspace_priority").default(0),
+  voiceNoteUrl: text("voice_note_url"),
+  voiceNoteDuration: integer("voice_note_duration"),
+  transcription: text("transcription"),
+  analysisMode: text("analysis_mode").default('quick'),
+  visualAnalysis: text("visual_analysis"),
+  isDraft: boolean("is_draft").default(false),
+  
   // Status and timestamps
   status: text("status").default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -115,9 +131,9 @@ export const contentRadar = pgTable("content_radar", {
   hook2: text("hook2"),
   category: text("category").notNull(),
   platform: text("platform").notNull(),
-  viralScore: decimal("viral_score", { precision: 5, scale: 2 }).default('0.0'),
+  viralScore: text("viral_score").default('0.0'),
   engagement: integer("engagement").default(0),
-  growthRate: decimal("growth_rate", { precision: 10, scale: 2 }).default('0.0'),
+  growthRate: text("growth_rate").default('0.0'),
   metadata: jsonb("metadata").default('{}'),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
