@@ -9,22 +9,31 @@
     "contextMenus",
     "notifications",
     "alarms",
-    "tabs"
+    "tabs",
+    "clipboardWrite",
+    "scripting"
   ],
   "commands": {
     "quick-capture": {
       "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
-      "description": "Quick capture (selected content)"
-    },
-    "context-capture": {
-      "suggested_key": {
         "default": "Ctrl+Shift+C",
         "mac": "Command+Shift+C"
       },
-      "description": "Context capture (full thread)"
+      "description": "Quick capture current page"
+    },
+    "screen-select": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Select screen area to capture"
+    },
+    "voice-note": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+V",
+        "mac": "Command+Shift+V"
+      },
+      "description": "Add voice note"
     },
     "switch-project": {
       "suggested_key": {
@@ -47,7 +56,7 @@
     "https://*.replit.dev/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background-enhanced.js"
   },
   "action": {
     "default_popup": "popup.html",
@@ -61,8 +70,15 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_end"
+      "js": ["content-enhanced.js"],
+      "run_at": "document_end",
+      "css": ["styles/content.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content/screenshot-selector.js", "styles/selection.css"],
+      "matches": ["<all_urls>"]
     }
   ],
   "icons": {
