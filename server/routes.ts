@@ -352,33 +352,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Schedule management
-  app.post("/api/schedule/start", async (req, res) => {
+  // Manual content scanning
+  app.post("/api/content/scan", async (req, res) => {
     try {
-      const { intervalMinutes = 15 } = req.body;
-      scheduler.startScheduledScans(intervalMinutes);
-      res.json({ success: true, message: `Scheduled scans started (every ${intervalMinutes} minutes)` });
+      console.log('🔄 Manual content scan requested by user');
+      const result = await scheduler.manualScan();
+      
+      res.json({
+        success: result.success,
+        message: `Scan completed: ${result.itemsProcessed} items processed${result.errors.length > 0 ? ` with ${result.errors.length} errors` : ''}`,
+        itemsProcessed: result.itemsProcessed,
+        errors: result.errors
+      });
     } catch (error) {
-      res.status(500).json({ error: "Failed to start scheduled scans" });
+      console.error('Manual scan failed:', error);
+      res.status(500).json({ 
+        success: false,
+        error: "Failed to run manual scan",
+        message: (error as Error).message 
+      });
     }
+  });
+
+  // Legacy endpoints for backward compatibility (always return inactive)
+  app.post("/api/schedule/start", async (req, res) => {
+    res.json({ success: false, message: "Automated scanning is disabled - use manual scan instead" });
   });
 
   app.post("/api/schedule/stop", async (req, res) => {
-    try {
-      scheduler.stopScheduledScans();
-      res.json({ success: true, message: "Scheduled scans stopped" });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to stop scheduled scans" });
-    }
+    res.json({ success: false, message: "No scheduled scans to stop - automated scanning is disabled" });
   });
 
   app.get("/api/schedule/status", async (req, res) => {
-    try {
-      const isActive = scheduler.isScheduledScanActive();
-      res.json({ isActive });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get schedule status" });
-    }
+    res.json({ isActive: false }); // Always inactive
   });
 
   // Search functionality

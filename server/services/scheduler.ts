@@ -77,7 +77,7 @@ export class ContentScheduler {
           console.log('✨ BRIGHT DATA SUCCESS: Using primary data source only');
         }
       } catch (brightDataError) {
-        console.log('❌ Bright Data primary source error:', brightDataError.message);
+        console.log('❌ Bright Data primary source error:', (brightDataError as Error).message);
         // Emergency fallback only
         const [redditItems, youtubeItems, newsItems] = await Promise.all([
           this.fetcher.fetchRedditTrends(),
@@ -136,37 +136,18 @@ export class ContentScheduler {
               }
             }
 
-            // Record scan completion
-            await storage.createScanHistory({
-              platform,
-              status: items.length > 0 ? 'success' : 'partial',
-              itemsFound: items.length,
-              errorMessage: null,
-              scanDuration: Date.now() - startTime
-            });
+            // Log scan completion
+            console.log(`✅ Completed ${platform} scan: ${items.length} items processed`);
 
           } catch (error) {
             const errorMsg = `${platform} scan failed: ${error}`;
             errors.push(errorMsg);
-            
-            await storage.createScanHistory({
-              platform,
-              status: 'error',
-              itemsFound: 0,
-              errorMessage: errorMsg,
-              scanDuration: Date.now() - startTime
-            });
+            console.error(`❌ ${errorMsg}`);
           }
         }
       } else {
-        // Record that no content was found across all platforms
-        await storage.createScanHistory({
-          platform: 'all',
-          status: 'partial',
-          itemsFound: 0,
-          errorMessage: 'No content found from any source',
-          scanDuration: Date.now() - startTime
-        });
+        // Log that no content was found across all platforms
+        console.log('⚠️ No content found from any source');
       }
 
       console.log(`Scan completed. Processed ${itemsProcessed} items with ${errors.length} errors.`);
@@ -189,33 +170,27 @@ export class ContentScheduler {
     }
   }
 
+  // Manual scanning only - no automated scheduling
+  manualScan(): Promise<{
+    success: boolean;
+    itemsProcessed: number;
+    errors: string[];
+  }> {
+    console.log('🔄 Manual scan triggered by user');
+    return this.runScan();
+  }
+
+  // Legacy methods for API compatibility (always return false for automated scanning)
   startScheduledScans(intervalMinutes = 15): void {
-    if (this.scheduledTask) {
-      this.scheduledTask.stop();
-    }
-
-    // Run every N minutes
-    const cronExpression = `*/${intervalMinutes} * * * *`;
-    
-    this.scheduledTask = cron.schedule(cronExpression, async () => {
-      console.log(`Running scheduled scan (every ${intervalMinutes} minutes)...`);
-      await this.runScan();
-    });
-
-    this.scheduledTask.start();
-    console.log(`Scheduled scans started (every ${intervalMinutes} minutes)`);
+    console.log('⚠️ Automated scanning is disabled - use manual scan instead');
   }
 
   stopScheduledScans(): void {
-    if (this.scheduledTask) {
-      this.scheduledTask.stop();
-      this.scheduledTask = null;
-      console.log('Scheduled scans stopped');
-    }
+    console.log('⚠️ No scheduled scans to stop - automated scanning is disabled');
   }
 
   isScheduledScanActive(): boolean {
-    return this.scheduledTask !== null;
+    return false; // Automated scanning permanently disabled
   }
 }
 

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { FileDown, FileText, Settings } from "lucide-react";
+import { FileDown, FileText, Settings, RefreshCw, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { ContentFilters } from "@/types";
@@ -33,18 +33,27 @@ export default function Sidebar({ filters, onFiltersChange }: SidebarProps) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['reddit', 'youtube', 'news']);
   const { toast } = useToast();
 
-  const { data: scheduleStatus } = useQuery({
-    queryKey: ['/api/schedule/status'],
-    queryFn: api.getScheduleStatus,
-  });
-
-  const toggleScheduleMutation = useMutation({
-    mutationFn: scheduleStatus?.isActive ? api.stopScheduledScans : () => api.startScheduledScans(15),
+  const manualScanMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/content/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Scan failed');
+      return response.json();
+    },
     onSuccess: (result) => {
       toast({
-        title: result.success ? "Success" : "Error",
+        title: result.success ? "Scan Complete" : "Scan Issues",
         description: result.message,
         variant: result.success ? "default" : "destructive",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Scan Failed",
+        description: error.message || "Unable to run content scan",
+        variant: "destructive",
       });
     },
   });
@@ -138,33 +147,37 @@ export default function Sidebar({ filters, onFiltersChange }: SidebarProps) {
           </div>
         </div>
 
-        {/* Schedule Section */}
+        {/* Content Scanning Section */}
         <div className="mb-8">
-          <h3 className="text-sm font-medium text-gray-900 mb-4">Schedule</h3>
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Content Discovery</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <div className="text-sm font-medium text-gray-900">Auto Scan</div>
-                <div className="text-xs text-gray-600">Every 15 minutes</div>
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-sm font-medium text-blue-900 mb-1">Manual Scan</div>
+              <div className="text-xs text-blue-700 mb-3">
+                Scan selected platforms for trending content
               </div>
-              <Switch
-                checked={scheduleStatus?.isActive || false}
-                onCheckedChange={() => toggleScheduleMutation.mutate()}
-                disabled={toggleScheduleMutation.isPending}
-              />
+              <Button
+                size="sm"
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={() => manualScanMutation.mutate()}
+                disabled={manualScanMutation.isPending}
+              >
+                {manualScanMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Scanning...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Scan Now
+                  </>
+                )}
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                // TODO: Open schedule configuration dialog
-                console.log("Configure schedule");
-              }}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Configure Schedule
-            </Button>
+            <div className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-lg p-2">
+              💡 Automated scanning is disabled to save costs. Use "Scan Now" when you want fresh content.
+            </div>
           </div>
         </div>
 

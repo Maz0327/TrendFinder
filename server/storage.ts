@@ -595,13 +595,13 @@ export class DatabaseStorage implements IStorage {
 
       // Handle custom fields from frontend
       if ('userNote' in updates) {
-        const metadata = updates.metadata || {};
+        const metadata = (updates.metadata as any) || {};
         updates.metadata = { ...metadata, userNote: (updates as any).userNote };
         delete (updates as any).userNote;
       }
 
       if ('customCopy' in updates) {
-        const metadata = updates.metadata || {};
+        const metadata = (updates.metadata as any) || {};
         updates.metadata = { ...metadata, customCopy: (updates as any).customCopy };
         delete (updates as any).customCopy;
       }
