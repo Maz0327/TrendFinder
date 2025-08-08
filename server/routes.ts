@@ -75,10 +75,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { notes, customCopy, tags } = req.body;
 
       const updatedCapture = await db.updateCapture(id, {
-        userNote: notes,
-        customCopy,
-        tags,
-        updatedAt: new Date()
+        workspaceNotes: notes,
+        content: customCopy,
+        tags
       });
 
       res.json(updatedCapture);
@@ -186,10 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete content item
   app.delete("/api/content/:id", async (req, res) => {
     try {
-      const success = await storage.deleteContentItem(req.params.id);
-      if (!success) {
-        return res.status(404).json({ error: "Content not found" });
-      }
+      await storage.deleteContentItem(req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete content item" });
@@ -322,7 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Content not found" });
       }
 
-      const existingHooks = item.hooks || [];
+      const existingHooks = [item.hook1, item.hook2].filter(Boolean) as string[];
       const newHooks = await aiAnalyzer.generateAdditionalHooks(
         item.title,
         item.content || '',
@@ -411,8 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all sources
   app.get("/api/sources", async (req, res) => {
     try {
-      const tier = req.query.tier ? parseInt(req.query.tier as string) : undefined;
-      const sources = await storage.getAllSources(tier);
+      const sources = await storage.getAllSources();
       res.json(sources);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch sources" });
