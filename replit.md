@@ -43,6 +43,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
+### **OpenAI GPT-5 Compatibility Update (August 9, 2025)**
+- **Model Standardization**: Updated all OpenAI service files to use GPT-5 as the newest OpenAI model with enhanced reasoning capabilities
+- **Temperature Parameter Removal**: Eliminated all temperature parameters from OpenAI API calls that were causing "temperature does not support 0.7" errors
+- **Service Files Updated**: aiAnalyzer.ts, openai-analysis.ts, capture-truth-analysis.ts, truthAnalysisEngine.ts, enhancedAIAnalyzer.ts
+- **Frontend Error Fix**: Resolved StrategicCard null reference error causing frontend crashes with improved tag validation
+- **API Compatibility**: All OpenAI services now properly configured for GPT-5 without parameter conflicts
+- **Truth Analysis Restored**: Confirmed truth analysis system working with Strategic Value and Cultural Relevance scoring (7/10, 5/10 test results)
+
 ### **Critical Vite Routing Fix (January 9, 2025)**
 - **Root Cause Resolution**: Fixed major routing conflict in `server/vite.ts` where catch-all route was serving React HTML for API endpoints
 - **Simple Fix**: Added API route skip logic (`if (url.startsWith("/api/")) { return next(); }`) to prevent Vite from intercepting API calls

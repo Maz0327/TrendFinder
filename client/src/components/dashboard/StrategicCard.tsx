@@ -58,7 +58,7 @@ export default function StrategicCard({ capture, onClick, variant = 'capture' }:
                   tag ? (
                     <Badge 
                       key={index}
-                      className={dsdTagColors[tag?.toLowerCase()] || "bg-gray-100 text-gray-800"}
+                      className={dsdTagColors[tag?.toLowerCase?.() || ''] || "bg-gray-100 text-gray-800"}
                       variant="secondary"
                     >
                       {tag.replace('-', ' ')}

@@ -50,7 +50,7 @@ Return as JSON with exact field names: fact, observation, insight, humanTruth, c
 
       // Updated to GPT-5 with selective reasoning for better strategic analysis
       const requestParams: any = {
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: "gpt-5", // GPT-5 is the newest OpenAI model with enhanced reasoning capabilities
         messages: [
           {
             role: "system",
@@ -61,8 +61,7 @@ Return as JSON with exact field names: fact, observation, insight, humanTruth, c
             content: analysisPrompt
           }
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
+        response_format: { type: "json_object" }
       };
 
       // Add reasoning for complex strategic analysis (fallback to standard if not supported)
@@ -142,10 +141,9 @@ Return JSON with: summary (2 sentences), tags (3-5 strategic tags)
 
       // Updated to GPT-5 with optional reasoning for quick analysis
       const requestParams: any = {
-        model: "gpt-5",
+        model: "gpt-5", // GPT-5 is the newest OpenAI model with enhanced reasoning capabilities
         messages: [{ role: "user", content: quickPrompt }],
         response_format: { type: "json_object" },
-        temperature: 0.2,
         max_tokens: 200
       };
 

@@ -78,7 +78,7 @@ Provide analysis in this exact JSON format:
 }`;
 
     const response = await this.openai.chat.completions.create({
-      model: "gpt-5-thinking", // Using the latest model as per blueprint
+      model: "gpt-5", // GPT-5 is the newest OpenAI model with enhanced reasoning capabilities
       messages: [
         {
           role: "system",
@@ -90,7 +90,6 @@ Provide analysis in this exact JSON format:
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
       max_tokens: 1500
     });
 
