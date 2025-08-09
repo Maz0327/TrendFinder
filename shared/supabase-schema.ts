@@ -414,3 +414,147 @@ export type InsertCulturalMoment = z.infer<typeof insertCulturalMomentSchema>;
 
 export type HypothesisValidation = typeof hypothesisValidations.$inferSelect;
 export type InsertHypothesisValidation = z.infer<typeof insertHypothesisValidationSchema>;
+
+// 12. User Settings table - Extension and UI preferences
+export const userSettings = pgTable("user_settings", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  
+  // Extension preferences
+  extensionSettings: jsonb("extension_settings").default('{}').$type<{
+    keyboardShortcut?: string;
+    enableShortcut?: boolean;
+    autoTag?: boolean;
+    showOverlayHints?: boolean;
+    autoSummarize?: boolean;
+    addToProject?: boolean;
+  }>(),
+  
+  // Dashboard preferences
+  dashboardSettings: jsonb("dashboard_settings").default('{}').$type<{
+    defaultView?: string;
+    metricsVisible?: string[];
+    chartPreferences?: Record<string, any>;
+    layoutConfiguration?: Record<string, any>;
+  }>(),
+  
+  // Search preferences
+  searchSettings: jsonb("search_settings").default('{}').$type<{
+    savedSearches?: Array<{
+      name: string;
+      query: string;
+      filters: Record<string, any>;
+    }>;
+    defaultFilters?: Record<string, any>;
+    resultsPerPage?: number;
+  }>(),
+  
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  userIdx: index("idx_user_settings_user_id").on(table.userId),
+}));
+
+// 13. Annotations table - Visual markup and canvas data
+export const annotations = pgTable("annotations", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  captureId: uuid("capture_id").notNull().references(() => captures.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  
+  // Canvas/Annotation data
+  canvasData: jsonb("canvas_data").notNull().$type<{
+    version: string;
+    objects: any[];
+    background?: string;
+    overlay?: any;
+  }>(),
+  
+  // Annotation metadata
+  annotationType: text("annotation_type").default("canvas"), // 'canvas' | 'highlight' | 'comment'
+  coordinates: jsonb("coordinates").$type<{
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+  }>(),
+  
+  // Version control
+  version: integer("version").default(1),
+  parentId: uuid("parent_id").references(() => annotations.id),
+  
+  // Collaborative features
+  isShared: boolean("is_shared").default(false),
+  collaborators: jsonb("collaborators").default('[]'), // Array of user IDs
+  
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  captureIdx: index("idx_annotations_capture_id").on(table.captureId),
+  userIdx: index("idx_annotations_user_id").on(table.userId),
+  typeIdx: index("idx_annotations_type").on(table.annotationType),
+}));
+
+// 14. Analytics Data table - Dashboard metrics and trends  
+export const analyticsData = pgTable("analytics_data", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  projectId: uuid("project_id").references(() => projects.id),
+  
+  // Metric data
+  metricType: text("metric_type").notNull(), // 'capture_volume' | 'viral_score' | 'engagement' | 'trend'
+  metricValue: decimal("metric_value", { precision: 10, scale: 2 }).notNull(),
+  
+  // Time series data
+  recordedAt: timestamp("recorded_at", { withTimezone: true }).defaultNow(),
+  timeframe: text("timeframe").default("daily"), // 'hourly' | 'daily' | 'weekly' | 'monthly'
+  
+  // Additional context
+  dimensions: jsonb("dimensions").default('{}').$type<{
+    platform?: string;
+    contentType?: string;
+    audience?: string;
+    campaign?: string;
+  }>(),
+  
+  // Aggregated data
+  aggregatedData: jsonb("aggregated_data").default('{}').$type<{
+    total?: number;
+    average?: number;
+    trend?: string;
+    comparison?: Record<string, number>;
+  }>(),
+  
+}, (table) => ({
+  userIdx: index("idx_analytics_user_id").on(table.userId),
+  projectIdx: index("idx_analytics_project_id").on(table.projectId),
+  typeIdx: index("idx_analytics_type").on(table.metricType),
+  recordedIdx: index("idx_analytics_recorded").on(table.recordedAt),
+}));
+
+// Add schemas for new tables
+export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAnnotationSchema = createInsertSchema(annotations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAnalyticsDataSchema = createInsertSchema(analyticsData).omit({
+  id: true,
+  recordedAt: true,
+});
+
+// Type exports for new tables
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+
+export type Annotation = typeof annotations.$inferSelect;
+export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
+
+export type AnalyticsData = typeof analyticsData.$inferSelect;
+export type InsertAnalyticsData = z.infer<typeof insertAnalyticsDataSchema>;
