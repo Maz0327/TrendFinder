@@ -75,8 +75,8 @@ export default function StrategicCard({ capture, onClick, variant = 'capture' }:
             
             {/* Platform Icon */}
             <div className="flex items-center space-x-1">
-              <i className={platformIcons[capture.platform.toLowerCase()] || platformIcons.web}></i>
-              <span className="text-xs text-gray-500 capitalize">{capture.platform}</span>
+              <i className={platformIcons[capture.platform?.toLowerCase()] || platformIcons.web}></i>
+              <span className="text-xs text-gray-500 capitalize">{capture.platform || 'unknown'}</span>
             </div>
           </div>
           

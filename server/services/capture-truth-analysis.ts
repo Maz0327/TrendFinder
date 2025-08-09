@@ -109,12 +109,20 @@ Provide response in JSON format:
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
       
+      // Ensure values are properly validated and converted
+      const validatedResult = {
+        ...result,
+        strategicValue: Math.max(1, Math.min(10, parseInt(result.strategicValue) || 5)),
+        culturalRelevance: Math.max(1, Math.min(10, parseInt(result.culturalRelevance) || 5)),
+        suggestedBriefSection: result.suggestedBriefSection || 'performance'
+      };
+      
       console.log(`✅ Truth Analysis completed for capture ${capture.id}`);
-      console.log(`   Strategic Value: ${result.strategicValue}/10`);
-      console.log(`   Cultural Relevance: ${result.culturalRelevance}/10`);
-      console.log(`   Brief Section: ${result.suggestedBriefSection}`);
+      console.log(`   Strategic Value: ${validatedResult.strategicValue}/10`);
+      console.log(`   Cultural Relevance: ${validatedResult.culturalRelevance}/10`);
+      console.log(`   Brief Section: ${validatedResult.suggestedBriefSection}`);
 
-      return result;
+      return validatedResult;
 
     } catch (error) {
       console.error(`❌ Truth Analysis failed for capture ${capture.id}:`, error);

@@ -188,14 +188,14 @@ export function registerProjectRoutes(app: Express) {
           truthAnalysis: analysis.truthAnalysis,
           summary: analysis.summary,
           culturalResonance: {
-            crossGenerational: analysis.culturalRelevance > 0.7,
-            memePotential: Math.round(analysis.culturalRelevance * 100),
-            counterNarrative: analysis.suggestedBriefSection,
-            tribalSignificance: analysis.strategicValue > 0.7 ? 'high' : 'moderate'
+            crossGenerational: (analysis.culturalRelevance || 5) > 7,
+            memePotential: Math.round((analysis.culturalRelevance || 5) * 10),
+            counterNarrative: analysis.suggestedBriefSection || 'performance',
+            tribalSignificance: (analysis.strategicValue || 5) > 7 ? 'high' : 'moderate'
           },
           dsdSection: analysis.suggestedBriefSection === 'define' ? 'define' : 
                       analysis.suggestedBriefSection === 'shift' ? 'shift' : 'deliver',
-          viralScore: Math.round(analysis.culturalRelevance * 100),
+          viralScore: Math.round((analysis.culturalRelevance || 5) * 10),
           analysisStatus: 'completed'
         });
         console.log(`✅ Truth Analysis completed for capture ${capture.id}`);
