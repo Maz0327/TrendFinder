@@ -21,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with Drizzle ORM (Neon Database for cloud deployment)
 - **Session Management**: PostgreSQL-based sessions with `connect-pg-simple`
 - **API Design**: RESTful API with structured error handling
-- **Core Logic**: Features a project-based architecture using a 4-table schema (projects → captures → analysis → briefs) and a "Truth Analysis Engine" for AI-driven content assessment across four layers (Fact → Observation → Insight → Human Truth).
+- **Core Logic**: Features a project-based architecture using a 4-table schema (projects → captures → analysis → briefs) and a "Truth Analysis Engine" with GPT-5 reasoning for enhanced content assessment across four layers (Fact → Observation → Insight → Human Truth).
 
 ### Key Components
 - **Content Management System**: Integrates Bright Data's API and browser automation for scraping, covering Reddit, Instagram, YouTube, TikTok, and Twitter/X. Utilizes OpenAI GPT-4o for content summarization and hook generation, and Gemini Visual Analysis for brand elements and cultural intelligence. Includes an algorithm for viral potential scoring and automatic content categorization.
@@ -34,7 +34,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Core Infrastructure
 - **Neon Database**: Serverless PostgreSQL for primary data storage.
-- **OpenAI API**: GPT-5 for AI-driven content analysis and hook generation (50% cost savings vs GPT-4o).
+- **OpenAI API**: GPT-5 with selective reasoning for AI-driven content analysis and hook generation (50% cost savings vs GPT-4o, 80% fewer errors with reasoning mode).
 - **Bright Data API**: Primary data source for social media content scraping (dataset endpoints).
 - **Bright Data Browser**: For real browser automation on JavaScript-heavy sites like Instagram and TikTok (WebSocket: `wss://zone:user@brd.superproxy.io:9222`).
 - **Google API Ecosystem**: Integration for Google Slides, Docs, Sheets, Drive, Vision, NLP, Custom Search, and BigQuery, including OAuth authentication.

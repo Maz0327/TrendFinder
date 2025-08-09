@@ -19,7 +19,7 @@ export interface TruthAnalysisResult {
 }
 
 export class OpenAIAnalysisService {
-  async analyzeCaptureContent(content: string, title: string, url?: string, captureType: string = 'text'): Promise<TruthAnalysisResult> {
+  async analyzeCaptureContent(content: string, title: string, url?: string, captureType: string = 'text', useReasoning: boolean = true): Promise<TruthAnalysisResult> {
     try {
       const analysisPrompt = `
 You are a strategic intelligence expert analyzing content for cultural insights and business intelligence.
@@ -48,8 +48,8 @@ Also assess:
 Return as JSON with exact field names: fact, observation, insight, humanTruth, culturalMoment, strategicValue, viralPotential, briefSectionSuggestion, keywords, tone, confidence
 `;
 
-      // Updated to GPT-5 (released August 7, 2025) for 50% cost savings on input tokens and improved accuracy
-      const response = await openai.chat.completions.create({
+      // Updated to GPT-5 with selective reasoning for better strategic analysis
+      const requestParams: any = {
         model: "gpt-5",
         messages: [
           {
@@ -63,7 +63,26 @@ Return as JSON with exact field names: fact, observation, insight, humanTruth, c
         ],
         response_format: { type: "json_object" },
         temperature: 0.3,
-      });
+      };
+
+      // Add reasoning for complex strategic analysis (fallback to standard if not supported)
+      if (useReasoning) {
+        requestParams.reasoning_effort = "medium";
+      }
+
+      let response;
+      try {
+        response = await openai.chat.completions.create(requestParams);
+      } catch (error: any) {
+        // If reasoning parameter not supported, retry without it
+        if (useReasoning && error.message?.includes('reasoning_effort')) {
+          console.log('⚠️ Reasoning not supported for Truth Analysis, falling back to standard GPT-5');
+          delete requestParams.reasoning_effort;
+          response = await openai.chat.completions.create(requestParams);
+        } else {
+          throw error;
+        }
+      }
 
       const analysisText = response.choices[0].message.content;
       if (!analysisText) {
@@ -109,7 +128,7 @@ Return as JSON with exact field names: fact, observation, insight, humanTruth, c
     }
   }
 
-  async quickAnalysis(content: string, title: string): Promise<{summary: string, tags: string[]}> {
+  async quickAnalysis(content: string, title: string, useReasoning: boolean = false): Promise<{summary: string, tags: string[]}> {
     try {
       const quickPrompt = `
 Provide a quick 2-sentence strategic summary and 3-5 relevant tags for this content:
@@ -120,14 +139,33 @@ Content: ${content}
 Return JSON with: summary (2 sentences), tags (3-5 strategic tags)
 `;
 
-      // Updated to GPT-5 (released August 7, 2025) for 50% cost savings on input tokens and improved accuracy
-      const response = await openai.chat.completions.create({
+      // Updated to GPT-5 with optional reasoning for quick analysis
+      const requestParams: any = {
         model: "gpt-5",
         messages: [{ role: "user", content: quickPrompt }],
         response_format: { type: "json_object" },
         temperature: 0.2,
         max_tokens: 200
-      });
+      };
+
+      // Add reasoning only when specifically requested for quick analysis
+      if (useReasoning) {
+        requestParams.reasoning_effort = "low";
+      }
+
+      let response;
+      try {
+        response = await openai.chat.completions.create(requestParams);
+      } catch (error: any) {
+        // If reasoning parameter not supported, retry without it
+        if (useReasoning && error.message?.includes('reasoning_effort')) {
+          console.log('⚠️ Reasoning not supported for quick analysis, falling back to standard GPT-5');
+          delete requestParams.reasoning_effort;
+          response = await openai.chat.completions.create(requestParams);
+        } else {
+          throw error;
+        }
+      }
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
       
