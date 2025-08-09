@@ -34,10 +34,21 @@ export interface TrendData {
 // API functions for fetching data
 export async function fetchRecentCaptures(): Promise<SignalData[]> {
   try {
-    const response = await api.getContent();
+    const response = await fetch('/api/captures/recent', {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Not authenticated');
+      }
+      throw new Error('Failed to fetch recent captures');
+    }
+    
+    const captures = await response.json();
     
     // Transform backend data to match Lovable UI format
-    return response.slice(0, 10).map((capture: any) => ({
+    return captures.slice(0, 10).map((capture: any) => ({
       id: capture.id,
       title: capture.title || "Untitled Signal",
       content: capture.content || capture.snippet || "",

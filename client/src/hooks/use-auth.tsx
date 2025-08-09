@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   useEffect(() => {
     if (user && (location === '/login' || location === '/register')) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [user, location, navigate]);
 

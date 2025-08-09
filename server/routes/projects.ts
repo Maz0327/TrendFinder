@@ -217,6 +217,39 @@ export function registerProjectRoutes(app: Express) {
     }
   });
 
+  // Get recent captures - MUST come before :id route
+  app.get("/api/captures/recent", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const limit = parseInt(req.query.limit as string) || 10;
+      const projects = await storage.getProjects(req.session.user.id);
+      
+      // Get captures from all user's projects
+      let allCaptures: any[] = [];
+      for (const project of projects) {
+        const captures = await storage.getProjectCaptures(project.id);
+        allCaptures = [...allCaptures, ...captures];
+      }
+      
+      // Sort by createdAt and take the most recent ones
+      const recentCaptures = allCaptures
+        .sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        })
+        .slice(0, limit);
+      
+      res.json(recentCaptures);
+    } catch (error) {
+      console.error("Error fetching recent captures:", error);
+      res.status(500).json({ error: "Failed to fetch recent captures" });
+    }
+  });
+
   // Get single capture
   app.get("/api/captures/:id", async (req, res) => {
     try {
