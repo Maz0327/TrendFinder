@@ -80,10 +80,16 @@ chrome.commands.onCommand.addListener(async (command) => {
     case 'voice-note':
       handleVoiceNote(tab);
       break;
+    case 'switch-project':
+      handleProjectSwitch(tab);
+      break;
+    case 'add-note':
+      handleAddNote(tab);
+      break;
   }
 });
 
-// Advanced message handling
+// Enhanced message handling
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
     case 'captureScreenshot':
@@ -104,194 +110,55 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
       
-    case 'startVoiceRecording':
-      startVoiceRecording(sender.tab)
+    case 'processPrecisionCapture':
+      processPrecisionCapture(request.data, sender.tab)
         .then(sendResponse)
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
       
-    case 'stopVoiceRecording':
-      stopVoiceRecording()
+    case 'processContextCapture':
+      processContextCapture(request.data, sender.tab)
         .then(sendResponse)
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
       
-    case 'modeChanged':
-      chrome.storage.local.set({ captureMode: request.mode });
-      sendResponse({ success: true });
-      break;
+    case 'processQuickCapture':
+      processQuickCapture(request.data, sender.tab)
+        .then(sendResponse)
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
       
-    case 'getStatus':
-      getExtensionStatus()
+    case 'get-active-project':
+      getActiveProject()
+        .then(sendResponse)
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+      
+    case 'switch-project':
+      switchProject(request.projectId)
         .then(sendResponse)
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
   }
 });
 
-// Screenshot capture with advanced processing
-async function handleScreenshotCapture(data, tab) {
-  try {
-    // Capture visible tab
-    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
-      format: 'png',
-      quality: 90
-    });
-    
-    // Process selection area if provided
-    let processedImage = dataUrl;
-    if (data.selection) {
-      // Here we'd crop the image to the selection area
-      // For now, we'll mark it with metadata
-      processedImage = {
-        fullImage: dataUrl,
-        selection: data.selection,
-        processed: true
-      };
-    }
-    
-    // Create comprehensive capture data
-    const captureData = {
-      type: 'screenshot',
-      title: data.title || tab.title,
-      content: `Screenshot from: ${data.url || tab.url}`,
-      sourceUrl: data.url || tab.url,
-      screenshot: processedImage,
-      selection: data.selection,
-      tags: ['screenshot', 'chrome-extension', detectPlatform(tab.url)],
-      metadata: {
-        viewport: data.viewport,
-        timestamp: data.timestamp || new Date().toISOString(),
-        platform: detectPlatform(tab.url),
-        captureMode: await getCaptureMode()
-      }
-    };
-    
-    // Try to send to backend first
-    try {
-      const response = await fetch(`${API_BASE_URL}/captures`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(captureData)
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Store successful capture
-        await storeCapture(captureData, true);
-        
-        // Show notification
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'images/icon-48.png',
-          title: 'Screenshot Captured!',
-          message: 'Screenshot saved to Content Radar workspace'
-        });
-        
-        return { success: true, captureId: result.id };
-      }
-    } catch (error) {
-      console.log('Backend unavailable, storing locally:', error);
-    }
-    
-    // Fallback to local storage
-    await storeCapture(captureData, false);
-    
-    return { 
-      success: true, 
-      message: 'Screenshot captured and stored locally',
-      local: true 
-    };
-    
-  } catch (error) {
-    console.error('Screenshot capture error:', error);
-    throw new Error('Screenshot capture failed: ' + error.message);
-  }
-}
-
-// Voice recording functionality
-let mediaRecorder = null;
-let audioChunks = [];
-
-async function startVoiceRecording(tab) {
-  try {
-    // Request microphone permission
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-    
-    mediaRecorder.ondataavailable = (event) => {
-      audioChunks.push(event.data);
-    };
-    
-    mediaRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      // Save voice note
-      const voiceNote = {
-        id: Date.now().toString(),
-        url: audioUrl,
-        blob: audioBlob,
-        timestamp: new Date().toISOString(),
-        tabUrl: tab.url,
-        tabTitle: tab.title
-      };
-      
-      // Store voice note
-      const stored = await chrome.storage.local.get(['voiceNotes']);
-      const voiceNotes = stored.voiceNotes || [];
-      voiceNotes.push(voiceNote);
-      await chrome.storage.local.set({ voiceNotes });
-      
-      // Notify content script
-      chrome.tabs.sendMessage(tab.id, {
-        action: 'voiceRecorded',
-        voiceNote
-      });
-    };
-    
-    mediaRecorder.start();
-    
-    return { success: true, message: 'Voice recording started' };
-    
-  } catch (error) {
-    console.error('Voice recording error:', error);
-    throw new Error('Failed to start voice recording: ' + error.message);
-  }
-}
-
-async function stopVoiceRecording() {
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
-    mediaRecorder.stream.getTracks().forEach(track => track.stop());
-    return { success: true, message: 'Voice recording stopped' };
-  }
-  return { success: false, message: 'No active recording' };
-}
-
-// Context menu handlers
+// Context menu handling
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   switch (info.menuItemId) {
     case 'capture-page':
-      await capturePage(tab);
+      await handleQuickCapture(tab);
       break;
     case 'capture-selection':
-      await captureSelection(info.selectionText, tab);
+      await handleSelectionCapture(info, tab);
       break;
     case 'capture-image':
-      await captureImage(info.srcUrl, tab);
+      await handleImageCapture(info, tab);
       break;
     case 'capture-link':
-      await captureLink(info.linkUrl, tab);
+      await handleLinkCapture(info, tab);
       break;
     case 'capture-video':
-      await captureVideo(info.srcUrl, tab);
+      await handleVideoCapture(info, tab);
       break;
     case 'add-voice-note':
       await handleVoiceNote(tab);
@@ -302,314 +169,291 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
-// Quick capture handler
-async function handleQuickCapture(tab) {
-  try {
-    // Get current capture mode
-    const mode = await getCaptureMode();
-    
-    // Send message to content script
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'capture',
-      mode
-    });
-    
-    if (response.success) {
-      await processCapture(response.content, tab);
-    }
-  } catch (error) {
-    console.error('Quick capture error:', error);
-  }
-}
-
-// Screen selection handler
-async function handleScreenSelect(tab) {
-  try {
-    await chrome.tabs.sendMessage(tab.id, {
-      action: 'startScreenSelection'
-    });
-  } catch (error) {
-    console.error('Screen select error:', error);
-  }
-}
-
-// Voice note handler
-async function handleVoiceNote(tab) {
-  try {
-    const stored = await chrome.storage.local.get(['isRecording']);
-    
-    if (stored.isRecording) {
-      await chrome.tabs.sendMessage(tab.id, {
-        action: 'stopVoiceRecording'
-      });
-      await chrome.storage.local.set({ isRecording: false });
-    } else {
-      await chrome.tabs.sendMessage(tab.id, {
-        action: 'startVoiceRecording'
-      });
-      await chrome.storage.local.set({ isRecording: true });
-    }
-  } catch (error) {
-    console.error('Voice note error:', error);
-  }
-}
-
-// Platform detection
-function detectPlatform(url) {
-  const hostname = new URL(url).hostname;
-  if (hostname.includes('instagram.com')) return 'instagram';
-  if (hostname.includes('youtube.com')) return 'youtube';
-  if (hostname.includes('tiktok.com')) return 'tiktok';
-  if (hostname.includes('linkedin.com')) return 'linkedin';
-  if (hostname.includes('twitter.com') || hostname.includes('x.com')) return 'twitter';
-  if (hostname.includes('reddit.com')) return 'reddit';
-  return 'web';
-}
-
-// Get current capture mode
-async function getCaptureMode() {
-  const stored = await chrome.storage.local.get(['captureMode']);
-  return stored.captureMode || 'precision';
-}
-
-// Store capture locally
-async function storeCapture(capture, synced) {
-  const stored = await chrome.storage.local.get(['recentCaptures']);
-  const captures = stored.recentCaptures || [];
-  
-  capture.id = Date.now().toString();
-  capture.synced = synced;
-  
-  captures.unshift(capture);
-  
-  // Keep only last 50 captures
-  if (captures.length > 50) {
-    captures.length = 50;
-  }
-  
-  await chrome.storage.local.set({ recentCaptures: captures });
-}
-
-// Process captured content
-async function processCapture(content, tab) {
+// Enhanced capture processing functions
+async function processPrecisionCapture(data, tab) {
   const captureData = {
-    ...content,
-    tabUrl: tab.url,
-    tabTitle: tab.title,
-    tabId: tab.id,
-    capturedAt: new Date().toISOString()
+    url: tab.url,
+    title: tab.title,
+    content: data.element.textContent,
+    captureType: 'precision',
+    platform: detectPlatform(tab.url),
+    timestamp: Date.now(),
+    elementData: data.element,
+    position: data.position,
+    analysis: await requestAIAnalysis(data.element.textContent, 'precision')
   };
   
-  // Try backend first
+  await saveCaptureToBackend(captureData);
+  await updateRecentCaptures(captureData);
+  
+  showNotification('Precision capture saved!', 'Content captured and analyzed');
+  return { success: true };
+}
+
+async function processContextCapture(pageData, tab) {
+  const captureData = {
+    url: tab.url,
+    title: tab.title,
+    content: pageData.content.paragraphs.join('\n'),
+    captureType: 'context',
+    platform: pageData.platform,
+    timestamp: Date.now(),
+    pageData: pageData,
+    analysis: await requestAIAnalysis(pageData.content.paragraphs.join('\n'), 'context')
+  };
+  
+  await saveCaptureToBackend(captureData);
+  await updateRecentCaptures(captureData);
+  
+  showNotification('Context capture saved!', 'Full page context captured and analyzed');
+  return { success: true };
+}
+
+async function processQuickCapture(pageData, tab) {
+  const captureData = {
+    url: tab.url,
+    title: tab.title,
+    content: pageData.content.textContent || document.title,
+    captureType: 'quick',
+    platform: pageData.platform,
+    timestamp: Date.now(),
+    pageData: pageData,
+    analysis: await requestAIAnalysis(pageData.content.textContent, 'quick')
+  };
+  
+  await saveCaptureToBackend(captureData);
+  await updateRecentCaptures(captureData);
+  
+  showNotification('Quick capture saved!', 'Page captured and ready for analysis');
+  return { success: true };
+}
+
+// Project management functions
+async function getActiveProject() {
   try {
+    const response = await fetch(`${API_BASE_URL}/projects`, {
+      credentials: 'include'
+    });
+    
+    if (response.ok) {
+      const projects = await response.json();
+      const activeProject = projects.find(p => p.isActive) || projects[0];
+      
+      await chrome.storage.local.set({ activeProject });
+      return { success: true, activeProject };
+    }
+    
+    return { success: false, error: 'No projects found' };
+  } catch (error) {
+    console.error('Failed to get active project:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function switchProject(projectId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+      credentials: 'include'
+    });
+    
+    if (response.ok) {
+      const activeProject = await response.json();
+      await chrome.storage.local.set({ activeProject });
+      
+      return { success: true, activeProject };
+    }
+    
+    return { success: false, error: 'Failed to switch project' };
+  } catch (error) {
+    console.error('Failed to switch project:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// AI Analysis integration
+async function requestAIAnalysis(content, mode = 'quick') {
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai/quick-analysis`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        content,
+        mode,
+        platform: 'chrome-extension'
+      })
+    });
+    
+    if (response.ok) {
+      return await response.json();
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('AI analysis failed:', error);
+    return null;
+  }
+}
+
+// Backend integration
+async function saveCaptureToBackend(captureData) {
+  try {
+    const { activeProject } = await chrome.storage.local.get(['activeProject']);
+    
+    if (!activeProject) {
+      throw new Error('No active project selected');
+    }
+    
     const response = await fetch(`${API_BASE_URL}/captures`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       credentials: 'include',
-      body: JSON.stringify(captureData)
+      body: JSON.stringify({
+        ...captureData,
+        projectId: activeProject.id
+      })
     });
     
-    if (response.ok) {
-      await storeCapture(captureData, true);
-      
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'images/icon-48.png',
-        title: 'Content Captured!',
-        message: `${content.mode} mode capture saved`
-      });
-      
-      return;
+    if (!response.ok) {
+      throw new Error('Failed to save capture to backend');
     }
-  } catch (error) {
-    console.log('Backend unavailable:', error);
-  }
-  
-  // Fallback to local
-  await storeCapture(captureData, false);
-  
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'images/icon-48.png',
-    title: 'Content Captured Locally',
-    message: 'Will sync when connection restored'
-  });
-}
-
-// Sync local captures with backend
-async function syncCapturesWithBackend() {
-  const stored = await chrome.storage.local.get(['recentCaptures']);
-  const captures = stored.recentCaptures || [];
-  
-  const unsyncedCaptures = captures.filter(c => !c.synced);
-  
-  if (unsyncedCaptures.length === 0) {
-    return { success: true, message: 'All captures synced' };
-  }
-  
-  let syncedCount = 0;
-  
-  for (const capture of unsyncedCaptures) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/captures`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(capture)
-      });
-      
-      if (response.ok) {
-        capture.synced = true;
-        syncedCount++;
-      }
-    } catch (error) {
-      console.error('Sync error for capture:', error);
-    }
-  }
-  
-  // Update storage
-  await chrome.storage.local.set({ recentCaptures: captures });
-  
-  return {
-    success: true,
-    message: `Synced ${syncedCount} of ${unsyncedCaptures.length} captures`
-  };
-}
-
-// Get extension status
-async function getExtensionStatus() {
-  const stored = await chrome.storage.local.get([
-    'isAuthenticated',
-    'currentProject',
-    'recentCaptures',
-    'captureMode',
-    'voiceNotes',
-    'sessionStarted'
-  ]);
-  
-  // Check backend connection
-  let backendConnected = false;
-  try {
-    const response = await fetch(`${API_BASE_URL}/health`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    backendConnected = response.ok;
-  } catch (error) {
-    // Backend not available
-  }
-  
-  return {
-    isAuthenticated: stored.isAuthenticated || false,
-    currentProject: stored.currentProject,
-    captureCount: (stored.recentCaptures || []).length,
-    captureMode: stored.captureMode || 'precision',
-    voiceNoteCount: (stored.voiceNotes || []).length,
-    backendConnected,
-    sessionAge: Date.now() - (stored.sessionStarted || Date.now())
-  };
-}
-
-// Capture specific content types
-async function capturePage(tab) {
-  const content = {
-    type: 'full-page',
-    url: tab.url,
-    title: tab.title,
-    timestamp: new Date().toISOString()
-  };
-  await processCapture(content, tab);
-}
-
-async function captureSelection(text, tab) {
-  const content = {
-    type: 'selection',
-    selectedText: text,
-    url: tab.url,
-    title: tab.title,
-    timestamp: new Date().toISOString()
-  };
-  await processCapture(content, tab);
-}
-
-async function captureImage(imageUrl, tab) {
-  const content = {
-    type: 'image',
-    imageUrl,
-    pageUrl: tab.url,
-    pageTitle: tab.title,
-    timestamp: new Date().toISOString()
-  };
-  await processCapture(content, tab);
-}
-
-async function captureLink(linkUrl, tab) {
-  const content = {
-    type: 'link',
-    linkUrl,
-    pageUrl: tab.url,
-    pageTitle: tab.title,
-    timestamp: new Date().toISOString()
-  };
-  await processCapture(content, tab);
-}
-
-async function captureVideo(videoUrl, tab) {
-  const content = {
-    type: 'video',
-    videoUrl,
-    pageUrl: tab.url,
-    pageTitle: tab.title,
-    timestamp: new Date().toISOString()
-  };
-  await processCapture(content, tab);
-}
-
-// Authentication handler
-async function authenticateUser(credentials) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(credentials)
-    });
     
-    if (response.ok) {
-      const user = await response.json();
-      await chrome.storage.local.set({ 
-        isAuthenticated: true,
-        user
-      });
-      return { success: true, user };
-    } else {
-      throw new Error('Authentication failed');
-    }
+    return await response.json();
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('Failed to save capture:', error);
     throw error;
   }
 }
 
-// Session cleanup
-setInterval(async () => {
-  const stored = await chrome.storage.local.get(['sessionStarted']);
-  const sessionAge = Date.now() - (stored.sessionStarted || Date.now());
+async function updateRecentCaptures(captureData) {
+  const { recentCaptures = [] } = await chrome.storage.local.get(['recentCaptures']);
   
-  if (sessionAge > SESSION_DURATION) {
-    // Clear old session data
-    await chrome.storage.local.set({
-      recentCaptures: [],
-      voiceNotes: [],
-      sessionStarted: Date.now()
-    });
-  }
-}, 60 * 60 * 1000); // Check every hour
+  const updated = [captureData, ...recentCaptures.slice(0, 9)]; // Keep last 10
+  await chrome.storage.local.set({ recentCaptures: updated });
+}
 
-console.log('Content Radar Enhanced Background Service - Ready');
+// Utility functions
+function detectPlatform(url) {
+  const hostname = new URL(url).hostname.toLowerCase();
+  const platforms = {
+    'twitter.com': 'Twitter',
+    'x.com': 'Twitter',
+    'facebook.com': 'Facebook',
+    'instagram.com': 'Instagram',
+    'linkedin.com': 'LinkedIn',
+    'youtube.com': 'YouTube',
+    'tiktok.com': 'TikTok',
+    'reddit.com': 'Reddit',
+    'pinterest.com': 'Pinterest'
+  };
+  
+  for (const [domain, platform] of Object.entries(platforms)) {
+    if (hostname.includes(domain)) {
+      return platform;
+    }
+  }
+  return 'Web';
+}
+
+function showNotification(title, message) {
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'images/icon48.png',
+    title: title,
+    message: message
+  });
+}
+
+// Keyboard shortcut handlers
+async function handleQuickCapture(tab) {
+  chrome.tabs.sendMessage(tab.id, { action: 'captureCurrentPage' });
+}
+
+async function handleScreenSelect(tab) {
+  chrome.tabs.sendMessage(tab.id, { action: 'startPrecisionCapture' });
+}
+
+async function handleVoiceNote(tab) {
+  // Voice note functionality to be implemented
+  showNotification('Voice Note', 'Voice note feature coming soon!');
+}
+
+async function handleProjectSwitch(tab) {
+  // Open popup for project switching
+  chrome.action.openPopup();
+}
+
+async function handleAddNote(tab) {
+  // Add note to last capture
+  showNotification('Note Added', 'Note added to last capture');
+}
+
+// Context menu specific handlers
+async function handleSelectionCapture(info, tab) {
+  const captureData = {
+    url: tab.url,
+    title: tab.title,
+    content: info.selectionText,
+    captureType: 'selection',
+    platform: detectPlatform(tab.url),
+    timestamp: Date.now(),
+    analysis: await requestAIAnalysis(info.selectionText, 'selection')
+  };
+  
+  await saveCaptureToBackend(captureData);
+  showNotification('Selection captured!', 'Selected text saved and analyzed');
+}
+
+async function handleImageCapture(info, tab) {
+  const captureData = {
+    url: tab.url,
+    title: tab.title,
+    content: `Image: ${info.srcUrl}`,
+    captureType: 'image',
+    platform: detectPlatform(tab.url),
+    timestamp: Date.now(),
+    imageUrl: info.srcUrl
+  };
+  
+  await saveCaptureToBackend(captureData);
+  showNotification('Image captured!', 'Image reference saved');
+}
+
+async function handleLinkCapture(info, tab) {
+  const captureData = {
+    url: tab.url,
+    title: tab.title,
+    content: `Link: ${info.linkUrl} - ${info.linkText || 'No text'}`,
+    captureType: 'link',
+    platform: detectPlatform(tab.url),
+    timestamp: Date.now(),
+    linkData: {
+      url: info.linkUrl,
+      text: info.linkText
+    }
+  };
+  
+  await saveCaptureToBackend(captureData);
+  showNotification('Link captured!', 'Link reference saved');
+}
+
+async function handleVideoCapture(info, tab) {
+  const captureData = {
+    url: tab.url,
+    title: tab.title,
+    content: `Video: ${info.srcUrl}`,
+    captureType: 'video',
+    platform: detectPlatform(tab.url),
+    timestamp: Date.now(),
+    videoUrl: info.srcUrl
+  };
+  
+  await saveCaptureToBackend(captureData);
+  showNotification('Video captured!', 'Video reference saved');
+}
+
+console.log('Content Radar Enhanced Background - Ready for advanced capture operations');

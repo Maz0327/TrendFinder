@@ -107,20 +107,23 @@ class StrategicContentCapture {
         }
 
         if (!this.activeProject) {
-            this.updateStatus('error', 'Please select a project first');
+            this.updateStatus('error', 'No project selected');
             return;
         }
 
         this.updateStatus('processing', 'Starting precision capture...');
         
         try {
-            await chrome.tabs.sendMessage(this.currentTab.id, {
-                action: 'start-precision-capture'
+            await chrome.tabs.sendMessage(this.currentTab.id, { 
+                action: 'startPrecisionCapture' 
             });
-            window.close(); // Close popup to allow interaction
+            
+            this.updateStatus('success', 'Click elements to capture them');
+            setTimeout(() => this.updateStatus('ready'), 2000);
+            window.close();
         } catch (error) {
-            console.error('Failed to start precision capture:', error);
-            this.updateStatus('error', 'Failed to start capture mode');
+            console.error('Precision capture failed:', error);
+            this.updateStatus('error', 'Failed to start precision capture');
         }
     }
 
@@ -131,20 +134,23 @@ class StrategicContentCapture {
         }
 
         if (!this.activeProject) {
-            this.updateStatus('error', 'Please select a project first');
+            this.updateStatus('error', 'No project selected');
             return;
         }
 
-        this.updateStatus('processing', 'Starting context capture...');
+        this.updateStatus('processing', 'Capturing page context...');
         
         try {
-            await chrome.tabs.sendMessage(this.currentTab.id, {
-                action: 'start-context-capture'
+            await chrome.tabs.sendMessage(this.currentTab.id, { 
+                action: 'startContextCapture' 
             });
-            window.close(); // Close popup to allow interaction
+            
+            this.updateStatus('success', 'Context captured successfully!');
+            await this.loadRecentCaptures();
+            setTimeout(() => this.updateStatus('ready'), 2000);
         } catch (error) {
-            console.error('Failed to start context capture:', error);
-            this.updateStatus('error', 'Failed to start capture mode');
+            console.error('Context capture failed:', error);
+            this.updateStatus('error', 'Failed to capture context');
         }
     }
 
@@ -155,155 +161,115 @@ class StrategicContentCapture {
         }
 
         if (!this.activeProject) {
-            this.updateStatus('error', 'Please select a project first');
+            this.updateStatus('error', 'No project selected');
             return;
         }
 
-        this.updateStatus('processing');
+        this.updateStatus('processing', 'Capturing current page...');
         
         try {
-            // Inject content script to extract page content
-            const [result] = await chrome.scripting.executeScript({
-                target: { tabId: this.currentTab.id },
-                func: this.extractPageContent
+            await chrome.tabs.sendMessage(this.currentTab.id, { 
+                action: 'captureCurrentPage' 
             });
-
-            if (result?.result) {
-                await this.sendContentToBackground({
-                    ...result.result,
-                    captureMode: 'quick',
-                    projectId: this.activeProject.id
-                });
-                this.updateStatus('success');
-                this.loadRecentCaptures();
-            } else {
-                throw new Error('Failed to extract page content');
-            }
+            
+            this.updateStatus('success', 'Page captured successfully!');
+            await this.loadRecentCaptures();
+            setTimeout(() => this.updateStatus('ready'), 2000);
         } catch (error) {
-            console.error('Capture failed:', error);
-            this.updateStatus('error', 'Failed to capture page content');
+            console.error('Page capture failed:', error);
+            this.updateStatus('error', 'Failed to capture page');
         }
-    }
-
-    extractPageContent() {
-        const content = {
-            url: window.location.href,
-            title: document.title,
-            content: document.body.innerText,
-            type: 'full_page',
-            metadata: {
-                domain: window.location.hostname,
-                path: window.location.pathname,
-                timestamp: new Date().toISOString(),
-                viewport: {
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                }
-            }
-        };
-
-        // Platform-specific extraction
-        const platform = window.location.hostname;
-        if (platform.includes('twitter') || platform.includes('x.com')) {
-            content.platform = 'twitter';
-            const tweets = document.querySelectorAll('[data-testid="tweet"]');
-            content.metadata.tweetCount = tweets.length;
-        } else if (platform.includes('reddit')) {
-            content.platform = 'reddit';
-            const posts = document.querySelectorAll('[data-testid="post-container"]');
-            content.metadata.postCount = posts.length;
-        } else if (platform.includes('instagram')) {
-            content.platform = 'instagram';
-        } else if (platform.includes('linkedin')) {
-            content.platform = 'linkedin';
-        }
-
-        return content;
-    }
-
-    async sendContentToBackground(data) {
-        try {
-            const response = await this.sendMessage({
-                action: 'create-capture',
-                data: data
-            });
-
-            if (response.error) {
-                throw new Error(response.error);
-            }
-
-            return response;
-        } catch (error) {
-            console.error('Failed to send content to background:', error);
-            throw error;
-        }
-    }
-
-    async sendMessage(message) {
-        return new Promise((resolve) => {
-            chrome.runtime.sendMessage(message, (response) => {
-                resolve(response || {});
-            });
-        });
     }
 
     async loadRecentCaptures() {
         try {
-            const storage = await chrome.storage.local.get(['recentCaptures']);
-            const captures = storage.recentCaptures || [];
-            this.displayRecentCaptures(captures.slice(0, 5));
+            const { recentCaptures = [] } = await chrome.storage.local.get(['recentCaptures']);
+            const capturesList = document.getElementById('capturesList');
+            
+            if (recentCaptures.length === 0) {
+                capturesList.innerHTML = '<p class="no-captures">No recent captures</p>';
+                return;
+            }
+
+            capturesList.innerHTML = recentCaptures.slice(0, 5).map(capture => `
+                <div class="capture-item">
+                    <div class="capture-title">${this.truncateText(capture.title, 40)}</div>
+                    <div class="capture-meta">
+                        <span class="capture-platform">${capture.platform}</span>
+                        <span class="capture-time">${this.formatTime(capture.timestamp)}</span>
+                    </div>
+                </div>
+            `).join('');
         } catch (error) {
             console.error('Failed to load recent captures:', error);
         }
     }
 
-    displayRecentCaptures(captures) {
-        const container = document.getElementById('recentCaptures');
-        if (!captures.length) {
-            container.innerHTML = '<div class="empty-state">No recent captures</div>';
-            return;
-        }
-
-        container.innerHTML = captures.map(capture => `
-            <div class="capture-item">
-                <div class="capture-header">
-                    <span class="capture-title">${this.truncate(capture.title, 50)}</span>
-                    <span class="capture-time">${this.formatTime(capture.timestamp)}</span>
-                </div>
-                <div class="capture-meta">
-                    <span class="capture-type">${capture.captureType || 'quick'}</span>
-                    ${capture.viralScore ? `<span class="viral-score">Score: ${capture.viralScore}</span>` : ''}
-                </div>
-                ${capture.summary ? `<p class="capture-summary">${this.truncate(capture.summary, 100)}</p>` : ''}
-            </div>
-        `).join('');
-    }
-
-    truncate(text, length) {
-        return text.length > length ? text.substring(0, length) + '...' : text;
+    truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.slice(0, maxLength - 3) + '...';
     }
 
     formatTime(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = now - date;
+        const now = Date.now();
+        const diff = now - timestamp;
+        const minutes = Math.floor(diff / 60000);
         
-        if (diff < 60000) return 'just now';
-        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-        return date.toLocaleDateString();
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    }
+
+    async sendMessage(message) {
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(message, (response) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(response);
+                }
+            });
+        });
     }
 
     openSettings() {
-        chrome.runtime.openOptionsPage();
+        // Open settings in a new tab
+        chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
     }
 
     openDashboard() {
-        chrome.tabs.create({ url: this.apiBaseUrl });
+        // Open the main dashboard
+        const dashboardUrl = this.apiBaseUrl.replace('5000', '3000'); // Adjust port for frontend
+        chrome.tabs.create({ url: dashboardUrl });
     }
 }
 
-// Initialize when DOM is loaded
+// Initialize the extension when the popup loads
 document.addEventListener('DOMContentLoaded', () => {
     new StrategicContentCapture();
+});
+
+// Handle keyboard shortcuts in popup
+document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+            case '1':
+                event.preventDefault();
+                document.getElementById('precisionCaptureButton').click();
+                break;
+            case '2':
+                event.preventDefault();
+                document.getElementById('contextCaptureButton').click();
+                break;
+            case '3':
+                event.preventDefault();
+                document.getElementById('quickCaptureButton').click();
+                break;
+        }
+    }
 });

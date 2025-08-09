@@ -13,6 +13,10 @@ import CaptureTagging from "@/pages/capture-tagging";
 import TruthAnalysis from "@/pages/truth-analysis";
 import HypothesisTracking from "@/pages/hypothesis-tracking";
 import CulturalMoments from "@/pages/cultural-moments";
+import CaptureTaggingEnhanced from "@/pages/capture-tagging-enhanced";
+import TruthAnalysisEnhanced from "@/pages/truth-analysis-enhanced";
+import HypothesisTrackingEnhanced from "@/pages/hypothesis-tracking-enhanced";
+import CulturalMomentsEnhanced from "@/pages/cultural-moments-enhanced";
 import Manage from "@/pages/manage";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -54,13 +58,19 @@ function Router() {
       <Route path="/insights" component={() => <ProtectedRoute><LovableInsights /></ProtectedRoute>} />
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       
-      {/* Strategic Intelligence Routes */}
+      {/* Strategic Intelligence Routes - Enhanced */}
       <Route path="/client-profiles" component={() => <ProtectedRoute><ClientProfiles /></ProtectedRoute>} />
       <Route path="/dsd-brief-builder" component={() => <ProtectedRoute><DsdBriefBuilder /></ProtectedRoute>} />
-      <Route path="/capture-tagging" component={() => <ProtectedRoute><CaptureTagging /></ProtectedRoute>} />
-      <Route path="/truth-analysis" component={() => <ProtectedRoute><TruthAnalysis /></ProtectedRoute>} />
-      <Route path="/hypothesis-tracking" component={() => <ProtectedRoute><HypothesisTracking /></ProtectedRoute>} />
-      <Route path="/cultural-moments" component={() => <ProtectedRoute><CulturalMoments /></ProtectedRoute>} />
+      <Route path="/capture-tagging" component={() => <ProtectedRoute><CaptureTaggingEnhanced /></ProtectedRoute>} />
+      <Route path="/truth-analysis" component={() => <ProtectedRoute><TruthAnalysisEnhanced /></ProtectedRoute>} />
+      <Route path="/hypothesis-tracking" component={() => <ProtectedRoute><HypothesisTrackingEnhanced /></ProtectedRoute>} />
+      <Route path="/cultural-moments" component={() => <ProtectedRoute><CulturalMomentsEnhanced /></ProtectedRoute>} />
+      
+      {/* Strategic Intelligence Routes - Legacy */}
+      <Route path="/capture-tagging-legacy" component={() => <ProtectedRoute><CaptureTagging /></ProtectedRoute>} />
+      <Route path="/truth-analysis-legacy" component={() => <ProtectedRoute><TruthAnalysis /></ProtectedRoute>} />
+      <Route path="/hypothesis-tracking-legacy" component={() => <ProtectedRoute><HypothesisTracking /></ProtectedRoute>} />
+      <Route path="/cultural-moments-legacy" component={() => <ProtectedRoute><CulturalMoments /></ProtectedRoute>} />
       
       {/* Legacy Routes (backward compatibility) */}
       <Route path="/dashboard" component={() => <ProtectedRoute><LovableDashboard /></ProtectedRoute>} />
