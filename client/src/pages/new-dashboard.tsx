@@ -23,47 +23,51 @@ import {
 } from "@/components/ui/micro-interactions";
 
 const NewDashboard = () => {
-  // Fetch dashboard metrics
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['/api/analytics/dashboard'],
-  });
+  // Mock data for demonstration (matching Lovable design)
+  const trendData = [
+    { name: "Mon", value: 45, engagement: 32 },
+    { name: "Tue", value: 52, engagement: 41 },
+    { name: "Wed", value: 67, engagement: 58 },
+    { name: "Thu", value: 74, engagement: 62 },
+    { name: "Fri", value: 89, engagement: 78 },
+    { name: "Sat", value: 95, engagement: 85 },
+    { name: "Sun", value: 82, engagement: 71 },
+  ];
 
-  // Fetch recent captures as signals
-  const { data: captures, isLoading: capturesLoading } = useQuery({
-    queryKey: ['/api/captures/all'],
-  });
-
-  // Fetch trend data
-  const { data: trendData, isLoading: trendLoading } = useQuery({
-    queryKey: ['/api/analytics/trends', { days: 7 }],
-  });
-
-  // Transform captures to signal format
-  const signals = captures?.slice(0, 5).map((capture: any) => ({
-    title: capture.title || "Untitled Signal",
-    content: capture.summary || capture.content?.substring(0, 200) + "...",
-    platform: capture.platform || "unknown",
-    engagement: {
-      likes: capture.metadata?.likes || 0,
-      comments: capture.metadata?.comments || 0,
-      shares: capture.metadata?.shares || 0,
+  const mockSignals = [
+    {
+      title: "AI-Generated Content Takes Over Social Media Feeds",
+      content: "Users are reporting a massive surge in AI-generated content across platforms, with deepfake videos and AI art dominating trending hashtags. The shift represents a fundamental change in how content is created and consumed...",
+      platform: "reddit" as const,
+      engagement: { likes: 15400, comments: 2300, shares: 890 },
+      viralScore: 87,
+      tags: ["AI", "deepfake", "socialmedia", "trending"],
+      timestamp: "2h ago",
+      author: "TechInsider_2024",
+      url: "#"
     },
-    viralScore: capture.viralScore || 0,
-    tags: capture.tags || [],
-    timestamp: new Date(capture.createdAt).toLocaleString(),
-    author: capture.metadata?.author || "Unknown",
-    url: capture.url || "#",
-  })) || [];
-
-  // Default trend data if not loaded
-  const chartData = trendData || [
-    { date: "Mon", capture_volume: 0, viral_score: 0, engagement: 0 },
-    { date: "Tue", capture_volume: 0, viral_score: 0, engagement: 0 },
-    { date: "Wed", capture_volume: 0, viral_score: 0, engagement: 0 },
-    { date: "Thu", capture_volume: 0, viral_score: 0, engagement: 0 },
-    { date: "Fri", capture_volume: 0, viral_score: 0, engagement: 0 },
-    { date: "Sat", capture_volume: 0, viral_score: 0, engagement: 0 },
-    { date: "Sun", capture_volume: 0, viral_score: 0, engagement: 0 },
+    {
+      title: "Micro-Investing Apps See 340% Growth Among Gen Z",
+      content: "Young investors are flocking to micro-investing platforms, with apps like Acorns and Stash reporting unprecedented user growth. This trend reflects changing attitudes toward traditional banking...",
+      platform: "twitter" as const,
+      engagement: { likes: 8900, comments: 450, shares: 1200 },
+      viralScore: 72,
+      tags: ["investing", "genz", "fintech", "money"],
+      timestamp: "4h ago",
+      author: "FinanceGuru",
+      url: "#"
+    },
+    {
+      title: "Remote Work Tools Evolve with AR Integration",
+      content: "Companies are integrating AR technology into remote work solutions, creating virtual offices that feel more immersive than traditional video calls. Early adopters report increased productivity...",
+      platform: "youtube" as const,
+      engagement: { likes: 23100, comments: 890, shares: 2100 },
+      viralScore: 94,
+      tags: ["remotework", "AR", "productivity", "future"],
+      timestamp: "6h ago",
+      author: "TechFuture",
+      url: "#"
+    }
   ];
 
   return (

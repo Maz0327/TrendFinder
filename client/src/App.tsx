@@ -3,10 +3,10 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NewDashboard from "@/pages/new-dashboard";
-import ExploreSignals from "@/pages/explore-signals";
-import SignalCapture from "@/pages/signal-capture";
-import BriefLab from "@/pages/brief-lab";
+import LovableDashboard from "@/pages/lovable-dashboard";
+import LovableExplore from "@/pages/lovable-explore";
+import LovableCapture from "@/pages/lovable-capture";
+import LovableStrategicLab from "@/pages/lovable-strategic-lab";
 import Manage from "@/pages/manage";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -32,13 +32,13 @@ function Router() {
     <Switch>
       <Route path="/login" component={AuthLogin} />
       <Route path="/register" component={AuthRegister} />
-      <Route path="/dashboard" component={() => <ProtectedRoute><NewDashboard /></ProtectedRoute>} />
-      <Route path="/" component={() => <ProtectedRoute><NewDashboard /></ProtectedRoute>} />
+      <Route path="/dashboard" component={() => <ProtectedRoute><LovableDashboard /></ProtectedRoute>} />
+      <Route path="/" component={() => <ProtectedRoute><LovableDashboard /></ProtectedRoute>} />
       
       {/* New Strategic Workflow */}
-      <Route path="/explore-signals" component={() => <ProtectedRoute><ExploreSignals /></ProtectedRoute>} />
-      <Route path="/signal-capture" component={() => <ProtectedRoute><SignalCapture /></ProtectedRoute>} />
-      <Route path="/brief-lab" component={() => <ProtectedRoute><BriefLab /></ProtectedRoute>} />
+      <Route path="/explore-signals" component={() => <ProtectedRoute><LovableExplore /></ProtectedRoute>} />
+      <Route path="/signal-capture" component={() => <ProtectedRoute><LovableCapture /></ProtectedRoute>} />
+      <Route path="/brief-lab" component={() => <ProtectedRoute><LovableStrategicLab /></ProtectedRoute>} />
       <Route path="/manage" component={() => <ProtectedRoute><Manage /></ProtectedRoute>} />
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       
