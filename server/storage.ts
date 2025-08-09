@@ -90,6 +90,7 @@ export interface IStorage {
   // Hypothesis Tracking
   getHypothesisValidations(captureId?: string): Promise<HypothesisValidation[]>;
   createHypothesisValidation(validation: InsertHypothesisValidation): Promise<HypothesisValidation>;
+  updateHypothesisValidation(id: string, updates: Partial<InsertHypothesisValidation>): Promise<HypothesisValidation>;
   
   // User Settings Management
   getUserSettings(userId: string): Promise<UserSettings | undefined>;
@@ -1844,6 +1845,55 @@ export class DatabaseStorage implements IStorage {
       } as HypothesisValidation;
     } catch (error) {
       console.error("❌ Error creating hypothesis validation:", error);
+      throw error;
+    }
+  }
+
+  async updateHypothesisValidation(id: string, updates: Partial<InsertHypothesisValidation>): Promise<HypothesisValidation> {
+    try {
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
+
+      const fieldMap: Record<string, string> = {
+        'originalCaptureId': 'original_capture_id',
+        'originalPrediction': 'original_prediction',
+        'actualOutcome': 'actual_outcome',
+        'accuracyScore': 'accuracy_score',
+        'supportingEvidence': 'supporting_evidence'
+      };
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (fieldMap[key]) {
+          fields.push(`${fieldMap[key]} = $${paramCount++}`);
+          if (['originalPrediction', 'actualOutcome'].includes(key)) {
+            values.push(JSON.stringify(value));
+          } else {
+            values.push(value);
+          }
+        }
+      }
+
+      values.push(id);
+
+      const result = await this.client.query(
+        `UPDATE hypothesis_validations SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+        values
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        originalCaptureId: row.original_capture_id,
+        validatingUserId: row.validating_user_id,
+        originalPrediction: row.original_prediction,
+        actualOutcome: row.actual_outcome,
+        accuracyScore: row.accuracy_score ? row.accuracy_score.toString() : null,
+        supportingEvidence: row.supporting_evidence,
+        validatedAt: row.validated_at
+      } as HypothesisValidation;
+    } catch (error) {
+      console.error("❌ Error updating hypothesis validation:", error);
       throw error;
     }
   }
