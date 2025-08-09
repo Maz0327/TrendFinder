@@ -481,7 +481,7 @@ export const annotations = pgTable("annotations", {
   
   // Version control
   version: integer("version").default(1),
-  parentId: uuid("parent_id").references(() => annotations.id),
+  parentId: uuid("parent_id"),
   
   // Collaborative features
   isShared: boolean("is_shared").default(false),

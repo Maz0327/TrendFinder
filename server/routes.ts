@@ -69,9 +69,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 10;
       const captures = await db.getUserCaptures(req.session.user.id);
       
-      // Sort by created_at and take the most recent ones
+      // Sort by createdAt and take the most recent ones
       const recentCaptures = captures
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        })
         .slice(0, limit);
       
       res.json(recentCaptures);
