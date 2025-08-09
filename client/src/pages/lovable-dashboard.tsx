@@ -3,6 +3,8 @@ import { AppSidebar } from "@/components/ui/app-sidebar"
 import { MetricCard } from "@/components/dashboard/MetricCard"
 import { TrendChart } from "@/components/dashboard/TrendChart"
 import { SignalCard } from "@/components/signals/SignalCard"
+import StatsOverview from "@/components/dashboard/StatsOverview"
+import SystemStatus from "@/components/dashboard/SystemStatus"
 import { Activity, Radar, TrendingUp, Users, Zap, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -87,52 +89,26 @@ const Index = () => {
 
           {/* Main Content */}
           <main className="flex-1 p-6 space-y-6">
-            {/* Metrics Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard
-                title="Active Signals"
-                value={signals.length || metrics.activeSignals}
-                change="+12%"
-                changeType="positive"
-                icon={Radar}
-                description="total captured"
-              />
-              <MetricCard
-                title="Viral Score Avg"
-                value={metrics.avgViralScore ? metrics.avgViralScore.toFixed(1) : "0"}
-                change="+5.2"
-                changeType="positive"
-                icon={TrendingUp}
-                description="trending up"
-              />
-              <MetricCard
-                title="Engagement Rate"
-                value={metrics.engagementRate ? `${metrics.engagementRate.toFixed(1)}%` : "0%"}
-                change="+2.1%"
-                changeType="positive"
-                icon={Users}
-                description="across platforms"
-              />
-              <MetricCard
-                title="Response Time"
-                value={metrics.responseTime}
-                change="-18min"
-                changeType="positive"
-                icon={Clock}
-                description="avg detection"
-              />
-            </div>
+            {/* Metrics Overview with TrendFinder-LVUI-Push StatsOverview */}
+            <StatsOverview
+              variant="dashboard"
+              stats={{
+                totalTrends: signals.length || metrics.activeSignals || 0,
+                viralPotential: metrics.avgViralScore || 0,
+                activeSources: 6, // Number of platforms we monitor
+                avgScore: 8.5,
+                truthAnalyzed: Math.floor((signals.length || 0) * 0.7),
+                hypothesesTracked: Math.floor((signals.length || 0) * 0.3)
+              }}
+            />
 
-            {/* Trend Analysis */}
+            {/* Trend Analysis & System Status */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <TrendChart
                 title="Signal Detection Rate"
                 data={trendData}
               />
-              <TrendChart
-                title="Platform Engagement Trends"
-                data={trendData}
-              />
+              <SystemStatus />
             </div>
 
             {/* Latest Signals */}

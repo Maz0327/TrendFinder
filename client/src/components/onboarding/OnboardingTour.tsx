@@ -21,7 +21,8 @@ import {
   Chrome,
   Brain,
   FileText,
-  Target
+  Target,
+  Sparkles
 } from "lucide-react";
 
 interface TourStep {
@@ -58,65 +59,120 @@ export function useTour() {
 const tourSteps: TourStep[] = [
   {
     id: "welcome",
-    title: "Welcome to Content Radar",
-    description: "Your strategic intelligence platform for content analysis and brief generation.",
+    title: "Welcome to Strategic Intelligence",
+    description: "Your comprehensive platform for content analysis, truth framework, and strategic brief generation.",
     icon: Target,
     content: (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Content Radar helps strategists monitor trends, analyze content, and create professional briefs. 
-          Let's take a quick tour to get you started.
+          Strategic Intelligence combines advanced AI analysis with sophisticated UI design to help you monitor trends, 
+          analyze content through the Truth Framework, and create professional strategic briefs.
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center space-x-2 text-sm">
-            <FolderOpen className="h-4 w-4 text-blue-500" />
-            <span>Project Management</span>
+            <Brain className="h-4 w-4 text-purple-500" />
+            <span>Truth Analysis</span>
           </div>
           <div className="flex items-center space-x-2 text-sm">
             <Chrome className="h-4 w-4 text-green-500" />
             <span>Chrome Extension</span>
           </div>
           <div className="flex items-center space-x-2 text-sm">
-            <Brain className="h-4 w-4 text-purple-500" />
-            <span>AI Analysis</span>
+            <Target className="h-4 w-4 text-blue-500" />
+            <span>DSD Methodology</span>
           </div>
           <div className="flex items-center space-x-2 text-sm">
             <FileText className="h-4 w-4 text-orange-500" />
-            <span>Brief Generation</span>
+            <span>Strategic Briefs</span>
           </div>
         </div>
       </div>
     )
   },
   {
-    id: "projects",
-    title: "Projects Hub",
-    description: "Organize your content research into strategic projects.",
-    target: "[data-tour='projects']",
+    id: "truth-framework",
+    title: "Truth Analysis Framework",
+    description: "Four-layer AI analysis: Fact → Observation → Insight → Human Truth",
+    target: "[data-tour='truth-analysis']",
     position: "bottom",
     content: (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Projects are the foundation of your workflow. Each project contains:
+          Our proprietary Truth Analysis Framework provides strategic depth through four distinct layers:
         </p>
-        <ul className="text-sm space-y-1 text-muted-foreground">
-          <li>• Captured content from web browsing</li>
-          <li>• AI-powered analysis and insights</li>
-          <li>• Professional strategic briefs</li>
-        </ul>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2 text-sm">
+            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-blue-600">1</span>
+            </div>
+            <span><strong>Fact:</strong> Verifiable information and data points</span>
+          </div>
+          <div className="flex items-center space-x-2 text-sm">
+            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-green-600">2</span>
+            </div>
+            <span><strong>Observation:</strong> What we can directly see and measure</span>
+          </div>
+          <div className="flex items-center space-x-2 text-sm">
+            <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-yellow-600">3</span>
+            </div>
+            <span><strong>Insight:</strong> Patterns and connections that emerge</span>
+          </div>
+          <div className="flex items-center space-x-2 text-sm">
+            <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-purple-600">4</span>
+            </div>
+            <span><strong>Human Truth:</strong> Deeper meaning and emotional resonance</span>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: "dsd-methodology",
+    title: "DSD Signal Drop Methodology",
+    description: "Define→Shift→Deliver framework for strategic brief assembly",
+    target: "[data-tour='capture-tagging']",
+    position: "bottom",
+    content: (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          The DSD methodology organizes captures into strategic sections for automated brief assembly:
+        </p>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2 text-sm">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+              DEFINE
+            </Badge>
+            <span>Problem identification and context setting</span>
+          </div>
+          <div className="flex items-center space-x-2 text-sm">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+              SHIFT
+            </Badge>
+            <span>Strategic reframing and opportunity identification</span>
+          </div>
+          <div className="flex items-center space-x-2 text-sm">
+            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+              DELIVER
+            </Badge>
+            <span>Actionable recommendations and execution</span>
+          </div>
+        </div>
       </div>
     )
   },
   {
     id: "chrome-extension",
-    title: "Chrome Extension",
-    description: "Capture content while browsing with smart overlay modes.",
+    title: "Enhanced Chrome Extension",
+    description: "Sophisticated capture modes with AI integration and keyboard shortcuts",
     target: "[data-tour='extension-status']",
     position: "bottom",
     content: (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          The Chrome extension enables seamless content capture:
+          The enhanced Chrome extension enables seamless content capture with professional modes:
         </p>
         <div className="grid grid-cols-1 gap-2">
           <div className="flex items-center space-x-2 text-sm">
@@ -133,104 +189,78 @@ const tourSteps: TourStep[] = [
             </Badge>
             <span className="text-xs text-muted-foreground">Cmd+Shift+C</span>
           </div>
-        </div>
-      </div>
-    )
-  },
-  {
-    id: "analysis",
-    title: "Truth Analysis Framework",
-    description: "Four-layer AI analysis: Fact → Observation → Insight → Human Truth",
-    target: "[data-tour='analysis']",
-    position: "bottom",
-    content: (
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Our proprietary analysis framework provides strategic depth:
-        </p>
-        <div className="space-y-2">
           <div className="flex items-center space-x-2 text-sm">
-            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-xs font-medium text-blue-600">1</span>
-            </div>
-            <span><strong>Fact:</strong> What happened</span>
-          </div>
-          <div className="flex items-center space-x-2 text-sm">
-            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-xs font-medium text-green-600">2</span>
-            </div>
-            <span><strong>Observation:</strong> What it means</span>
-          </div>
-          <div className="flex items-center space-x-2 text-sm">
-            <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-xs font-medium text-purple-600">3</span>
-            </div>
-            <span><strong>Insight:</strong> Why it matters</span>
-          </div>
-          <div className="flex items-center space-x-2 text-sm">
-            <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
-              <span className="text-xs font-medium text-orange-600">4</span>
-            </div>
-            <span><strong>Human Truth:</strong> Strategic implications</span>
+            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+              <span className="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
+              Intelligence Mode
+            </Badge>
+            <span className="text-xs text-muted-foreground">Cmd+Shift+I</span>
           </div>
         </div>
       </div>
     )
   },
   {
-    id: "brief-builder",
-    title: "Brief Builder",
-    description: "Create professional strategic briefs with drag-and-drop interface.",
-    target: "[data-tour='brief-builder']",
+    id: "cultural-moments",
+    title: "Cultural Moments Detection",
+    description: "Cross-generational trend analysis with viral potential scoring",
+    target: "[data-tour='cultural-moments']",
     position: "bottom",
     content: (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Transform your research into professional deliverables:
+          Advanced cultural intelligence features for comprehensive trend analysis:
         </p>
         <ul className="text-sm space-y-1 text-muted-foreground">
-          <li>• Drag captured content into brief sections</li>
-          <li>• Jimmy John's format templates</li>
-          <li>• Export to Markdown, PDF, or Slides</li>
-          <li>• AI-assisted brief generation</li>
+          <li>• Cross-generational reach analysis (Gen-Z, Millennial, Gen-X, Boomer)</li>
+          <li>• Viral intensity tracking and platform distribution</li>
+          <li>• Cultural resonance scoring and emotional connection detection</li>
+          <li>• Real-time growth momentum and audience size estimation</li>
         </ul>
       </div>
     )
   },
   {
     id: "complete",
-    title: "You're Ready!",
-    description: "Start by creating your first project and installing the Chrome extension.",
+    title: "Ready for Strategic Intelligence!",
+    description: "Start exploring the enhanced UI with sophisticated animations and professional design patterns.",
     icon: CheckCircle,
     content: (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          You now understand the core workflow. Here's what to do next:
+          You now understand the Strategic Intelligence platform. Here's your recommended workflow:
         </p>
         <div className="space-y-2">
           <div className="flex items-center space-x-2 text-sm">
             <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
               <span className="text-xs font-medium text-white">1</span>
             </div>
-            <span>Create your first project</span>
+            <span>Install the enhanced Chrome extension</span>
           </div>
           <div className="flex items-center space-x-2 text-sm">
             <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
               <span className="text-xs font-medium text-white">2</span>
             </div>
-            <span>Install the Chrome extension</span>
+            <span>Capture content with DSD tagging</span>
           </div>
           <div className="flex items-center space-x-2 text-sm">
             <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
               <span className="text-xs font-medium text-white">3</span>
             </div>
-            <span>Start capturing content</span>
+            <span>Run Truth Analysis on captures</span>
+          </div>
+          <div className="flex items-center space-x-2 text-sm">
+            <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-white">4</span>
+            </div>
+            <span>Track cultural moments and hypotheses</span>
           </div>
         </div>
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
           <CardContent className="p-3">
             <p className="text-xs text-blue-700">
-              💡 <strong>Pro Tip:</strong> Use Tab key to toggle between capture modes while browsing
+              <Sparkles className="h-3 w-3 inline mr-1" />
+              <strong>Pro Tip:</strong> Use the enhanced PageLayout system with FadeIn animations for optimal visual experience
             </p>
           </CardContent>
         </Card>
@@ -248,7 +278,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   // Check if user has seen tour (using localStorage for now)
   useEffect(() => {
     if (user) {
-      const tourCompleted = localStorage.getItem(`tour-completed-${user.id}`);
+      const tourCompleted = localStorage.getItem(`strategic-tour-completed-${user.id}`);
       setHasSeenTour(!!tourCompleted);
     }
   }, [user]);
@@ -275,7 +305,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const skipTour = () => {
     setIsActive(false);
     if (user) {
-      localStorage.setItem(`tour-completed-${user.id}`, "skipped");
+      localStorage.setItem(`strategic-tour-completed-${user.id}`, "skipped");
       setHasSeenTour(true);
     }
   };
@@ -283,7 +313,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const completeTour = () => {
     setIsActive(false);
     if (user) {
-      localStorage.setItem(`tour-completed-${user.id}`, "completed");
+      localStorage.setItem(`strategic-tour-completed-${user.id}`, "completed");
       setHasSeenTour(true);
     }
   };
@@ -318,7 +348,7 @@ function WelcomeModal({ hasSeenTour }: { hasSeenTour: boolean }) {
       // Show welcome modal after a brief delay
       const timer = setTimeout(() => {
         setIsOpen(true);
-      }, 1000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [user, hasSeenTour]);
@@ -331,7 +361,7 @@ function WelcomeModal({ hasSeenTour }: { hasSeenTour: boolean }) {
   const handleSkip = () => {
     setIsOpen(false);
     if (user) {
-      localStorage.setItem(`tour-completed-${user.id}`, "skipped");
+      localStorage.setItem(`strategic-tour-completed-${user.id}`, "skipped");
     }
   };
 
@@ -341,20 +371,20 @@ function WelcomeModal({ hasSeenTour }: { hasSeenTour: boolean }) {
         <DialogHeader>
           <div className="flex items-center space-x-2">
             <Target className="h-6 w-6 text-primary" />
-            <DialogTitle>Welcome to Content Radar!</DialogTitle>
+            <DialogTitle>Welcome to Strategic Intelligence!</DialogTitle>
           </div>
           <DialogDescription>
-            Ready to master strategic content intelligence? Let's show you around.
+            Ready to explore the Truth Framework, DSD methodology, and enhanced UI design patterns?
           </DialogDescription>
         </DialogHeader>
         
         <div className="py-4">
           <div className="grid grid-cols-2 gap-4">
-            <Card className="border-blue-200 bg-blue-50">
+            <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-purple-50">
               <CardContent className="p-4 text-center">
                 <Play className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <h3 className="font-medium text-blue-900">Take the Tour</h3>
-                <p className="text-xs text-blue-700 mt-1">5-minute guided walkthrough</p>
+                <p className="text-xs text-blue-700 mt-1">7-minute guided walkthrough</p>
               </CardContent>
             </Card>
             <Card className="border-gray-200">
@@ -371,7 +401,7 @@ function WelcomeModal({ hasSeenTour }: { hasSeenTour: boolean }) {
           <Button variant="outline" onClick={handleSkip}>
             Skip for now
           </Button>
-          <Button onClick={handleStartTour}>
+          <Button onClick={handleStartTour} className="bg-gradient-to-r from-blue-600 to-purple-600">
             <Play className="h-4 w-4 mr-2" />
             Start Tour
           </Button>
@@ -428,7 +458,7 @@ function TourModal() {
                   Previous
                 </Button>
               )}
-              <Button onClick={nextStep}>
+              <Button onClick={nextStep} className={isLastStep ? "bg-gradient-to-r from-green-600 to-blue-600" : ""}>
                 {isLastStep ? "Get Started" : "Next"}
                 {!isLastStep && <ArrowRight className="h-4 w-4 ml-2" />}
               </Button>

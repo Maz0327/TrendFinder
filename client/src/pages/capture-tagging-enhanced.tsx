@@ -1,5 +1,7 @@
 import PageLayout from "@/components/layout/PageLayout";
 import StrategicCard from "@/components/dashboard/StrategicCard";
+import StatsOverview from "@/components/dashboard/StatsOverview";
+import StrategicModal from "@/components/dashboard/StrategicModal";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 import { LoadingCard } from "@/components/ui/loading-spinner";
 import { useState, useEffect } from "react";
@@ -18,6 +20,8 @@ export default function CaptureTaggingEnhanced() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("all");
   const [filterSection, setFilterSection] = useState("all");
+  const [selectedCapture, setSelectedCapture] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Fetch captures
   const { data: captures = [], isLoading, refetch } = useQuery({
@@ -161,40 +165,17 @@ export default function CaptureTaggingEnhanced() {
         </FadeIn>
 
         {/* Stats Overview */}
-        <FadeIn delay={100}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold">{captures.length}</div>
-                <p className="text-sm text-muted-foreground">Total Captures</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold">
-                  {captures.filter((c: any) => c.dsdTags?.length > 0).length}
-                </div>
-                <p className="text-sm text-muted-foreground">Tagged</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold">
-                  {captures.filter((c: any) => c.dsdSection).length}
-                </div>
-                <p className="text-sm text-muted-foreground">Sectioned</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold">
-                  {platforms.length}
-                </div>
-                <p className="text-sm text-muted-foreground">Platforms</p>
-              </CardContent>
-            </Card>
-          </div>
-        </FadeIn>
+        <StatsOverview
+          variant="strategic"
+          stats={{
+            totalTrends: captures.length,
+            viralPotential: Math.round(captures.reduce((acc: number, c: any) => acc + (c.viralScore || 0), 0) / captures.length || 0),
+            activeSources: platforms.length,
+            avgScore: 8.5,
+            truthAnalyzed: captures.filter((c: any) => c.truthAnalysis).length,
+            hypothesesTracked: captures.filter((c: any) => c.dsdSection).length
+          }}
+        />
 
         {/* Captures Grid */}
         <div className="space-y-4">
@@ -236,7 +217,10 @@ export default function CaptureTaggingEnhanced() {
                 <div key={capture.id} className="relative group">
                   <StrategicCard
                     capture={capture}
-                    onClick={() => {}}
+                    onClick={() => {
+                      setSelectedCapture(capture);
+                      setModalOpen(true);
+                    }}
                     variant="capture"
                   />
                   
@@ -290,6 +274,16 @@ export default function CaptureTaggingEnhanced() {
           )}
         </div>
       </div>
+      
+      {/* Strategic Modal */}
+      <StrategicModal
+        capture={selectedCapture}
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedCapture(null);
+        }}
+      />
     </PageLayout>
   );
 }

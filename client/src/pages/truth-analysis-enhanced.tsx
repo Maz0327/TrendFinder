@@ -1,5 +1,8 @@
 import PageLayout from "@/components/layout/PageLayout";
 import StrategicCard from "@/components/dashboard/StrategicCard";
+import StatsOverview from "@/components/dashboard/StatsOverview";
+import SystemStatus from "@/components/dashboard/SystemStatus";
+import { EnhancedAnalysisPanel } from "@/components/enhanced-analysis-panel";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 import { LoadingCard, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState } from "react";
@@ -122,21 +125,25 @@ export default function TruthAnalysisEnhanced() {
           </Card>
         </FadeIn>
 
-        {/* Analysis Stats */}
+        {/* Analysis Stats with TrendFinder-LVUI-Push StatsOverview */}
+        <StatsOverview
+          variant="strategic"
+          stats={{
+            totalTrends: captures.length,
+            viralPotential: Math.round(captures.reduce((acc: number, c: any) => acc + (c.viralScore || 0), 0) / captures.length || 0),
+            activeSources: [...new Set(captures.map((c: any) => c.platform))].length,
+            avgScore: 8.5,
+            truthAnalyzed: analyzedCaptures.length,
+            hypothesesTracked: pendingCaptures.length
+          }}
+        />
+
+        {/* System Status with TrendFinder-LVUI-Push SystemStatus */}
         <FadeIn delay={100}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold">{captures.length}</div>
-                <p className="text-sm text-muted-foreground">Total Captures</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-green-600">{analyzedCaptures.length}</div>
-                <p className="text-sm text-muted-foreground">Analyzed</p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <SystemStatus />
+            </div>
             <Card>
               <CardContent className="p-4">
                 <div className="text-2xl font-bold text-yellow-600">{pendingCaptures.length}</div>
@@ -369,6 +376,21 @@ export default function TruthAnalysisEnhanced() {
                     </Button>
                   </div>
                 )}
+
+                {/* Enhanced Analysis Panel with Google AI Integration */}
+                <div className="mt-6">
+                  <EnhancedAnalysisPanel
+                    captureId={selectedCapture.id}
+                    captureType={selectedCapture.platform || 'web'}
+                    hasImageData={false}
+                    existingAnalysis={selectedCapture.truthAnalysis}
+                    onAnalysisComplete={(analysis) => {
+                      console.log('Enhanced analysis completed:', analysis);
+                      // Refresh captures to get updated data
+                      refetch();
+                    }}
+                  />
+                </div>
               </CardContent>
             </Card>
           </FadeIn>
