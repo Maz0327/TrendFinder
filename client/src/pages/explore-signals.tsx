@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import PageLayout from "@/components/layout/PageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -102,7 +103,15 @@ export default function ExploreSignals() {
               More Filters
             </Button>
 
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['/api/content'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/signals/cultural'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/opportunities/realtime'] });
+              }}
+            >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
@@ -127,7 +136,14 @@ export default function ExploreSignals() {
                 ))
               ) : (
                 trendingData.map((item: any, index: number) => (
-                  <Card key={index} className="hover:shadow-md transition-shadow">
+                  <Card 
+                    key={index} 
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => {
+                      // Open detail modal or navigate to detail page
+                      window.open(item.url || '#', '_blank');
+                    }}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <Badge variant="outline" className="bg-green-50 text-green-700">
@@ -146,6 +162,10 @@ export default function ExploreSignals() {
                         <span>Engagement: {item.engagement || "High"}</span>
                         <span>Viral Score: {item.viralScore || "8.5"}/10</span>
                       </div>
+                      <Button variant="ghost" size="sm" className="mt-2 w-full">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
                     </CardContent>
                   </Card>
                 ))

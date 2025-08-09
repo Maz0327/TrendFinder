@@ -197,11 +197,36 @@ export default function SignalCapture() {
                   <div>
                     <Label htmlFor="image-upload">Image Upload</Label>
                     <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <input
+                        type="file"
+                        id="image-upload"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              updateForm('content', reader.result as string);
+                              toast({
+                                title: "Image Uploaded",
+                                description: `${file.name} ready for analysis`,
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
                       <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-sm text-gray-600 mb-2">
                         Drag and drop an image, or click to select
                       </p>
-                      <Button type="button" variant="outline" size="sm">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('image-upload')?.click()}
+                      >
                         Choose Image
                       </Button>
                     </div>

@@ -149,6 +149,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cultural signals endpoint
+  app.get("/api/signals/cultural", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Fetch cultural moments from database
+      const culturalMoments = await storage.getCulturalMoments();
+      
+      // Map to frontend format
+      const signals = culturalMoments.map(moment => ({
+        id: moment.id,
+        title: moment.moment,
+        description: moment.description,
+        intensity: moment.intensity,
+        platforms: moment.platforms,
+        keywords: moment.keywords,
+        resonance: moment.resonance,
+        generation: moment.primaryGeneration,
+        timestamp: moment.firstDetected
+      }));
+      
+      res.json(signals);
+    } catch (error) {
+      console.error("Error fetching cultural signals:", error);
+      res.json([]); // Return empty array on error
+    }
+  });
+
+  // Real-time opportunities endpoint  
+  app.get("/api/opportunities/realtime", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Get recent captures with high viral scores
+      const captures = await storage.getUserCaptures(req.session.user.id);
+      
+      // Filter for high opportunity captures
+      const opportunities = captures
+        .filter(c => c.viralScore > 70 || c.analysisStatus === 'completed')
+        .map(capture => ({
+          id: capture.id,
+          title: capture.title || "Content Opportunity",
+          content: capture.content,
+          platform: capture.platform,
+          viralScore: capture.viralScore,
+          url: capture.url,
+          timestamp: capture.createdAt,
+          type: capture.viralScore > 80 ? 'urgent' : 'normal'
+        }))
+        .slice(0, 10);
+      
+      res.json(opportunities);
+    } catch (error) {
+      console.error("Error fetching opportunities:", error);
+      res.json([]); // Return empty array on error
+    }
+  });
+
   // Get content items with filtering
   app.get("/api/content", async (req, res) => {
     try {
@@ -235,6 +297,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to run scan" });
+    }
+  });
+
+  // Populate sample data for testing
+  app.post("/api/brightdata/populate-sample", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // First create a default project if none exists
+      const projects = await storage.getUserProjects(req.session.user.id);
+      let projectId: string;
+      
+      if (projects.length === 0) {
+        const defaultProject = await storage.createProject({
+          name: "Content Intelligence Hub",
+          description: "Primary project for strategic content analysis",
+          userId: req.session.user.id
+        });
+        projectId = defaultProject.id;
+      } else {
+        projectId = projects[0].id;
+      }
+      
+      // Create sample captures with varied content
+      const sampleCaptures = [
+        {
+          userId: req.session.user.id,
+          projectId,
+          type: 'url' as const,
+          title: "AI Revolution in Content Creation",
+          content: "Breaking: OpenAI announces GPT-5 with unprecedented creative capabilities. The new model can generate entire video scripts, music compositions, and interactive experiences. Early adopters report 10x productivity gains in content creation workflows.",
+          url: "https://twitter.com/openai/status/example1",
+          platform: "twitter",
+          viralScore: 92,
+          analysisStatus: "completed" as const,
+          truthAnalysis: {
+            fact: "OpenAI announces new AI model capabilities",
+            observation: "Significant advancement in creative AI tools",
+            insight: "Content creation workflows will be fundamentally transformed",
+            humanTruth: "Creators seek tools that amplify rather than replace human creativity"
+          }
+        },
+        {
+          userId: req.session.user.id,
+          projectId,
+          type: 'text' as const,
+          title: "Gen Z Shopping Behavior Shift",
+          content: "New study reveals 73% of Gen Z consumers make purchasing decisions based on TikTok reviews rather than traditional advertising. Brands scrambling to adapt their marketing strategies to this new reality.",
+          url: "https://tiktok.com/@marketing/example",
+          platform: "tiktok",
+          viralScore: 85,
+          analysisStatus: "completed" as const,
+          truthAnalysis: {
+            fact: "73% of Gen Z uses TikTok for purchase decisions",
+            observation: "Social proof trumps traditional advertising",
+            insight: "Authentic peer reviews drive modern commerce",
+            humanTruth: "Trust is built through relatable experiences, not polished ads"
+          }
+        },
+        {
+          userId: req.session.user.id,
+          projectId,
+          type: 'url' as const,
+          title: "Remote Work Culture Evolution",
+          content: "LinkedIn poll shows 89% of professionals prefer hybrid work models. Companies offering full remote options seeing 3x more applications. The office as we knew it is officially dead.",
+          url: "https://linkedin.com/posts/future-of-work",
+          platform: "linkedin",
+          viralScore: 78,
+          analysisStatus: "completed" as const,
+          truthAnalysis: {
+            fact: "89% prefer hybrid work arrangements",
+            observation: "Flexibility has become non-negotiable",
+            insight: "Talent acquisition requires work-life balance focus",
+            humanTruth: "People value autonomy over traditional perks"
+          }
+        },
+        {
+          userId: req.session.user.id,
+          projectId,
+          type: 'text' as const,
+          title: "Sustainable Fashion Momentum",
+          content: "Viral Instagram trend #ThriftFlip reaches 2B views. Young consumers transforming secondhand clothing into designer-worthy pieces. Fast fashion brands reporting 20% sales decline.",
+          url: "https://instagram.com/explore/thriftflip",
+          platform: "instagram",
+          viralScore: 88,
+          analysisStatus: "completed" as const
+        },
+        {
+          userId: req.session.user.id,
+          projectId,
+          type: 'url' as const,
+          title: "Crypto Gaming Breakthrough",
+          content: "Reddit gaming communities report new blockchain game onboarding 1M users in first week. Play-to-earn model generating average $50/day for active players in developing nations.",
+          url: "https://reddit.com/r/gaming/blockchain",
+          platform: "reddit",
+          viralScore: 76,
+          analysisStatus: "completed" as const
+        }
+      ];
+      
+      // Create the sample captures
+      const createdCaptures = [];
+      for (const capture of sampleCaptures) {
+        const created = await storage.createCapture(capture);
+        createdCaptures.push(created);
+      }
+      
+      // Create sample cultural moments
+      const culturalMoments = [
+        {
+          moment: "AI Creative Revolution",
+          description: "Mass adoption of AI tools for content creation",
+          intensity: 9,
+          platforms: ["twitter", "linkedin", "reddit"],
+          keywords: ["AI", "GPT", "creativity", "automation"],
+          resonance: { tech: 95, creative: 85, business: 90 },
+          primaryGeneration: "Millennials"
+        },
+        {
+          moment: "Authentic Commerce",
+          description: "Social proof replacing traditional advertising",
+          intensity: 8,
+          platforms: ["tiktok", "instagram"],
+          keywords: ["reviews", "authentic", "influencer", "trust"],
+          resonance: { retail: 92, marketing: 88, social: 85 },
+          primaryGeneration: "Gen Z"
+        }
+      ];
+      
+      for (const moment of culturalMoments) {
+        await storage.createCulturalMoment(moment);
+      }
+      
+      res.json({
+        success: true,
+        message: `Created ${createdCaptures.length} sample captures and ${culturalMoments.length} cultural moments`,
+        captures: createdCaptures.length,
+        moments: culturalMoments.length
+      });
+      
+    } catch (error) {
+      console.error("Error populating sample data:", error);
+      res.status(500).json({ error: "Failed to populate sample data" });
     }
   });
 
