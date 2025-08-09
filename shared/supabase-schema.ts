@@ -34,6 +34,7 @@ export const projects = pgTable("projects", {
   client: text("client"),
   deadline: timestamp("deadline", { withTimezone: true }),
   tags: jsonb("tags").default('[]'),
+  settings: jsonb("settings").default('{}'), // Project-specific settings
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
@@ -130,8 +131,8 @@ export const captures = pgTable("captures", {
   
   // Additional capture fields from database
   autoTags: jsonb("auto_tags").default('[]'),
-  signalScore: text("signal_score").default('0.0'),
-  viralPotential: text("viral_potential").default('0.0'),
+  signalScore: decimal("signal_score", { precision: 10, scale: 2 }).default('0.0'),
+  viralPotential: decimal("viral_potential", { precision: 10, scale: 2 }).default('0.0'),
   promotionReason: text("promotion_reason"),
   workspaceNotes: text("workspace_notes"),
   briefSectionAssignment: text("brief_section_assignment"),
@@ -558,3 +559,62 @@ export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
 
 export type AnalyticsData = typeof analyticsData.$inferSelect;
 export type InsertAnalyticsData = z.infer<typeof insertAnalyticsDataSchema>;
+
+// 15. Analysis Results table - Store AI analysis results
+export const analysisResults = pgTable("analysis_results", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  captureId: uuid("capture_id").notNull().references(() => captures.id, { onDelete: "cascade" }),
+  fact: text("fact"),
+  observation: text("observation"),
+  insight: text("insight"),
+  humanTruth: text("human_truth"),
+  culturalMoment: text("cultural_moment"),
+  tier: text("tier").notNull().default("tier1"),
+  model: text("model"),
+  processingTime: integer("processing_time"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  captureIdx: index("idx_analysis_results_capture_id").on(table.captureId),
+}));
+
+// 16. Scan History table - Track platform scans
+export const scanHistory = pgTable("scan_history", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  platform: text("platform").notNull(),
+  itemsFound: integer("items_found").default(0),
+  errorMessage: text("error_message"),
+  scanDuration: integer("scan_duration"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  platformIdx: index("idx_scan_history_platform").on(table.platform),
+  createdIdx: index("idx_scan_history_created").on(table.createdAt),
+}));
+
+// 17. User Sessions table - Session management
+export const userSessions = pgTable("user_sessions", {
+  sid: varchar("sid", { length: 255 }).primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire", { withTimezone: false }).notNull(),
+}, (table) => ({
+  expireIdx: index("idx_user_sessions_expire").on(table.expire),
+}));
+
+// Add schemas for system tables
+export const insertAnalysisResultSchema = createInsertSchema(analysisResults).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertScanHistorySchema = createInsertSchema(scanHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Type exports for system tables
+export type AnalysisResult = typeof analysisResults.$inferSelect;
+export type InsertAnalysisResult = z.infer<typeof insertAnalysisResultSchema>;
+
+export type ScanHistory = typeof scanHistory.$inferSelect;
+export type InsertScanHistory = z.infer<typeof insertScanHistorySchema>;
+
+export type UserSession = typeof userSessions.$inferSelect;
