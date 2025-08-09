@@ -62,7 +62,7 @@ export default function SystemStatus() {
       uptime: 98.5
     },
     {
-      name: "OpenAI GPT-4o",
+      name: "OpenAI GPT-5",
       status: systemStatus?.openai ? 'operational' : 'down',
       responseTime: systemStatus?.openai?.responseTime || 0,
       uptime: 99.2

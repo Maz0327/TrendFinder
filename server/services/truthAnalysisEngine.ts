@@ -30,7 +30,7 @@ export class TruthAnalysisEngine {
         return await this.analyzeWithGemini(capture);
       }
 
-      // For text content, use GPT-4o
+      // For text content, use GPT-5
       return await this.analyzeWithGPT(capture);
     } catch (error) {
       console.error('Truth Analysis failed:', error);
@@ -186,12 +186,12 @@ Respond in JSON format with truthAnalysis, suggestedBriefSection, culturalReleva
         )
       );
       
-      batchResults.forEach(({ id, result, error }) => {
-        if (error) {
-          console.error(`Failed to analyze capture ${id}:`, error);
-          results.set(id, null);
+      batchResults.forEach((item) => {
+        if ('error' in item) {
+          console.error(`Failed to analyze capture ${item.id}:`, item.error);
+          results.set(item.id, null);
         } else {
-          results.set(id, result);
+          results.set(item.id, item.result);
         }
       });
     }

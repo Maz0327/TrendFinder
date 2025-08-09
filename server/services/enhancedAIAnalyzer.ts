@@ -288,7 +288,7 @@ summary, hooks, viralScore, category, visualAnalysis, truthAnalysis`
   }
 
   /**
-   * OpenAI GPT-4o analysis for strategic briefs and complex reasoning
+   * OpenAI GPT-5 Thinking analysis for strategic briefs and complex reasoning
    */
   private async openaiStrategicAnalysis(
     title: string,
@@ -297,7 +297,7 @@ summary, hooks, viralScore, category, visualAnalysis, truthAnalysis`
   ): Promise<EnhancedAnalysisResult> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5",
         messages: [
           {
             role: "system",
@@ -332,7 +332,7 @@ summary, hooks (5+), viralScore, category, and detailed truthAnalysis following 
         viralScore: result.viralScore || 5,
         category: result.category || 'strategic-intelligence',
         truthAnalysis: result.truthAnalysis,
-        aiModel: 'gpt-4o'
+        aiModel: 'gpt-5'
       };
     } catch (error) {
       console.error('Error with OpenAI strategic analysis:', error);
@@ -368,7 +368,7 @@ summary, hooks (5+), viralScore, category, and detailed truthAnalysis following 
   ): Promise<EnhancedAnalysisResult> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5",
         messages: [
           {
             role: "system",
@@ -390,7 +390,7 @@ summary, hooks (5+), viralScore, category, and detailed truthAnalysis following 
         viralScore: result.viralScore || 5,
         category: result.category,
         truthAnalysis: result.truthAnalysis,
-        aiModel: 'gpt-4o'
+        aiModel: 'gpt-5'
       };
     } catch (error) {
       console.error('Error with OpenAI fallback:', error);
