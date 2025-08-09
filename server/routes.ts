@@ -26,6 +26,14 @@ import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupSearchRoutes } from "./routes/search";
 import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
 import { productionMonitor } from "./monitoring/productionMonitor";
+import { LiveBrightDataService } from "./services/liveBrightDataService";
+import { AIAnalyzer } from "./services/aiAnalyzer";
+import { TruthAnalysisFramework } from "./services/truthAnalysisFramework";
+
+// Initialize AI services
+const liveBrightData = new LiveBrightDataService();
+const aiAnalyzer = new AIAnalyzer();
+const truthFramework = new TruthAnalysisFramework();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const aiAnalyzer = new AIAnalyzer();
@@ -55,12 +63,213 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register Google exports routes
   app.use("/api/google", googleExportsRouter);
 
+  // Chrome Extension Routes
+  app.get("/api/extension/active-project", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const projects = await storage.getProjects(req.session.user.id);
+      const activeProject = projects.find((p: any) => p.status === 'active') || projects[0];
+
+      if (!activeProject) {
+        return res.status(404).json({ error: "No projects found" });
+      }
+
+      res.json({
+        success: true,
+        project: {
+          id: activeProject.id,
+          name: activeProject.name,
+          description: activeProject.description
+        }
+      });
+
+    } catch (error) {
+      console.error("Extension active project error:", error);
+      res.status(500).json({ error: "Failed to get active project" });
+    }
+  });
+
+  app.post("/api/extension/capture", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { projectId, content, url, platform, type = "extension", priority = "normal" } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      // Track extension request
+      const extensionId = req.headers['x-extension-id'] as string;
+      if (extensionId) {
+        productionMonitor.trackExtensionRequest(extensionId);
+      }
+
+      console.log(`📱 Extension capture from ${platform || 'unknown'}: ${content.substring(0, 50)}...`);
+
+      // Create the capture
+      const capture = await storage.createCapture({
+        userId: req.session.user.id,
+        projectId: projectId || (await storage.getProjects(req.session.user.id))[0]?.id,
+        type,
+        content,
+        url,
+        platform: platform || 'web',
+        title: `Extension Capture - ${new Date().toLocaleString()}`,
+        priority,
+        analysisStatus: "pending"
+      });
+
+      // Trigger analysis if content is substantial
+      if (content.length > 50) {
+        try {
+          const analysis = await aiAnalyzer.analyzeContent("Extension Capture", content, platform || 'web');
+
+          await storage.updateCapture(capture.id, {
+            viralScore: analysis.viralScore,
+            analysisStatus: "completed"
+          });
+        } catch (analysisError) {
+          console.warn("Analysis failed for extension capture:", analysisError);
+        }
+      }
+
+      res.json({
+        success: true,
+        capture: {
+          id: capture.id,
+          title: capture.title,
+          createdAt: capture.createdAt
+        }
+      });
+
+    } catch (error) {
+      console.error("Extension capture error:", error);
+      
+      // Track extension error
+      const extensionId = req.headers['x-extension-id'] as string;
+      if (extensionId) {
+        productionMonitor.trackExtensionRequest(extensionId, error instanceof Error ? error.message : 'Unknown error');
+      }
+
+      res.status(500).json({ 
+        error: "Failed to create capture",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Health check routes
   app.get("/health", healthCheckEndpoint);
   app.get("/health/ready", readinessCheck);
   
   // Production monitoring and metrics
   app.get("/metrics", productionMonitor.metricsEndpoint);
+
+  // Bright Data Integration Routes
+  app.post("/api/bright-data/trigger", async (req, res) => {
+    try {
+      const { platform, query, keywords = [] } = req.body;
+      
+      if (!platform) {
+        return res.status(400).json({ error: "Platform is required" });
+      }
+
+      console.log(`🚀 Triggering Bright Data collection for ${platform} with query: ${query}`);
+      
+      // Use the live service for real-time data
+      const result = await liveBrightData.fetchLiveData(platform, keywords.length > 0 ? keywords : [query], 20);
+      
+      res.json({
+        success: true,
+        platform,
+        query,
+        dataCount: result.data?.length || 0,
+        data: result.data || [],
+        source: result.source || 'bright-data-api'
+      });
+      
+    } catch (error) {
+      console.error("Bright Data trigger error:", error);
+      res.status(500).json({ 
+        error: "Failed to trigger Bright Data collection",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // AI Analysis Routes (Public for testing - authentication handled by Chrome extension)
+  app.post("/api/ai/quick-analysis", async (req, res) => {
+    try {
+      const { content, type = "quick", context } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ error: "Content is required for analysis" });
+      }
+
+      console.log(`🧠 Running ${type} AI analysis on content snippet`);
+      
+      // Use the AI analyzer for quick analysis
+      const analysis = await aiAnalyzer.analyzeContent("Quick Analysis", content, "web");
+      
+      res.json({
+        success: true,
+        analysis,
+        type,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      res.status(500).json({ 
+        error: "Failed to analyze content",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Truth Analysis Framework Routes
+  app.post("/api/truth-analysis", async (req, res) => {
+    try {
+      const { content, captureId } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ error: "Content is required for truth analysis" });
+      }
+
+      console.log(`🔍 Running Truth Analysis Framework on content`);
+      
+      // Use the truth framework for deep analysis
+      const truthAnalysis = await truthFramework.analyzeContent(content, "web", context);
+      
+      // If captureId provided, update the capture with analysis
+      if (captureId && req.session?.user?.id) {
+        await storage.updateCapture(captureId, {
+          truthAnalysis,
+          analysisStatus: "completed"
+        });
+      }
+      
+      res.json({
+        success: true,
+        truthAnalysis,
+        captureId,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("Truth analysis error:", error);
+      res.status(500).json({ 
+        error: "Failed to perform truth analysis",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
   
   // Register new routes for Lovable UI support
   setupSettingsRoutes(app);
@@ -387,7 +596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // First create a default project if none exists
-      const projects = await storage.getUserProjects(req.session.user.id);
+      const projects = await storage.getProjects(req.session.user.id);
       let projectId: string;
       
       if (projects.length === 0) {
