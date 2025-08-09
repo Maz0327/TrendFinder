@@ -227,12 +227,8 @@ export function registerProjectRoutes(app: Express) {
       const limit = parseInt(req.query.limit as string) || 10;
       const projects = await storage.getProjects(req.session.user.id);
       
-      // Get captures from all user's projects
-      let allCaptures: any[] = [];
-      for (const project of projects) {
-        const captures = await storage.getProjectCaptures(project.id);
-        allCaptures = [...allCaptures, ...captures];
-      }
+      // Get captures from user
+      const allCaptures = await storage.getUserCaptures(req.session.user.id);
       
       // Sort by createdAt and take the most recent ones
       const recentCaptures = allCaptures
