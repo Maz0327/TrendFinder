@@ -11,7 +11,8 @@ import {
   Target,
   Users,
   Tag,
-  Globe
+  Globe,
+  Database
 } from "lucide-react"
 import { Link, useLocation } from "wouter"
 
@@ -39,6 +40,7 @@ const analyticsItems = [
   { title: "Trend Analysis", url: "/trends", icon: TrendingUp },
   { title: "Signal Search", url: "/search", icon: Search },
   { title: "AI Insights", url: "/insights", icon: Brain },
+  { title: "Data Sources", url: "/data-sources", icon: Database },
 ]
 
 const strategicItems = [

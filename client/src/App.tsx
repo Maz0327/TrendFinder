@@ -36,6 +36,7 @@ import LovableProjects from "@/pages/lovable-projects";
 import LovableTrends from "@/pages/lovable-trends";
 import LovableSearch from "@/pages/lovable-search";
 import LovableInsights from "@/pages/lovable-insights";
+import DataSources from "@/pages/data-sources";
 import MobileNavBar from "@/components/layout/MobileNavBar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/trends" component={() => <ProtectedRoute><LovableTrends /></ProtectedRoute>} />
       <Route path="/search" component={() => <ProtectedRoute><LovableSearch /></ProtectedRoute>} />
       <Route path="/insights" component={() => <ProtectedRoute><LovableInsights /></ProtectedRoute>} />
+      <Route path="/data-sources" component={() => <ProtectedRoute><DataSources /></ProtectedRoute>} />
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/system-status" component={() => <ProtectedRoute><SystemStatus /></ProtectedRoute>} />
       
