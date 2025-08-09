@@ -28,10 +28,11 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
-  server: {
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
+server: {
+  host: "0.0.0.0",
+  allowedHosts: "all",
+  fs: {
+    strict: true,
+    deny: ["**/.*"],
   },
-});
+},

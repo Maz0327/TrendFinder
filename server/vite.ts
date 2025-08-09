@@ -39,6 +39,10 @@ export async function setupVite(app: Express, server: Server) {
     server: serverOptions,
     appType: "custom",
   });
+  // After line 41: const vite = await createViteServer({...});
+  app.use(vite.middlewares);
+
+  // Before line 43: app.use("*", async (req, res, next) => {
 
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
