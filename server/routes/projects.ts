@@ -187,19 +187,23 @@ export function registerProjectRoutes(app: Express) {
         await storage.updateCapture(capture.id, {
           truthAnalysis: analysis.truthAnalysis,
           summary: analysis.summary,
-          culturalRelevance: analysis.culturalRelevance.toString(),
-          strategicValue: analysis.strategicValue.toString(),
-          suggestedBriefSection: analysis.suggestedBriefSection,
-          status: 'analyzed',
-          processedAt: new Date()
+          culturalResonance: {
+            crossGenerational: analysis.culturalRelevance > 0.7,
+            memePotential: Math.round(analysis.culturalRelevance * 100),
+            counterNarrative: analysis.suggestedBriefSection,
+            tribalSignificance: analysis.strategicValue > 0.7 ? 'high' : 'moderate'
+          },
+          dsdSection: analysis.suggestedBriefSection === 'define' ? 'define' : 
+                      analysis.suggestedBriefSection === 'shift' ? 'shift' : 'deliver',
+          viralScore: Math.round(analysis.culturalRelevance * 100),
+          analysisStatus: 'completed'
         });
         console.log(`✅ Truth Analysis completed for capture ${capture.id}`);
       }).catch(error => {
         console.error(`❌ Truth Analysis failed for capture ${capture.id}:`, error);
         // Mark as error but don't fail the capture creation
         storage.updateCapture(capture.id, {
-          status: 'error',
-          processedAt: new Date()
+          analysisStatus: 'error'
         }).catch(console.error);
       });
       
@@ -280,11 +284,16 @@ export function registerProjectRoutes(app: Express) {
         if (analysis) {
           await storage.updateCapture(captureId, {
             truthAnalysis: analysis.truthAnalysis,
-            suggestedBriefSection: analysis.suggestedBriefSection,
-            culturalRelevance: analysis.culturalRelevance,
-            strategicValue: analysis.strategicValue,
-            status: 'analyzed',
-            processedAt: new Date()
+            dsdSection: analysis.suggestedBriefSection === 'define' ? 'define' : 
+                       analysis.suggestedBriefSection === 'shift' ? 'shift' : 'deliver',
+            culturalResonance: {
+              crossGenerational: analysis.culturalRelevance > 0.7,
+              memePotential: Math.round(analysis.culturalRelevance * 100),
+              counterNarrative: analysis.suggestedBriefSection,
+              tribalSignificance: analysis.strategicValue > 0.7 ? 'high' : 'moderate'
+            },
+            viralScore: Math.round(analysis.culturalRelevance * 100),
+            analysisStatus: 'completed'
           });
         }
       }
@@ -336,14 +345,15 @@ export function registerProjectRoutes(app: Express) {
       // Create capture
       const capture = await storage.createCapture({
         projectId,
+        userId,
         type,
         content,
-        sourceUrl,
+        url: sourceUrl,
         platform,
         metadata,
         tags: [],
-        status: 'pending',
-        analysis_status: 'pending'
+        status: 'active',
+        analysisStatus: 'pending'
       });
 
       // Trigger automatic AI analysis in background

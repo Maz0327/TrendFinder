@@ -477,6 +477,49 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getPendingCaptures(): Promise<Capture[]> {
+    try {
+      const result = await this.client.query(`
+        SELECT * FROM captures 
+        WHERE analysis_status = 'pending' 
+        ORDER BY created_at ASC
+        LIMIT 100
+      `);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        projectId: row.project_id,
+        userId: row.user_id,
+        type: row.type,
+        title: row.title,
+        content: row.content,
+        url: row.url,
+        platform: row.platform,
+        screenshotUrl: row.screenshot_url,
+        summary: row.summary,
+        tags: row.tags,
+        metadata: row.metadata,
+        truthAnalysis: row.truth_analysis,
+        analysisStatus: row.analysis_status,
+        googleAnalysis: row.google_analysis,
+        dsdTags: row.dsd_tags,
+        dsdSection: row.dsd_section,
+        viralScore: row.viral_score,
+        culturalResonance: row.cultural_resonance,
+        prediction: row.prediction,
+        outcome: row.outcome,
+        workspaceNotes: row.workspace_notes,
+        briefSectionAssignment: row.brief_section_assignment,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as Capture));
+    } catch (error) {
+      console.error("❌ Error fetching pending captures:", error);
+      return [];
+    }
+  }
+
   async getUserCaptures(userId: string): Promise<Capture[]> {
     try {
       const result = await this.client.query(
@@ -554,11 +597,15 @@ export class DatabaseStorage implements IStorage {
         INSERT INTO captures (
           id, project_id, user_id, type, title, content, url, platform,
           screenshot_url, summary, tags, metadata, truth_analysis,
-          analysis_status, google_analysis, status, created_at, updated_at
+          analysis_status, google_analysis, status,
+          dsd_tags, dsd_section, viral_score, cultural_resonance, 
+          prediction, outcome, workspace_notes, brief_section_assignment,
+          created_at, updated_at
         )
         VALUES (
           gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7,
-          $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()
+          $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23,
+          NOW(), NOW()
         )
         RETURNING *
       `, [
@@ -576,7 +623,15 @@ export class DatabaseStorage implements IStorage {
         capture.truthAnalysis ? JSON.stringify(capture.truthAnalysis) : null,
         capture.analysisStatus || 'pending',
         capture.googleAnalysis ? JSON.stringify(capture.googleAnalysis) : null,
-        capture.status || 'active'
+        capture.status || 'active',
+        JSON.stringify(capture.dsdTags || {}),
+        capture.dsdSection || null,
+        capture.viralScore || 0,
+        JSON.stringify(capture.culturalResonance || {}),
+        capture.prediction ? JSON.stringify(capture.prediction) : null,
+        capture.outcome ? JSON.stringify(capture.outcome) : null,
+        capture.workspaceNotes || null,
+        capture.briefSectionAssignment || null
       ]);
       
       const row = result.rows[0];
@@ -596,6 +651,14 @@ export class DatabaseStorage implements IStorage {
         truthAnalysis: row.truth_analysis,
         analysisStatus: row.analysis_status,
         googleAnalysis: row.google_analysis,
+        dsdTags: row.dsd_tags,
+        dsdSection: row.dsd_section,
+        viralScore: row.viral_score,
+        culturalResonance: row.cultural_resonance,
+        prediction: row.prediction,
+        outcome: row.outcome,
+        workspaceNotes: row.workspace_notes,
+        briefSectionAssignment: row.brief_section_assignment,
         status: row.status,
         createdAt: row.created_at,
         updatedAt: row.updated_at
@@ -625,7 +688,15 @@ export class DatabaseStorage implements IStorage {
         'truthAnalysis': 'truth_analysis',
         'analysisStatus': 'analysis_status',
         'googleAnalysis': 'google_analysis',
-        'status': 'status'
+        'status': 'status',
+        'dsdTags': 'dsd_tags',
+        'dsdSection': 'dsd_section',
+        'viralScore': 'viral_score',
+        'culturalResonance': 'cultural_resonance',
+        'prediction': 'prediction',
+        'outcome': 'outcome',
+        'workspaceNotes': 'workspace_notes',
+        'briefSectionAssignment': 'brief_section_assignment'
       };
 
       // Handle custom fields from frontend
@@ -645,7 +716,7 @@ export class DatabaseStorage implements IStorage {
       for (const [key, value] of Object.entries(updates)) {
         if (fieldMap[key]) {
           fields.push(`${fieldMap[key]} = $${paramCount++}`);
-          if (key === 'tags' || key === 'metadata' || key === 'truthAnalysis' || key === 'googleAnalysis') {
+          if (['tags', 'metadata', 'truthAnalysis', 'googleAnalysis', 'dsdTags', 'culturalResonance', 'prediction', 'outcome'].includes(key)) {
             values.push(JSON.stringify(value));
           } else {
             values.push(value);
@@ -1401,7 +1472,7 @@ export class DatabaseStorage implements IStorage {
       return result.rows.map(row => ({
         id: row.id,
         patternType: row.pattern_type,
-        confidence: parseFloat(row.confidence),
+        confidence: row.confidence ? row.confidence.toString() : null,
         contributingUsers: row.contributing_users,
         contributingCaptures: row.contributing_captures,
         firstDetected: row.first_detected,
@@ -1441,7 +1512,7 @@ export class DatabaseStorage implements IStorage {
       return {
         id: row.id,
         patternType: row.pattern_type,
-        confidence: parseFloat(row.confidence),
+        confidence: row.confidence ? row.confidence.toString() : null,
         contributingUsers: row.contributing_users,
         contributingCaptures: row.contributing_captures,
         firstDetected: row.first_detected,
@@ -1495,7 +1566,7 @@ export class DatabaseStorage implements IStorage {
       return {
         id: row.id,
         patternType: row.pattern_type,
-        confidence: parseFloat(row.confidence),
+        confidence: row.confidence ? row.confidence.toString() : null,
         contributingUsers: row.contributing_users,
         contributingCaptures: row.contributing_captures,
         firstDetected: row.first_detected,
@@ -1538,7 +1609,7 @@ export class DatabaseStorage implements IStorage {
         emergenceDate: row.emergence_date,
         peakDate: row.peak_date,
         contributingCaptures: row.contributing_captures,
-        globalConfidence: parseFloat(row.global_confidence),
+        globalConfidence: row.global_confidence ? row.global_confidence.toString() : null,
         culturalContext: row.cultural_context,
         strategicImplications: row.strategic_implications,
         status: row.status,
@@ -1582,7 +1653,7 @@ export class DatabaseStorage implements IStorage {
         emergenceDate: row.emergence_date,
         peakDate: row.peak_date,
         contributingCaptures: row.contributing_captures,
-        globalConfidence: parseFloat(row.global_confidence),
+        globalConfidence: row.global_confidence ? row.global_confidence.toString() : null,
         culturalContext: row.cultural_context,
         strategicImplications: row.strategic_implications,
         status: row.status,
@@ -1638,7 +1709,7 @@ export class DatabaseStorage implements IStorage {
         emergenceDate: row.emergence_date,
         peakDate: row.peak_date,
         contributingCaptures: row.contributing_captures,
-        globalConfidence: parseFloat(row.global_confidence),
+        globalConfidence: row.global_confidence ? row.global_confidence.toString() : null,
         culturalContext: row.cultural_context,
         strategicImplications: row.strategic_implications,
         status: row.status,
@@ -1671,7 +1742,7 @@ export class DatabaseStorage implements IStorage {
         validatingUserId: row.validating_user_id,
         originalPrediction: row.original_prediction,
         actualOutcome: row.actual_outcome,
-        accuracyScore: parseFloat(row.accuracy_score),
+        accuracyScore: row.accuracy_score ? row.accuracy_score.toString() : null,
         supportingEvidence: row.supporting_evidence,
         validatedAt: row.validated_at
       } as HypothesisValidation));
@@ -1708,7 +1779,7 @@ export class DatabaseStorage implements IStorage {
         validatingUserId: row.validating_user_id,
         originalPrediction: row.original_prediction,
         actualOutcome: row.actual_outcome,
-        accuracyScore: parseFloat(row.accuracy_score),
+        accuracyScore: row.accuracy_score ? row.accuracy_score.toString() : null,
         supportingEvidence: row.supporting_evidence,
         validatedAt: row.validated_at
       } as HypothesisValidation;
