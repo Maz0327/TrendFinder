@@ -124,14 +124,14 @@ export default function AuthRegister() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <Card className="border-border/50 backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 shadow-2xl">
+        <Card className="border-border/50 backdrop-blur-sm bg-slate-900/95 shadow-2xl">
           <CardHeader className="space-y-1 text-center">
             <motion.div
               initial={{ scale: 0, rotate: -180 }}
@@ -418,7 +418,7 @@ export default function AuthRegister() {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute top-40 left-20 w-72 h-72 bg-primary/8 dark:bg-primary/15 rounded-full blur-3xl"
+            className="absolute top-40 left-20 w-72 h-72 bg-primary/15 rounded-full blur-3xl"
           />
           <motion.div
             animate={{
@@ -430,7 +430,7 @@ export default function AuthRegister() {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute bottom-40 right-20 w-96 h-96 bg-primary/10 dark:bg-primary/20 rounded-full blur-3xl"
+            className="absolute bottom-40 right-20 w-96 h-96 bg-primary/20 rounded-full blur-3xl"
           />
         </div>
       </motion.div>
