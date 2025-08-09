@@ -95,7 +95,7 @@ const NewDashboard = () => {
                   </HoverScaleButton>
                 </Link>
                 <Link href="/signal-capture">
-                  <HoverScaleButton className="px-4 py-2 bg-gradient-primary text-white rounded-md shadow-glow">
+                  <HoverScaleButton className="px-4 py-2 bg-gradient-primary text-primary-foreground rounded-md shadow-glow">
                     <Radar className="w-4 h-4 mr-2 inline" />
                     New Scan
                   </HoverScaleButton>

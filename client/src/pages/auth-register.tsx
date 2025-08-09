@@ -137,9 +137,9 @@ export default function AuthRegister() {
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4"
+              className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4 shadow-glow"
             >
-              <Shield className="w-10 h-10 text-white" />
+              <Shield className="w-10 h-10 text-primary-foreground" />
             </motion.div>
             <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
             <CardDescription>
@@ -351,7 +351,7 @@ export default function AuthRegister() {
                       <RippleButton
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-gradient-primary text-white py-2 rounded-md hover:opacity-90 transition-opacity"
+                        className="w-full bg-gradient-primary text-primary-foreground py-2 rounded-md hover:opacity-90 transition-opacity shadow-glow"
                       >
                         {isLoading ? (
                           <div className="flex items-center justify-center gap-2">

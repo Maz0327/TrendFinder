@@ -109,9 +109,9 @@ export default function AuthLogin() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4"
+              className="mx-auto w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mb-4 shadow-glow"
             >
-              <Radar className="w-10 h-10 text-white" />
+              <Radar className="w-10 h-10 text-primary-foreground" />
             </motion.div>
             <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
             <CardDescription>
@@ -204,7 +204,7 @@ export default function AuthLogin() {
                       <RippleButton
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-gradient-primary text-white py-2 rounded-md hover:opacity-90 transition-opacity"
+                        className="w-full bg-gradient-primary text-primary-foreground py-2 rounded-md hover:opacity-90 transition-opacity shadow-glow"
                       >
                         {isLoading ? (
                           <div className="flex items-center justify-center gap-2">
@@ -232,7 +232,7 @@ export default function AuthLogin() {
                   <HoverScaleButton
                     type="button"
                     onClick={handleDemoLogin}
-                    className="w-full border border-border py-2 rounded-md hover:bg-accent transition-colors"
+                    className="w-full border border-primary/30 py-2 rounded-md hover:bg-primary/5 transition-colors"
                   >
                     Try Demo Account
                   </HoverScaleButton>
