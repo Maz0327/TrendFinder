@@ -1,7 +1,7 @@
 # Content Radar Application
 
 ## Overview
-This project is a full-stack content trend monitoring application designed to identify and analyze viral content across major social media platforms. It leverages AI for content analysis, viral potential scoring, and generating content hooks for social media optimization. The application aims to provide businesses and marketers with actionable insights into trending topics and cultural moments, enabling them to capitalize on emerging trends. Its core capability lies in automatically scanning, analyzing, and reporting on content from Reddit, Instagram, YouTube, TikTok, and Twitter/X, using sophisticated data sources and AI models.
+This project is a comprehensive Strategic Intelligence platform featuring the DSD Signal Drop methodology (Define→Shift→Deliver), advanced Truth Analysis Framework, and Collective Intelligence Network. The system combines manual content curation with AI-powered analysis using GPT-5 selective reasoning to identify cultural moments, predict viral trends, and generate strategic briefs. It provides businesses with actionable intelligence through client-specific relevance scoring, hypothesis tracking, and automated brief generation - transforming raw content signals into strategic decisions.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -21,14 +21,15 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with Drizzle ORM (Neon Database for cloud deployment)
 - **Session Management**: PostgreSQL-based sessions with `connect-pg-simple`
 - **API Design**: RESTful API with structured error handling
-- **Core Logic**: Features a project-based architecture using a 4-table schema (projects → captures → analysis → briefs) and a "Truth Analysis Engine" with GPT-5 reasoning for enhanced content assessment across four layers (Fact → Observation → Insight → Human Truth).
+- **Core Logic**: Features enhanced 11-table schema supporting Strategic Intelligence (projects → captures → analysis → briefs + client_profiles → dsd_briefs + collective_patterns + cultural_moments + hypothesis_validations) and "Truth Analysis Engine" with GPT-5 reasoning for enhanced content assessment across four layers (Fact → Observation → Insight → Human Truth).
 
 ### Key Components
-- **Content Management System**: Integrates Bright Data's API and browser automation for scraping, covering Reddit, Instagram, YouTube, TikTok, and Twitter/X. Utilizes OpenAI GPT-4o for content summarization and hook generation, and Gemini Visual Analysis for brand elements and cultural intelligence. Includes an algorithm for viral potential scoring and automatic content categorization.
-- **Data Processing Pipeline**: Supports manual content scanning, dual Bright Data integration (API and real browser automation), content filtering, engagement tracking, and growth rate analysis.
-- **Dashboard Interface**: Provides real-time trend metrics, advanced filtering, rich content previews, and expanded views with AI-generated hooks.
-- **User Management**: Standard username/password authentication with secure session handling.
-- **Chrome Extension**: Enhances content capture with smart modes (Precision/Context), keyboard shortcuts, project integration, and visual feedback.
+- **DSD Signal Drop System**: Strategic brief builder using Define→Shift→Deliver methodology with automated assembly from tagged captures into client-ready presentations.
+- **Truth Analysis Framework**: 4-layer philosophical analysis (Fact→Observation→Insight→Human Truth) unique in the market, using GPT-5 selective reasoning for cost-effective deep insights.
+- **Strategic Intelligence Features**: Viral potential scoring (0-100), cultural moment detection with cross-generational analysis, brand voice alignment scoring, and hypothesis tracking with outcome validation.
+- **Collective Intelligence Network**: Anonymized pattern recognition across users, cultural moment emergence detection, and network confidence scoring that improves predictions with scale.
+- **Chrome Extension**: Enhanced with DSD tagging (Life Lens, Raw Behavior, Channel Vibes, etc.), smart tag suggestions, and section assignment for automated brief assembly.
+- **Export Capabilities**: Google Slides integration for DSD briefs, CSV/Markdown exports, Quote Bank extraction, and Manual Boost Planner generation.
 
 ## External Dependencies
 
@@ -39,6 +40,17 @@ Preferred communication style: Simple, everyday language.
 - **Bright Data Browser**: For real browser automation on JavaScript-heavy sites like Instagram and TikTok (WebSocket: `wss://zone:user@brd.superproxy.io:9222`).
 - **Google API Ecosystem**: Integration for Google Slides, Docs, Sheets, Drive, Vision, NLP, Custom Search, and BigQuery, including OAuth authentication.
 - **Google Cloud AI**: Specifically Google Vision and NLP for advanced content analysis.
+
+## Recent Changes (January 2025)
+
+### Strategic Intelligence Implementation
+- **Database Schema Extensions**: Added 5 new tables (client_profiles, dsd_briefs, collective_patterns, cultural_moments, hypothesis_validations) and enhanced captures table with DSD tags, viral scoring, and prediction tracking
+- **Storage Layer Enhancement**: Implemented complete CRUD operations for all Strategic Intelligence features in DatabaseStorage class
+- **API Routes**: Created comprehensive RESTful endpoints for client profiles, DSD briefs, collective patterns, cultural moments, and hypothesis validations
+- **DSD Signal Drop Integration**: Captures now support DSD tagging (Life Lens, Raw Behavior, Channel Vibes, etc.) and section assignment (Define→Shift→Deliver)
+- **Viral Intelligence**: Added viral scoring (0-100), cultural resonance tracking, and cross-generational analysis capabilities
+- **Collective Network**: Implemented anonymized pattern recognition and confidence scoring that improves with user scale
+- **Hypothesis Tracking**: Built prediction and outcome validation system for measuring accuracy of trend predictions
 
 ### UI and Styling
 - **Radix UI**: Accessible component primitives.

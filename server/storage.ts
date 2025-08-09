@@ -3,7 +3,12 @@ import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
 import type { 
   User, Project, Capture, ContentRadar, Brief,
-  InsertUser, InsertProject, InsertCapture, InsertBrief, InsertContentRadar 
+  InsertUser, InsertProject, InsertCapture, InsertBrief, InsertContentRadar,
+  ClientProfile, InsertClientProfile,
+  DsdBrief, InsertDsdBrief,
+  CollectivePattern, InsertCollectivePattern,
+  CulturalMoment, InsertCulturalMoment,
+  HypothesisValidation, InsertHypothesisValidation
 } from "@shared/supabase-schema";
 
 export interface IStorage {
@@ -52,6 +57,36 @@ export interface IStorage {
   // Legacy support
   getAllSources(): Promise<any[]>;
   getSignals(filter: any): Promise<any[]>;
+  
+  // Strategic Intelligence Features
+  
+  // Client Profile Management
+  getClientProfiles(userId: string): Promise<ClientProfile[]>;
+  getClientProfileById(id: string): Promise<ClientProfile | undefined>;
+  createClientProfile(profile: InsertClientProfile): Promise<ClientProfile>;
+  updateClientProfile(id: string, updates: Partial<InsertClientProfile>): Promise<ClientProfile>;
+  deleteClientProfile(id: string): Promise<void>;
+  
+  // DSD Brief Management
+  getDsdBriefs(projectId: string): Promise<DsdBrief[]>;
+  getDsdBriefById(id: string): Promise<DsdBrief | undefined>;
+  createDsdBrief(brief: InsertDsdBrief): Promise<DsdBrief>;
+  updateDsdBrief(id: string, updates: Partial<InsertDsdBrief>): Promise<DsdBrief>;
+  deleteDsdBrief(id: string): Promise<void>;
+  
+  // Collective Intelligence
+  getCollectivePatterns(filter?: { patternType?: string; minConfidence?: number }): Promise<CollectivePattern[]>;
+  createCollectivePattern(pattern: InsertCollectivePattern): Promise<CollectivePattern>;
+  updateCollectivePattern(id: string, updates: Partial<InsertCollectivePattern>): Promise<CollectivePattern>;
+  
+  // Cultural Moments
+  getCulturalMoments(filter?: { status?: string; limit?: number }): Promise<CulturalMoment[]>;
+  createCulturalMoment(moment: InsertCulturalMoment): Promise<CulturalMoment>;
+  updateCulturalMoment(id: string, updates: Partial<InsertCulturalMoment>): Promise<CulturalMoment>;
+  
+  // Hypothesis Tracking
+  getHypothesisValidations(captureId?: string): Promise<HypothesisValidation[]>;
+  createHypothesisValidation(validation: InsertHypothesisValidation): Promise<HypothesisValidation>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1020,6 +1055,667 @@ export class DatabaseStorage implements IStorage {
   async getSignals(filter: any): Promise<any[]> {
     // Map legacy signals to content radar
     return this.getContentItems(filter);
+  }
+
+  // Strategic Intelligence Implementation
+  
+  // Client Profile Management
+  async getClientProfiles(userId: string): Promise<ClientProfile[]> {
+    try {
+      const result = await this.client.query(
+        'SELECT * FROM client_profiles WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      );
+      return result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        name: row.name,
+        brandVoice: row.brand_voice,
+        targetAudience: row.target_audience,
+        channelPreferences: row.channel_preferences,
+        noGoZones: row.no_go_zones,
+        competitiveLandscape: row.competitive_landscape,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as ClientProfile));
+    } catch (error) {
+      console.error("❌ Error fetching client profiles:", error);
+      return [];
+    }
+  }
+
+  async getClientProfileById(id: string): Promise<ClientProfile | undefined> {
+    try {
+      const result = await this.client.query(
+        'SELECT * FROM client_profiles WHERE id = $1 LIMIT 1',
+        [id]
+      );
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          userId: row.user_id,
+          name: row.name,
+          brandVoice: row.brand_voice,
+          targetAudience: row.target_audience,
+          channelPreferences: row.channel_preferences,
+          noGoZones: row.no_go_zones,
+          competitiveLandscape: row.competitive_landscape,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        } as ClientProfile;
+      }
+      return undefined;
+    } catch (error) {
+      console.error("❌ Error fetching client profile:", error);
+      return undefined;
+    }
+  }
+
+  async createClientProfile(profile: InsertClientProfile): Promise<ClientProfile> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO client_profiles (
+          id, user_id, name, brand_voice, target_audience, 
+          channel_preferences, no_go_zones, competitive_landscape,
+          created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()
+        )
+        RETURNING *
+      `, [
+        profile.userId,
+        profile.name,
+        profile.brandVoice || null,
+        JSON.stringify(profile.targetAudience || {}),
+        JSON.stringify(profile.channelPreferences || {}),
+        JSON.stringify(profile.noGoZones || []),
+        JSON.stringify(profile.competitiveLandscape || {})
+      ]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userId: row.user_id,
+        name: row.name,
+        brandVoice: row.brand_voice,
+        targetAudience: row.target_audience,
+        channelPreferences: row.channel_preferences,
+        noGoZones: row.no_go_zones,
+        competitiveLandscape: row.competitive_landscape,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as ClientProfile;
+    } catch (error) {
+      console.error("❌ Error creating client profile:", error);
+      throw error;
+    }
+  }
+
+  async updateClientProfile(id: string, updates: Partial<InsertClientProfile>): Promise<ClientProfile> {
+    try {
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
+
+      const fieldMap: Record<string, string> = {
+        'name': 'name',
+        'brandVoice': 'brand_voice',
+        'targetAudience': 'target_audience',
+        'channelPreferences': 'channel_preferences',
+        'noGoZones': 'no_go_zones',
+        'competitiveLandscape': 'competitive_landscape'
+      };
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (fieldMap[key]) {
+          fields.push(`${fieldMap[key]} = $${paramCount++}`);
+          if (['targetAudience', 'channelPreferences', 'noGoZones', 'competitiveLandscape'].includes(key)) {
+            values.push(JSON.stringify(value));
+          } else {
+            values.push(value);
+          }
+        }
+      }
+
+      fields.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const result = await this.client.query(
+        `UPDATE client_profiles SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+        values
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userId: row.user_id,
+        name: row.name,
+        brandVoice: row.brand_voice,
+        targetAudience: row.target_audience,
+        channelPreferences: row.channel_preferences,
+        noGoZones: row.no_go_zones,
+        competitiveLandscape: row.competitive_landscape,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as ClientProfile;
+    } catch (error) {
+      console.error("❌ Error updating client profile:", error);
+      throw error;
+    }
+  }
+
+  async deleteClientProfile(id: string): Promise<void> {
+    try {
+      await this.client.query('DELETE FROM client_profiles WHERE id = $1', [id]);
+    } catch (error) {
+      console.error("❌ Error deleting client profile:", error);
+      throw error;
+    }
+  }
+
+  // DSD Brief Management
+  async getDsdBriefs(projectId: string): Promise<DsdBrief[]> {
+    try {
+      const result = await this.client.query(
+        'SELECT * FROM dsd_briefs WHERE project_id = $1 ORDER BY created_at DESC',
+        [projectId]
+      );
+      return result.rows.map(row => ({
+        id: row.id,
+        projectId: row.project_id,
+        clientId: row.client_id,
+        title: row.title,
+        defineContent: row.define_content,
+        shiftContent: row.shift_content,
+        deliverContent: row.deliver_content,
+        googleSlidesUrl: row.google_slides_url,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as DsdBrief));
+    } catch (error) {
+      console.error("❌ Error fetching DSD briefs:", error);
+      return [];
+    }
+  }
+
+  async getDsdBriefById(id: string): Promise<DsdBrief | undefined> {
+    try {
+      const result = await this.client.query(
+        'SELECT * FROM dsd_briefs WHERE id = $1 LIMIT 1',
+        [id]
+      );
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          projectId: row.project_id,
+          clientId: row.client_id,
+          title: row.title,
+          defineContent: row.define_content,
+          shiftContent: row.shift_content,
+          deliverContent: row.deliver_content,
+          googleSlidesUrl: row.google_slides_url,
+          status: row.status,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        } as DsdBrief;
+      }
+      return undefined;
+    } catch (error) {
+      console.error("❌ Error fetching DSD brief:", error);
+      return undefined;
+    }
+  }
+
+  async createDsdBrief(brief: InsertDsdBrief): Promise<DsdBrief> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO dsd_briefs (
+          id, project_id, client_id, title, define_content, 
+          shift_content, deliver_content, google_slides_url, 
+          status, created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()
+        )
+        RETURNING *
+      `, [
+        brief.projectId,
+        brief.clientId || null,
+        brief.title,
+        JSON.stringify(brief.defineContent || {}),
+        JSON.stringify(brief.shiftContent || {}),
+        JSON.stringify(brief.deliverContent || {}),
+        brief.googleSlidesUrl || null,
+        brief.status || 'draft'
+      ]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        projectId: row.project_id,
+        clientId: row.client_id,
+        title: row.title,
+        defineContent: row.define_content,
+        shiftContent: row.shift_content,
+        deliverContent: row.deliver_content,
+        googleSlidesUrl: row.google_slides_url,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as DsdBrief;
+    } catch (error) {
+      console.error("❌ Error creating DSD brief:", error);
+      throw error;
+    }
+  }
+
+  async updateDsdBrief(id: string, updates: Partial<InsertDsdBrief>): Promise<DsdBrief> {
+    try {
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
+
+      const fieldMap: Record<string, string> = {
+        'title': 'title',
+        'clientId': 'client_id',
+        'defineContent': 'define_content',
+        'shiftContent': 'shift_content',
+        'deliverContent': 'deliver_content',
+        'googleSlidesUrl': 'google_slides_url',
+        'status': 'status'
+      };
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (fieldMap[key]) {
+          fields.push(`${fieldMap[key]} = $${paramCount++}`);
+          if (['defineContent', 'shiftContent', 'deliverContent'].includes(key)) {
+            values.push(JSON.stringify(value));
+          } else {
+            values.push(value);
+          }
+        }
+      }
+
+      fields.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const result = await this.client.query(
+        `UPDATE dsd_briefs SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+        values
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        projectId: row.project_id,
+        clientId: row.client_id,
+        title: row.title,
+        defineContent: row.define_content,
+        shiftContent: row.shift_content,
+        deliverContent: row.deliver_content,
+        googleSlidesUrl: row.google_slides_url,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as DsdBrief;
+    } catch (error) {
+      console.error("❌ Error updating DSD brief:", error);
+      throw error;
+    }
+  }
+
+  async deleteDsdBrief(id: string): Promise<void> {
+    try {
+      await this.client.query('DELETE FROM dsd_briefs WHERE id = $1', [id]);
+    } catch (error) {
+      console.error("❌ Error deleting DSD brief:", error);
+      throw error;
+    }
+  }
+
+  // Collective Intelligence
+  async getCollectivePatterns(filter?: { patternType?: string; minConfidence?: number }): Promise<CollectivePattern[]> {
+    try {
+      let query = 'SELECT * FROM collective_patterns WHERE is_active = true';
+      const params: any[] = [];
+      let paramCount = 1;
+
+      if (filter?.patternType) {
+        query += ` AND pattern_type = $${paramCount++}`;
+        params.push(filter.patternType);
+      }
+
+      if (filter?.minConfidence !== undefined) {
+        query += ` AND confidence >= $${paramCount++}`;
+        params.push(filter.minConfidence);
+      }
+
+      query += ' ORDER BY confidence DESC, last_updated DESC';
+
+      const result = await this.client.query(query, params);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        patternType: row.pattern_type,
+        confidence: parseFloat(row.confidence),
+        contributingUsers: row.contributing_users,
+        contributingCaptures: row.contributing_captures,
+        firstDetected: row.first_detected,
+        lastUpdated: row.last_updated,
+        validationCount: row.validation_count,
+        patternData: row.pattern_data,
+        isActive: row.is_active
+      } as CollectivePattern));
+    } catch (error) {
+      console.error("❌ Error fetching collective patterns:", error);
+      return [];
+    }
+  }
+
+  async createCollectivePattern(pattern: InsertCollectivePattern): Promise<CollectivePattern> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO collective_patterns (
+          id, pattern_type, confidence, contributing_users, contributing_captures,
+          first_detected, last_updated, validation_count, pattern_data, is_active
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, NOW(), NOW(), $5, $6, $7
+        )
+        RETURNING *
+      `, [
+        pattern.patternType,
+        pattern.confidence || 0.00,
+        pattern.contributingUsers || 0,
+        JSON.stringify(pattern.contributingCaptures || []),
+        pattern.validationCount || 0,
+        JSON.stringify(pattern.patternData || {}),
+        pattern.isActive !== false
+      ]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        patternType: row.pattern_type,
+        confidence: parseFloat(row.confidence),
+        contributingUsers: row.contributing_users,
+        contributingCaptures: row.contributing_captures,
+        firstDetected: row.first_detected,
+        lastUpdated: row.last_updated,
+        validationCount: row.validation_count,
+        patternData: row.pattern_data,
+        isActive: row.is_active
+      } as CollectivePattern;
+    } catch (error) {
+      console.error("❌ Error creating collective pattern:", error);
+      throw error;
+    }
+  }
+
+  async updateCollectivePattern(id: string, updates: Partial<InsertCollectivePattern>): Promise<CollectivePattern> {
+    try {
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
+
+      const fieldMap: Record<string, string> = {
+        'patternType': 'pattern_type',
+        'confidence': 'confidence',
+        'contributingUsers': 'contributing_users',
+        'contributingCaptures': 'contributing_captures',
+        'validationCount': 'validation_count',
+        'patternData': 'pattern_data',
+        'isActive': 'is_active'
+      };
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (fieldMap[key]) {
+          fields.push(`${fieldMap[key]} = $${paramCount++}`);
+          if (['contributingCaptures', 'patternData'].includes(key)) {
+            values.push(JSON.stringify(value));
+          } else {
+            values.push(value);
+          }
+        }
+      }
+
+      fields.push(`last_updated = NOW()`);
+      values.push(id);
+
+      const result = await this.client.query(
+        `UPDATE collective_patterns SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+        values
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        patternType: row.pattern_type,
+        confidence: parseFloat(row.confidence),
+        contributingUsers: row.contributing_users,
+        contributingCaptures: row.contributing_captures,
+        firstDetected: row.first_detected,
+        lastUpdated: row.last_updated,
+        validationCount: row.validation_count,
+        patternData: row.pattern_data,
+        isActive: row.is_active
+      } as CollectivePattern;
+    } catch (error) {
+      console.error("❌ Error updating collective pattern:", error);
+      throw error;
+    }
+  }
+
+  // Cultural Moments
+  async getCulturalMoments(filter?: { status?: string; limit?: number }): Promise<CulturalMoment[]> {
+    try {
+      let query = 'SELECT * FROM cultural_moments WHERE 1=1';
+      const params: any[] = [];
+      let paramCount = 1;
+
+      if (filter?.status) {
+        query += ` AND status = $${paramCount++}`;
+        params.push(filter.status);
+      }
+
+      query += ' ORDER BY emergence_date DESC';
+
+      if (filter?.limit) {
+        query += ` LIMIT $${paramCount++}`;
+        params.push(filter.limit);
+      }
+
+      const result = await this.client.query(query, params);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        momentType: row.moment_type,
+        description: row.description,
+        emergenceDate: row.emergence_date,
+        peakDate: row.peak_date,
+        contributingCaptures: row.contributing_captures,
+        globalConfidence: parseFloat(row.global_confidence),
+        culturalContext: row.cultural_context,
+        strategicImplications: row.strategic_implications,
+        status: row.status,
+        createdAt: row.created_at
+      } as CulturalMoment));
+    } catch (error) {
+      console.error("❌ Error fetching cultural moments:", error);
+      return [];
+    }
+  }
+
+  async createCulturalMoment(moment: InsertCulturalMoment): Promise<CulturalMoment> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO cultural_moments (
+          id, moment_type, description, emergence_date, peak_date,
+          contributing_captures, global_confidence, cultural_context,
+          strategic_implications, status, created_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
+        )
+        RETURNING *
+      `, [
+        moment.momentType,
+        moment.description || null,
+        moment.emergenceDate || new Date(),
+        moment.peakDate || null,
+        JSON.stringify(moment.contributingCaptures || []),
+        moment.globalConfidence || 0.00,
+        JSON.stringify(moment.culturalContext || {}),
+        moment.strategicImplications || null,
+        moment.status || 'emerging'
+      ]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        momentType: row.moment_type,
+        description: row.description,
+        emergenceDate: row.emergence_date,
+        peakDate: row.peak_date,
+        contributingCaptures: row.contributing_captures,
+        globalConfidence: parseFloat(row.global_confidence),
+        culturalContext: row.cultural_context,
+        strategicImplications: row.strategic_implications,
+        status: row.status,
+        createdAt: row.created_at
+      } as CulturalMoment;
+    } catch (error) {
+      console.error("❌ Error creating cultural moment:", error);
+      throw error;
+    }
+  }
+
+  async updateCulturalMoment(id: string, updates: Partial<InsertCulturalMoment>): Promise<CulturalMoment> {
+    try {
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
+
+      const fieldMap: Record<string, string> = {
+        'momentType': 'moment_type',
+        'description': 'description',
+        'emergenceDate': 'emergence_date',
+        'peakDate': 'peak_date',
+        'contributingCaptures': 'contributing_captures',
+        'globalConfidence': 'global_confidence',
+        'culturalContext': 'cultural_context',
+        'strategicImplications': 'strategic_implications',
+        'status': 'status'
+      };
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (fieldMap[key]) {
+          fields.push(`${fieldMap[key]} = $${paramCount++}`);
+          if (['contributingCaptures', 'culturalContext'].includes(key)) {
+            values.push(JSON.stringify(value));
+          } else {
+            values.push(value);
+          }
+        }
+      }
+
+      values.push(id);
+
+      const result = await this.client.query(
+        `UPDATE cultural_moments SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+        values
+      );
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        momentType: row.moment_type,
+        description: row.description,
+        emergenceDate: row.emergence_date,
+        peakDate: row.peak_date,
+        contributingCaptures: row.contributing_captures,
+        globalConfidence: parseFloat(row.global_confidence),
+        culturalContext: row.cultural_context,
+        strategicImplications: row.strategic_implications,
+        status: row.status,
+        createdAt: row.created_at
+      } as CulturalMoment;
+    } catch (error) {
+      console.error("❌ Error updating cultural moment:", error);
+      throw error;
+    }
+  }
+
+  // Hypothesis Tracking
+  async getHypothesisValidations(captureId?: string): Promise<HypothesisValidation[]> {
+    try {
+      let query = 'SELECT * FROM hypothesis_validations';
+      const params: any[] = [];
+
+      if (captureId) {
+        query += ' WHERE original_capture_id = $1';
+        params.push(captureId);
+      }
+
+      query += ' ORDER BY validated_at DESC';
+
+      const result = await this.client.query(query, params);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        originalCaptureId: row.original_capture_id,
+        validatingUserId: row.validating_user_id,
+        originalPrediction: row.original_prediction,
+        actualOutcome: row.actual_outcome,
+        accuracyScore: parseFloat(row.accuracy_score),
+        supportingEvidence: row.supporting_evidence,
+        validatedAt: row.validated_at
+      } as HypothesisValidation));
+    } catch (error) {
+      console.error("❌ Error fetching hypothesis validations:", error);
+      return [];
+    }
+  }
+
+  async createHypothesisValidation(validation: InsertHypothesisValidation): Promise<HypothesisValidation> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO hypothesis_validations (
+          id, original_capture_id, validating_user_id, original_prediction,
+          actual_outcome, accuracy_score, supporting_evidence, validated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW()
+        )
+        RETURNING *
+      `, [
+        validation.originalCaptureId,
+        validation.validatingUserId,
+        JSON.stringify(validation.originalPrediction),
+        JSON.stringify(validation.actualOutcome),
+        validation.accuracyScore || 0.00,
+        validation.supportingEvidence || null
+      ]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        originalCaptureId: row.original_capture_id,
+        validatingUserId: row.validating_user_id,
+        originalPrediction: row.original_prediction,
+        actualOutcome: row.actual_outcome,
+        accuracyScore: parseFloat(row.accuracy_score),
+        supportingEvidence: row.supporting_evidence,
+        validatedAt: row.validated_at
+      } as HypothesisValidation;
+    } catch (error) {
+      console.error("❌ Error creating hypothesis validation:", error);
+      throw error;
+    }
   }
 }
 

@@ -711,7 +711,261 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Phase 7: System Health and Status Routes
+  // Phase 7: Strategic Intelligence Features Routes
+  
+  // Client Profile Management
+  app.get("/api/client-profiles", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const profiles = await storage.getClientProfiles(req.session.user.id);
+      res.json(profiles);
+    } catch (error) {
+      console.error("Error fetching client profiles:", error);
+      res.status(500).json({ error: "Failed to fetch client profiles" });
+    }
+  });
+
+  app.get("/api/client-profiles/:id", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const profile = await storage.getClientProfileById(req.params.id);
+      if (!profile) {
+        return res.status(404).json({ error: "Client profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching client profile:", error);
+      res.status(500).json({ error: "Failed to fetch client profile" });
+    }
+  });
+
+  app.post("/api/client-profiles", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const profile = await storage.createClientProfile({
+        ...req.body,
+        userId: req.session.user.id
+      });
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error creating client profile:", error);
+      res.status(500).json({ error: "Failed to create client profile" });
+    }
+  });
+
+  app.patch("/api/client-profiles/:id", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const profile = await storage.updateClientProfile(req.params.id, req.body);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating client profile:", error);
+      res.status(500).json({ error: "Failed to update client profile" });
+    }
+  });
+
+  app.delete("/api/client-profiles/:id", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      await storage.deleteClientProfile(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting client profile:", error);
+      res.status(500).json({ error: "Failed to delete client profile" });
+    }
+  });
+
+  // DSD Brief Management
+  app.get("/api/dsd-briefs", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const { projectId } = req.query;
+      if (!projectId) {
+        return res.status(400).json({ error: "Project ID is required" });
+      }
+      
+      const briefs = await storage.getDsdBriefs(projectId as string);
+      res.json(briefs);
+    } catch (error) {
+      console.error("Error fetching DSD briefs:", error);
+      res.status(500).json({ error: "Failed to fetch DSD briefs" });
+    }
+  });
+
+  app.get("/api/dsd-briefs/:id", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const brief = await storage.getDsdBriefById(req.params.id);
+      if (!brief) {
+        return res.status(404).json({ error: "DSD brief not found" });
+      }
+      
+      res.json(brief);
+    } catch (error) {
+      console.error("Error fetching DSD brief:", error);
+      res.status(500).json({ error: "Failed to fetch DSD brief" });
+    }
+  });
+
+  app.post("/api/dsd-briefs", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const brief = await storage.createDsdBrief(req.body);
+      res.json(brief);
+    } catch (error) {
+      console.error("Error creating DSD brief:", error);
+      res.status(500).json({ error: "Failed to create DSD brief" });
+    }
+  });
+
+  app.patch("/api/dsd-briefs/:id", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const brief = await storage.updateDsdBrief(req.params.id, req.body);
+      res.json(brief);
+    } catch (error) {
+      console.error("Error updating DSD brief:", error);
+      res.status(500).json({ error: "Failed to update DSD brief" });
+    }
+  });
+
+  app.delete("/api/dsd-briefs/:id", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      await storage.deleteDsdBrief(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting DSD brief:", error);
+      res.status(500).json({ error: "Failed to delete DSD brief" });
+    }
+  });
+
+  // Collective Intelligence
+  app.get("/api/collective-patterns", async (req, res) => {
+    try {
+      const { patternType, minConfidence } = req.query;
+      
+      const patterns = await storage.getCollectivePatterns({
+        patternType: patternType as string,
+        minConfidence: minConfidence ? parseFloat(minConfidence as string) : undefined
+      });
+      
+      res.json(patterns);
+    } catch (error) {
+      console.error("Error fetching collective patterns:", error);
+      res.status(500).json({ error: "Failed to fetch collective patterns" });
+    }
+  });
+
+  app.post("/api/collective-patterns", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const pattern = await storage.createCollectivePattern(req.body);
+      res.json(pattern);
+    } catch (error) {
+      console.error("Error creating collective pattern:", error);
+      res.status(500).json({ error: "Failed to create collective pattern" });
+    }
+  });
+
+  // Cultural Moments
+  app.get("/api/cultural-moments", async (req, res) => {
+    try {
+      const { status, limit } = req.query;
+      
+      const moments = await storage.getCulturalMoments({
+        status: status as string,
+        limit: limit ? parseInt(limit as string) : undefined
+      });
+      
+      res.json(moments);
+    } catch (error) {
+      console.error("Error fetching cultural moments:", error);
+      res.status(500).json({ error: "Failed to fetch cultural moments" });
+    }
+  });
+
+  app.post("/api/cultural-moments", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const moment = await storage.createCulturalMoment(req.body);
+      res.json(moment);
+    } catch (error) {
+      console.error("Error creating cultural moment:", error);
+      res.status(500).json({ error: "Failed to create cultural moment" });
+    }
+  });
+
+  // Hypothesis Validation
+  app.get("/api/hypothesis-validations", async (req, res) => {
+    try {
+      const { captureId } = req.query;
+      
+      const validations = await storage.getHypothesisValidations(captureId as string);
+      res.json(validations);
+    } catch (error) {
+      console.error("Error fetching hypothesis validations:", error);
+      res.status(500).json({ error: "Failed to fetch hypothesis validations" });
+    }
+  });
+
+  app.post("/api/hypothesis-validations", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const validation = await storage.createHypothesisValidation({
+        ...req.body,
+        validatingUserId: req.session.user.id
+      });
+      
+      res.json(validation);
+    } catch (error) {
+      console.error("Error creating hypothesis validation:", error);
+      res.status(500).json({ error: "Failed to create hypothesis validation" });
+    }
+  });
+
+  // Phase 8: System Health and Status Routes
   
   // Get comprehensive system status
   app.get("/api/system/status", async (req, res) => {
