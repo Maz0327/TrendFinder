@@ -55,13 +55,15 @@ export default function StrategicCard({ capture, onClick, variant = 'capture' }:
             {capture.dsdTags && capture.dsdTags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {capture.dsdTags.slice(0, 2).map((tag, index) => (
-                  <Badge 
-                    key={index}
-                    className={dsdTagColors[tag] || "bg-gray-100 text-gray-800"}
-                    variant="secondary"
-                  >
-                    {tag.replace('-', ' ')}
-                  </Badge>
+                  tag ? (
+                    <Badge 
+                      key={index}
+                      className={dsdTagColors[tag?.toLowerCase()] || "bg-gray-100 text-gray-800"}
+                      variant="secondary"
+                    >
+                      {tag.replace('-', ' ')}
+                    </Badge>
+                  ) : null
                 ))}
                 {capture.dsdTags.length > 2 && (
                   <Badge variant="outline" className="text-xs">

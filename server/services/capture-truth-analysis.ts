@@ -98,13 +98,12 @@ Provide response in JSON format:
 }`;
 
       const response = await this.openai.chat.completions.create({
-        model: "gpt-5", // GPT-5 with selective reasoning for cost-effective deep insights and enhanced accuracy
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [
           { role: "system", content: "You are a strategic intelligence analyst specializing in the Truth Analysis Framework. Always respond with valid JSON." },
           { role: "user", content: analysisPrompt }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.7,
         max_completion_tokens: 2000
       });
 
@@ -177,13 +176,13 @@ Respond in JSON:
 }`;
 
       const response = await this.openai.chat.completions.create({
-        model: "gpt-5", // GPT-5 with selective reasoning for cost-effective deep insights and enhanced accuracy
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [
           { role: "system", content: "You are a strategic analyst. Always respond with valid JSON." },
           { role: "user", content: quickPrompt }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.5,
+
         max_tokens: 500
       });
 
