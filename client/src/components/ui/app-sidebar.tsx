@@ -8,7 +8,10 @@ import {
   TrendingUp,
   Search,
   Brain,
-  Target
+  Target,
+  Users,
+  Tag,
+  Globe
 } from "lucide-react"
 import { Link, useLocation } from "wouter"
 
@@ -36,6 +39,15 @@ const analyticsItems = [
   { title: "Trend Analysis", url: "/trends", icon: TrendingUp },
   { title: "Signal Search", url: "/search", icon: Search },
   { title: "AI Insights", url: "/insights", icon: Brain },
+]
+
+const strategicItems = [
+  { title: "Client Profiles", url: "/client-profiles", icon: Users },
+  { title: "DSD Brief Builder", url: "/dsd-brief-builder", icon: FlaskConical },
+  { title: "Capture Tagging", url: "/capture-tagging", icon: Tag },
+  { title: "Truth Analysis", url: "/truth-analysis", icon: Brain },
+  { title: "Hypothesis Tracking", url: "/hypothesis-tracking", icon: Target },
+  { title: "Cultural Moments", url: "/cultural-moments", icon: Globe },
 ]
 
 export function AppSidebar() {
@@ -108,6 +120,35 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {analyticsItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link 
+                      href={item.url}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth"
+                      style={{
+                        backgroundColor: isActive(item.url) ? 'var(--sidebar-accent)' : 'transparent',
+                        color: isActive(item.url) ? 'var(--sidebar-primary)' : 'var(--sidebar-foreground)',
+                        fontWeight: isActive(item.url) ? 'bold' : 'normal'
+                      }}
+                    >
+                      <item.icon className="w-4 h-4" style={{ color: 'var(--sidebar-primary)' }} />
+                      {!collapsed && <span>{item.title}</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Strategic Intelligence Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="font-medium" style={{ color: 'var(--sidebar-foreground)', opacity: 0.8 }}>
+            Strategic Intelligence
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {strategicItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link 

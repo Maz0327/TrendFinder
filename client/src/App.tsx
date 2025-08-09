@@ -7,6 +7,12 @@ import LovableDashboard from "@/pages/lovable-dashboard";
 import LovableExplore from "@/pages/lovable-explore";
 import LovableCapture from "@/pages/lovable-capture";
 import LovableStrategicLab from "@/pages/lovable-strategic-lab";
+import ClientProfiles from "@/pages/client-profiles";
+import DsdBriefBuilder from "@/pages/dsd-brief-builder";
+import CaptureTagging from "@/pages/capture-tagging";
+import TruthAnalysis from "@/pages/truth-analysis";
+import HypothesisTracking from "@/pages/hypothesis-tracking";
+import CulturalMoments from "@/pages/cultural-moments";
 import Manage from "@/pages/manage";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -47,6 +53,14 @@ function Router() {
       <Route path="/search" component={() => <ProtectedRoute><LovableSearch /></ProtectedRoute>} />
       <Route path="/insights" component={() => <ProtectedRoute><LovableInsights /></ProtectedRoute>} />
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      
+      {/* Strategic Intelligence Routes */}
+      <Route path="/client-profiles" component={() => <ProtectedRoute><ClientProfiles /></ProtectedRoute>} />
+      <Route path="/dsd-brief-builder" component={() => <ProtectedRoute><DsdBriefBuilder /></ProtectedRoute>} />
+      <Route path="/capture-tagging" component={() => <ProtectedRoute><CaptureTagging /></ProtectedRoute>} />
+      <Route path="/truth-analysis" component={() => <ProtectedRoute><TruthAnalysis /></ProtectedRoute>} />
+      <Route path="/hypothesis-tracking" component={() => <ProtectedRoute><HypothesisTracking /></ProtectedRoute>} />
+      <Route path="/cultural-moments" component={() => <ProtectedRoute><CulturalMoments /></ProtectedRoute>} />
       
       {/* Legacy Routes (backward compatibility) */}
       <Route path="/dashboard" component={() => <ProtectedRoute><LovableDashboard /></ProtectedRoute>} />

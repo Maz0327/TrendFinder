@@ -78,7 +78,7 @@ Provide analysis in this exact JSON format:
 }`;
 
     const response = await this.openai.chat.completions.create({
-      model: "gpt-4o", // Using the latest model as per blueprint
+      model: "gpt-5-thinking", // Using the latest model as per blueprint
       messages: [
         {
           role: "system",

@@ -50,7 +50,7 @@ Return as JSON with exact field names: fact, observation, insight, humanTruth, c
 
       // Updated to GPT-5 with selective reasoning for better strategic analysis
       const requestParams: any = {
-        model: "gpt-5",
+        model: "gpt-5-thinking",
         messages: [
           {
             role: "system",
@@ -74,9 +74,10 @@ Return as JSON with exact field names: fact, observation, insight, humanTruth, c
       try {
         response = await openai.chat.completions.create(requestParams);
       } catch (error: any) {
-        // If reasoning parameter not supported, retry without it
+        // If reasoning parameter not supported, retry with standard GPT-5
         if (useReasoning && error.message?.includes('reasoning_effort')) {
           console.log('⚠️ Reasoning not supported for Truth Analysis, falling back to standard GPT-5');
+          requestParams.model = "gpt-5";
           delete requestParams.reasoning_effort;
           response = await openai.chat.completions.create(requestParams);
         } else {
