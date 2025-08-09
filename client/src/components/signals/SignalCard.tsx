@@ -82,15 +82,15 @@ export function SignalCard({
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <Heart className="w-4 h-4" />
-              <span>{engagement.likes}</span>
+              <span>{engagement.likes.toLocaleString()}</span>
             </div>
             <div className="flex items-center gap-1">
               <MessageCircle className="w-4 h-4" />
-              <span>{engagement.comments}</span>
+              <span>{engagement.comments.toLocaleString()}</span>
             </div>
             <div className="flex items-center gap-1">
               <Share className="w-4 h-4" />
-              <span>{engagement.shares}</span>
+              <span>{engagement.shares.toLocaleString()}</span>
             </div>
           </div>
           <span>{timestamp}</span>

@@ -32,19 +32,25 @@ function Router() {
     <Switch>
       <Route path="/login" component={AuthLogin} />
       <Route path="/register" component={AuthRegister} />
-      <Route path="/dashboard" component={() => <ProtectedRoute><LovableDashboard /></ProtectedRoute>} />
-      <Route path="/" component={() => <ProtectedRoute><LovableDashboard /></ProtectedRoute>} />
       
-      {/* New Strategic Workflow */}
+      {/* Lovable Design Routes - exact match to sidebar */}
+      <Route path="/" component={() => <ProtectedRoute><LovableDashboard /></ProtectedRoute>} />
+      <Route path="/explore" component={() => <ProtectedRoute><LovableExplore /></ProtectedRoute>} />
+      <Route path="/capture" component={() => <ProtectedRoute><LovableCapture /></ProtectedRoute>} />
+      <Route path="/lab" component={() => <ProtectedRoute><LovableStrategicLab /></ProtectedRoute>} />
+      <Route path="/projects" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
+      <Route path="/trends" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
+      <Route path="/search" component={() => <ProtectedRoute><SignalMining /></ProtectedRoute>} />
+      <Route path="/insights" component={() => <ProtectedRoute><IntelligenceHub /></ProtectedRoute>} />
+      <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      
+      {/* Legacy Routes (backward compatibility) */}
+      <Route path="/dashboard" component={() => <ProtectedRoute><LovableDashboard /></ProtectedRoute>} />
       <Route path="/explore-signals" component={() => <ProtectedRoute><LovableExplore /></ProtectedRoute>} />
       <Route path="/signal-capture" component={() => <ProtectedRoute><LovableCapture /></ProtectedRoute>} />
       <Route path="/brief-lab" component={() => <ProtectedRoute><LovableStrategicLab /></ProtectedRoute>} />
       <Route path="/manage" component={() => <ProtectedRoute><Manage /></ProtectedRoute>} />
-      <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      
-      {/* Legacy Routes (backward compatibility) */}
       <Route path="/signal-mining" component={() => <ProtectedRoute><SignalMining /></ProtectedRoute>} />
-      <Route path="/projects" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/my-captures" component={() => <ProtectedRoute><MyCaptures /></ProtectedRoute>} />
       <Route path="/brief-builder" component={() => <ProtectedRoute><BriefBuilder /></ProtectedRoute>} />
       <Route path="/intelligence" component={() => <ProtectedRoute><IntelligenceHub /></ProtectedRoute>} />

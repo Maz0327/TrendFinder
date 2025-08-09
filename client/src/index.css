@@ -74,18 +74,78 @@ All colors MUST be HSL.
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
+
+  /* Light mode override for intelligence platform */
+  .light {
+    --background: 210 40% 98%;
+    --foreground: 220 27% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 27% 7%;
+    --primary: 217 91% 50%;
+    --secondary: 210 40% 94%;
+    --muted: 210 40% 96%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground;
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply text-foreground;
-  }
+}
+
+/* Gradient utility classes matching Lovable design */
+.bg-gradient-primary {
+  background: var(--gradient-primary);
+}
+
+.bg-gradient-surface {
+  background: var(--gradient-surface);
+}
+
+.bg-gradient-accent {
+  background: var(--gradient-accent);
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: var(--transition-smooth);
+}
+
+.transition-bounce {
+  transition: var(--transition-bounce);
 }
 
 /* Gradient utility classes matching Lovable design */

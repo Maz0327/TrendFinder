@@ -59,6 +59,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAnalyticsRoutes(app);
   setupSearchRoutes(app);
 
+  // Get recent captures for dashboard (Lovable UI)
+  app.get("/api/captures/recent", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const limit = parseInt(req.query.limit as string) || 10;
+      const captures = await db.getUserCaptures(req.session.user.id);
+      
+      // Sort by created_at and take the most recent ones
+      const recentCaptures = captures
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, limit);
+      
+      res.json(recentCaptures);
+    } catch (error) {
+      console.error("Error fetching recent captures:", error);
+      res.status(500).json({ error: "Failed to fetch recent captures" });
+    }
+  });
+
   // Get all captures for the user (for My Captures page)
   app.get("/api/captures/all", async (req, res) => {
     try {

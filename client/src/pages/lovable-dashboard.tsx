@@ -8,54 +8,48 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { Link } from "wouter"
+import { useQuery } from "@tanstack/react-query"
+import { fetchRecentCaptures, fetchMetrics, fetchTrendData } from "@/lib/lovable-api"
 
 const Index = () => {
-  // Mock data for demonstration
-  const trendData = [
-    { name: "Mon", value: 45, engagement: 32 },
-    { name: "Tue", value: 52, engagement: 41 },
-    { name: "Wed", value: 67, engagement: 58 },
-    { name: "Thu", value: 74, engagement: 62 },
-    { name: "Fri", value: 89, engagement: 78 },
-    { name: "Sat", value: 95, engagement: 85 },
-    { name: "Sun", value: 82, engagement: 71 },
-  ]
+  // Fetch real data from backend
+  const { data: signals = [], isLoading: signalsLoading } = useQuery({
+    queryKey: ['captures', 'recent'],
+    queryFn: fetchRecentCaptures,
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
 
-  const mockSignals = [
+  const { data: metrics = {
+    activeSignals: 0,
+    avgViralScore: 0,
+    engagementRate: 0,
+    responseTime: "N/A"
+  }} = useQuery({
+    queryKey: ['metrics'],
+    queryFn: fetchMetrics,
+    refetchInterval: 60000 // Refresh every minute
+  });
+
+  const { data: trendData = [] } = useQuery({
+    queryKey: ['trends'],
+    queryFn: fetchTrendData,
+    refetchInterval: 60000
+  });
+
+  // Default data if no signals are available
+  const displaySignals = signals.length > 0 ? signals : [
     {
-      title: "AI-Generated Content Takes Over Social Media Feeds",
-      content: "Users are reporting a massive surge in AI-generated content across platforms, with deepfake videos and AI art dominating trending hashtags. The shift represents a fundamental change in how content is created and consumed...",
-      platform: "reddit" as const,
-      engagement: { likes: 15400, comments: 2300, shares: 890 },
-      viralScore: 87,
-      tags: ["AI", "deepfake", "socialmedia", "trending"],
-      timestamp: "2h ago",
-      author: "TechInsider_2024",
-      url: "#"
-    },
-    {
-      title: "Micro-Investing Apps See 340% Growth Among Gen Z",
-      content: "Young investors are flocking to micro-investing platforms, with apps like Acorns and Stash reporting unprecedented user growth. This trend reflects changing attitudes toward traditional banking...",
+      title: "No signals captured yet",
+      content: "Start capturing content to see your signals here. Click 'New Scan' or navigate to 'New Signal Capture' to get started.",
       platform: "twitter" as const,
-      engagement: { likes: 8900, comments: 450, shares: 1200 },
-      viralScore: 72,
-      tags: ["investing", "genz", "fintech", "money"],
-      timestamp: "4h ago",
-      author: "FinanceGuru",
-      url: "#"
-    },
-    {
-      title: "Remote Work Tools Evolve with AR Integration",
-      content: "Companies are integrating AR technology into remote work solutions, creating virtual offices that feel more immersive than traditional video calls. Early adopters report increased productivity...",
-      platform: "youtube" as const,
-      engagement: { likes: 23100, comments: 890, shares: 2100 },
-      viralScore: 94,
-      tags: ["remotework", "AR", "productivity", "future"],
-      timestamp: "6h ago",
-      author: "TechFuture",
+      engagement: { likes: 0, comments: 0, shares: 0 },
+      viralScore: 0,
+      tags: ["getting-started"],
+      timestamp: "now",
+      author: "System",
       url: "#"
     }
-  ]
+  ];
 
   return (
     <SidebarProvider>
@@ -97,15 +91,15 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <MetricCard
                 title="Active Signals"
-                value="127"
+                value={signals.length || metrics.activeSignals}
                 change="+12%"
                 changeType="positive"
                 icon={Radar}
-                description="vs last week"
+                description="total captured"
               />
               <MetricCard
                 title="Viral Score Avg"
-                value="68.4"
+                value={metrics.avgViralScore ? metrics.avgViralScore.toFixed(1) : "0"}
                 change="+5.2"
                 changeType="positive"
                 icon={TrendingUp}
@@ -113,7 +107,7 @@ const Index = () => {
               />
               <MetricCard
                 title="Engagement Rate"
-                value="23.8%"
+                value={metrics.engagementRate ? `${metrics.engagementRate.toFixed(1)}%` : "0%"}
                 change="+2.1%"
                 changeType="positive"
                 icon={Users}
@@ -121,7 +115,7 @@ const Index = () => {
               />
               <MetricCard
                 title="Response Time"
-                value="1.2h"
+                value={metrics.responseTime}
                 change="-18min"
                 changeType="positive"
                 icon={Clock}
@@ -150,9 +144,15 @@ const Index = () => {
                 </Button>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                {mockSignals.map((signal, index) => (
-                  <SignalCard key={index} {...signal} />
-                ))}
+                {signalsLoading ? (
+                  <div className="col-span-full flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  displaySignals.slice(0, 6).map((signal, index) => (
+                    <SignalCard key={signal.id || index} {...signal} />
+                  ))
+                )}
               </div>
             </div>
           </main>

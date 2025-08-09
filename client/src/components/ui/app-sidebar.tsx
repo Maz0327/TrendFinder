@@ -21,7 +21,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
 
@@ -46,8 +45,6 @@ export function AppSidebar() {
   const collapsed = state === "collapsed"
 
   const isActive = (path: string) => currentPath === path
-  const getNavCls = (path: string) =>
-    isActive(path) ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" : "hover:bg-sidebar-accent/50 transition-smooth"
 
   return (
     <Sidebar
@@ -80,11 +77,14 @@ export function AppSidebar() {
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link href={item.url} className={getNavCls(item.url)}>
-                      <a className="flex items-center gap-2 w-full">
-                        <item.icon className="w-4 h-4 text-sidebar-primary" />
-                        {!collapsed && <span className="text-sidebar-foreground">{item.title}</span>}
-                      </a>
+                    <Link 
+                      href={item.url}
+                      className={isActive(item.url) 
+                        ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" 
+                        : "hover:bg-sidebar-accent/50 transition-smooth"}
+                    >
+                      <item.icon className="w-4 h-4 text-sidebar-primary" />
+                      {!collapsed && <span className="text-sidebar-foreground">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -103,11 +103,14 @@ export function AppSidebar() {
               {analyticsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link href={item.url} className={getNavCls(item.url)}>
-                      <a className="flex items-center gap-2 w-full">
-                        <item.icon className="w-4 h-4 text-sidebar-primary" />
-                        {!collapsed && <span className="text-sidebar-foreground">{item.title}</span>}
-                      </a>
+                    <Link 
+                      href={item.url}
+                      className={isActive(item.url) 
+                        ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" 
+                        : "hover:bg-sidebar-accent/50 transition-smooth"}
+                    >
+                      <item.icon className="w-4 h-4 text-sidebar-primary" />
+                      {!collapsed && <span className="text-sidebar-foreground">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -122,11 +125,14 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/settings" className={getNavCls("/settings")}>
-                    <a className="flex items-center gap-2 w-full">
-                      <Settings className="w-4 h-4 text-sidebar-primary" />
-                      {!collapsed && <span className="text-sidebar-foreground">Settings</span>}
-                    </a>
+                  <Link 
+                    href="/settings"
+                    className={isActive("/settings") 
+                      ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" 
+                      : "hover:bg-sidebar-accent/50 transition-smooth"}
+                  >
+                    <Settings className="w-4 h-4 text-sidebar-primary" />
+                    {!collapsed && <span className="text-sidebar-foreground">Settings</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
