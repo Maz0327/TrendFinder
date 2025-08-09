@@ -1,324 +1,440 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import PageLayout from "@/components/layout/PageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
+  AlertTriangle, 
   CheckCircle, 
   XCircle, 
-  AlertTriangle, 
-  Zap, 
+  RefreshCw, 
+  Bug, 
+  Server, 
   Database, 
-  Globe, 
-  Sparkles,
-  Presentation,
-  FileText,
-  BarChart3,
-  Eye,
-  Brain,
-  Search,
-  RefreshCw
+  Globe,
+  Activity,
+  AlertCircle,
+  Clock,
+  Zap
 } from "lucide-react";
 
-interface ServiceStatus {
-  name: string;
-  status: 'operational' | 'degraded' | 'down';
-  responseTime?: number;
-  uptime?: number;
-  lastCheck?: string;
+interface SystemError {
+  id: string;
+  type: 'frontend' | 'backend' | 'api' | 'database';
+  level: 'error' | 'warning' | 'info';
+  message: string;
+  stack?: string;
+  endpoint?: string;
+  timestamp: string;
+  resolved: boolean;
+  count: number;
+}
+
+interface SystemStatus {
+  database: 'healthy' | 'degraded' | 'down';
+  api: 'healthy' | 'degraded' | 'down';
+  frontend: 'healthy' | 'degraded' | 'down';
+  brightData: 'healthy' | 'degraded' | 'down';
+  lastCheck: string;
 }
 
 export default function SystemStatus() {
-  const [activeTab, setActiveTab] = useState("overview");
-
-  // System status data
-  const { data: systemStatus, refetch: refetchStatus } = useQuery({
-    queryKey: ['/api/system/status'],
-    queryFn: () => fetch('/api/system/status').then(res => res.json()),
-    refetchInterval: 30000,
+  const [errors, setErrors] = useState<SystemError[]>([]);
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>({
+    database: 'healthy',
+    api: 'healthy', 
+    frontend: 'healthy',
+    brightData: 'healthy',
+    lastCheck: new Date().toISOString()
   });
 
-  // Google API status
-  const { data: googleStatus } = useQuery({
-    queryKey: ['/google/auth/status'],
-    queryFn: () => fetch('/google/auth/status').then(res => res.json()),
-    refetchInterval: 60000,
+  // Fetch system health
+  const { data: healthData, refetch: refetchHealth } = useQuery({
+    queryKey: ['/api/system/health'],
+    queryFn: () => fetch('/api/system/health').then(res => res.json()),
+    refetchInterval: 30000, // Check every 30 seconds
   });
 
-  const coreServices: ServiceStatus[] = [
-    {
-      name: "Database (PostgreSQL)",
-      status: systemStatus?.database ? 'operational' : 'down',
-      responseTime: systemStatus?.database?.responseTime || 0,
-      uptime: 99.9
-    },
-    {
-      name: "Bright Data API",
-      status: systemStatus?.brightData ? 'operational' : 'degraded',
-      responseTime: systemStatus?.brightData?.responseTime || 0,
-      uptime: 98.5
-    },
-    {
-      name: "OpenAI GPT-5",
-      status: systemStatus?.openai ? 'operational' : 'down',
-      responseTime: systemStatus?.openai?.responseTime || 0,
-      uptime: 99.2
-    },
-    {
-      name: "Chrome Extension",
-      status: 'operational',
-      responseTime: 45,
-      uptime: 100
-    }
-  ];
+  // Fetch error logs
+  const { data: errorLogs, refetch: refetchErrors } = useQuery({
+    queryKey: ['/api/system/errors'],
+    queryFn: () => fetch('/api/system/errors').then(res => res.json()),
+    refetchInterval: 10000, // Check every 10 seconds
+  });
 
-  const googleServices = [
-    {
-      name: "Google Slides API",
-      icon: Presentation,
-      status: googleStatus?.authenticated ? 'operational' : 'down',
-      description: "Create professional presentations"
-    },
-    {
-      name: "Google Docs API", 
-      icon: FileText,
-      status: googleStatus?.authenticated ? 'operational' : 'down',
-      description: "Generate detailed strategic documents"
-    },
-    {
-      name: "Google Sheets API",
-      icon: BarChart3, 
-      status: googleStatus?.authenticated ? 'operational' : 'down',
-      description: "Analysis and data spreadsheets"
-    },
-    {
-      name: "Google Vision API",
-      icon: Eye,
-      status: 'operational',
-      description: "Visual content analysis and brand detection"
-    },
-    {
-      name: "Google NLP API",
-      icon: Brain,
-      status: 'operational', 
-      description: "Advanced text analysis and sentiment"
-    },
-    {
-      name: "Google Custom Search",
-      icon: Search,
-      status: 'operational',
-      description: "Enhanced content discovery"
+  // Frontend error capture
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      const newError: SystemError = {
+        id: Date.now().toString(),
+        type: 'frontend',
+        level: 'error',
+        message: event.message,
+        stack: event.error?.stack,
+        timestamp: new Date().toISOString(),
+        resolved: false,
+        count: 1
+      };
+      
+      setErrors(prev => [newError, ...prev.slice(0, 49)]); // Keep last 50 errors
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const newError: SystemError = {
+        id: Date.now().toString(),
+        type: 'frontend',
+        level: 'error',
+        message: `Unhandled Promise Rejection: ${event.reason}`,
+        timestamp: new Date().toISOString(),
+        resolved: false,
+        count: 1
+      };
+      
+      setErrors(prev => [newError, ...prev.slice(0, 49)]);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
+  // Update system status based on health data
+  useEffect(() => {
+    if (healthData) {
+      setSystemStatus(prev => ({
+        ...prev,
+        database: healthData.database ? 'healthy' : 'down',
+        api: healthData.api ? 'healthy' : 'down',
+        brightData: healthData.brightData ? 'healthy' : 'degraded',
+        lastCheck: new Date().toISOString()
+      }));
     }
-  ];
+  }, [healthData]);
+
+  // Update errors from backend
+  useEffect(() => {
+    if (errorLogs?.errors) {
+      setErrors(prev => {
+        const combined = [...errorLogs.errors, ...prev];
+        const unique = combined.filter((error, index, arr) => 
+          arr.findIndex(e => e.message === error.message && e.type === error.type) === index
+        );
+        return unique.slice(0, 50);
+      });
+    }
+  }, [errorLogs]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'operational': return 'text-green-600 bg-green-100';
-      case 'degraded': return 'text-yellow-600 bg-yellow-100';
-      case 'down': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'healthy': return 'text-green-600 bg-green-50';
+      case 'degraded': return 'text-yellow-600 bg-yellow-50';
+      case 'down': return 'text-red-600 bg-red-50';
+      default: return 'text-gray-600 bg-gray-50';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'operational': return <CheckCircle className="h-4 w-4" />;
+      case 'healthy': return <CheckCircle className="h-4 w-4" />;
       case 'degraded': return <AlertTriangle className="h-4 w-4" />;
       case 'down': return <XCircle className="h-4 w-4" />;
-      default: return <AlertTriangle className="h-4 w-4" />;
+      default: return <AlertCircle className="h-4 w-4" />;
     }
   };
 
-  const overallStatus = coreServices.every(s => s.status === 'operational') ? 'operational' : 
-                      coreServices.some(s => s.status === 'down') ? 'degraded' : 'degraded';
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'error': return 'text-red-600 bg-red-50';
+      case 'warning': return 'text-yellow-600 bg-yellow-50';
+      case 'info': return 'text-blue-600 bg-blue-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const criticalErrors = errors.filter(e => e.level === 'error' && !e.resolved);
+  const warnings = errors.filter(e => e.level === 'warning' && !e.resolved);
 
   return (
     <PageLayout 
-      title="System Status" 
-      description="Real-time status of all Content Radar services and integrations"
-      onRefresh={() => refetchStatus()}
+      title="System Status & Bug Tracker" 
+      description="Monitor system health, track errors, and manage platform issues"
     >
       <div className="space-y-6">
-        {/* Overall Status */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  {getStatusIcon(overallStatus)}
-                  Overall System Health
-                </CardTitle>
-                <CardDescription>
-                  All systems operational - Google API ecosystem integrated
-                </CardDescription>
+        {/* System Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Database</CardTitle>
+                <Database className="h-4 w-4 text-blue-500" />
               </div>
-              <Badge className={getStatusColor(overallStatus)}>
-                {overallStatus === 'operational' ? 'All Systems Operational' : 'Some Issues Detected'}
+            </CardHeader>
+            <CardContent>
+              <Badge className={getStatusColor(systemStatus.database)}>
+                {getStatusIcon(systemStatus.database)}
+                <span className="ml-1 capitalize">{systemStatus.database}</span>
               </Badge>
-            </div>
-          </CardHeader>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Core Services</TabsTrigger>
-            <TabsTrigger value="google">Google APIs</TabsTrigger>
-            <TabsTrigger value="metrics">Performance</TabsTrigger>
-          </TabsList>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">API Server</CardTitle>
+                <Server className="h-4 w-4 text-green-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Badge className={getStatusColor(systemStatus.api)}>
+                {getStatusIcon(systemStatus.api)}
+                <span className="ml-1 capitalize">{systemStatus.api}</span>
+              </Badge>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Frontend</CardTitle>
+                <Globe className="h-4 w-4 text-purple-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Badge className={getStatusColor(systemStatus.frontend)}>
+                {getStatusIcon(systemStatus.frontend)}
+                <span className="ml-1 capitalize">{systemStatus.frontend}</span>
+              </Badge>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Bright Data</CardTitle>
+                <Zap className="h-4 w-4 text-orange-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Badge className={getStatusColor(systemStatus.brightData)}>
+                {getStatusIcon(systemStatus.brightData)}
+                <span className="ml-1 capitalize">{systemStatus.brightData}</span>
+              </Badge>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Critical Alerts */}
+        {criticalErrors.length > 0 && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertTitle className="text-red-800">Critical Issues Detected</AlertTitle>
+            <AlertDescription className="text-red-700">
+              {criticalErrors.length} critical error{criticalErrors.length !== 1 ? 's' : ''} need immediate attention
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Error Dashboard */}
+        <Tabs defaultValue="overview" className="w-full">
+          <div className="flex items-center justify-between">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="errors">
+                Errors ({criticalErrors.length})
+              </TabsTrigger>
+              <TabsTrigger value="warnings">
+                Warnings ({warnings.length})
+              </TabsTrigger>
+              <TabsTrigger value="logs">All Logs</TabsTrigger>
+            </TabsList>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  refetchHealth();
+                  refetchErrors();
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setErrors([])}
+              >
+                Clear Logs
+              </Button>
+            </div>
+          </div>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {coreServices.map((service, index) => (
-                <Card key={index}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{service.name}</CardTitle>
-                      <Badge className={getStatusColor(service.status)}>
-                        {getStatusIcon(service.status)}
-                        <span className="ml-1 capitalize">{service.status}</span>
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Response Time</span>
-                        <div className="font-medium">{service.responseTime}ms</div>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Uptime</span>
-                        <div className="font-medium">{service.uptime}%</div>
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <Progress value={service.uptime} className="h-2" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bug className="h-5 w-5 text-red-500" />
+                    Critical Errors
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-red-600">{criticalErrors.length}</div>
+                  <p className="text-sm text-gray-600">Require immediate attention</p>
+                </CardContent>
+              </Card>
 
-          <TabsContent value="google" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                    Warnings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-yellow-600">{warnings.length}</div>
+                  <p className="text-sm text-gray-600">Need monitoring</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-blue-500" />
+                    System Health
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-600">
+                    {Object.values(systemStatus).filter(s => s === 'healthy').length - 1}/4
+                  </div>
+                  <p className="text-sm text-gray-600">Services operational</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Issues */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-blue-500" />
-                  Google API Integration Status
-                </CardTitle>
-                <CardDescription>
-                  Complete Google Workspace and AI ecosystem integration
-                </CardDescription>
+                <CardTitle>Recent Issues</CardTitle>
+                <CardDescription>Latest 5 errors and warnings</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {googleServices.map((service, index) => {
-                    const Icon = service.icon;
-                    return (
-                      <div key={index} className="p-4 border rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4 text-blue-500" />
-                            <span className="font-medium text-sm">{service.name}</span>
-                          </div>
-                          <Badge className={getStatusColor(service.status)} variant="outline">
-                            {getStatusIcon(service.status)}
-                          </Badge>
+                <div className="space-y-3">
+                  {errors.slice(0, 5).map((error) => (
+                    <div key={error.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                      <Badge className={getLevelColor(error.level)}>
+                        {error.level.toUpperCase()}
+                      </Badge>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{error.message}</p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                          <span>{error.type}</span>
+                          <Clock className="h-3 w-3" />
+                          <span>{new Date(error.timestamp).toLocaleString()}</span>
                         </div>
-                        <p className="text-xs text-gray-600">{service.description}</p>
                       </div>
-                    );
-                  })}
-                </div>
-                
-                {!googleStatus?.authenticated && (
-                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-yellow-800 mb-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="font-medium">Google Authentication Required</span>
                     </div>
-                    <p className="text-sm text-yellow-700 mb-3">
-                      Connect to Google services to enable export functionality and enhanced analysis.
-                    </p>
-                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                      Connect Google Account
-                    </Button>
-                  </div>
-                )}
+                  ))}
+                  {errors.length === 0 && (
+                    <p className="text-center text-gray-500 py-4">No recent issues detected</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="metrics" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Database className="h-4 w-4" />
-                    Database Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Connections</span>
-                      <span className="font-medium">12/100</span>
+          <TabsContent value="errors" className="space-y-4">
+            <div className="space-y-3">
+              {criticalErrors.map((error) => (
+                <Card key={error.id} className="border-red-200">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-red-50 text-red-700">ERROR</Badge>
+                        <span className="text-sm font-medium">{error.type.toUpperCase()}</span>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(error.timestamp).toLocaleString()}
+                      </span>
                     </div>
-                    <Progress value={12} className="h-2" />
-                    <div className="flex justify-between text-sm">
-                      <span>Query Time</span>
-                      <span className="font-medium">45ms avg</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm mb-2">{error.message}</p>
+                    {error.stack && (
+                      <details className="text-xs text-gray-600">
+                        <summary className="cursor-pointer">Stack Trace</summary>
+                        <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-x-auto">
+                          {error.stack}
+                        </pre>
+                      </details>
+                    )}
+                    {error.endpoint && (
+                      <p className="text-xs text-gray-600 mt-2">Endpoint: {error.endpoint}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+              {criticalErrors.length === 0 && (
+                <p className="text-center text-gray-500 py-8">No critical errors found</p>
+              )}
+            </div>
+          </TabsContent>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Zap className="h-4 w-4" />
-                    API Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Requests/min</span>
-                      <span className="font-medium">156</span>
+          <TabsContent value="warnings" className="space-y-4">
+            <div className="space-y-3">
+              {warnings.map((error) => (
+                <Card key={error.id} className="border-yellow-200">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-yellow-50 text-yellow-700">WARNING</Badge>
+                        <span className="text-sm font-medium">{error.type.toUpperCase()}</span>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(error.timestamp).toLocaleString()}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Success Rate</span>
-                      <span className="font-medium">99.2%</span>
-                    </div>
-                    <Progress value={99.2} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm">{error.message}</p>
+                    {error.endpoint && (
+                      <p className="text-xs text-gray-600 mt-2">Endpoint: {error.endpoint}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+              {warnings.length === 0 && (
+                <p className="text-center text-gray-500 py-8">No warnings found</p>
+              )}
+            </div>
+          </TabsContent>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    Content Sources
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Active Sources</span>
-                      <span className="font-medium">8/10</span>
-                    </div>
-                    <Progress value={80} className="h-2" />
-                    <div className="flex justify-between text-sm">
-                      <span>Last Scan</span>
-                      <span className="font-medium">2m ago</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <TabsContent value="logs" className="space-y-4">
+            <div className="space-y-2">
+              {errors.map((error) => (
+                <div key={error.id} className="flex items-center gap-3 p-2 border rounded text-sm">
+                  <Badge className={getLevelColor(error.level)}>
+                    {error.level.charAt(0).toUpperCase()}
+                  </Badge>
+                  <span className="w-16 text-xs text-gray-500">{error.type}</span>
+                  <span className="flex-1 truncate">{error.message}</span>
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    {new Date(error.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              ))}
+              {errors.length === 0 && (
+                <p className="text-center text-gray-500 py-8">No logs available</p>
+              )}
             </div>
           </TabsContent>
         </Tabs>

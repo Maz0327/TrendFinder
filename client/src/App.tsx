@@ -17,6 +17,7 @@ import CaptureTaggingEnhanced from "@/pages/capture-tagging-enhanced";
 import TruthAnalysisEnhanced from "@/pages/truth-analysis-enhanced";
 import HypothesisTrackingEnhanced from "@/pages/hypothesis-tracking-enhanced";
 import CulturalMomentsEnhanced from "@/pages/cultural-moments-enhanced";
+import SystemStatus from "@/pages/system-status";
 import Manage from "@/pages/manage";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/search" component={() => <ProtectedRoute><LovableSearch /></ProtectedRoute>} />
       <Route path="/insights" component={() => <ProtectedRoute><LovableInsights /></ProtectedRoute>} />
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/system-status" component={() => <ProtectedRoute><SystemStatus /></ProtectedRoute>} />
       
       {/* Strategic Intelligence Routes - Enhanced */}
       <Route path="/client-profiles" component={() => <ProtectedRoute><ClientProfiles /></ProtectedRoute>} />

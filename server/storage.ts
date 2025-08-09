@@ -1343,6 +1343,34 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getUserDsdBriefs(userId: string): Promise<DsdBrief[]> {
+    try {
+      const result = await this.client.query(`
+        SELECT db.* FROM dsd_briefs db
+        JOIN projects p ON db.project_id = p.id
+        WHERE p.user_id = $1 
+        ORDER BY db.created_at DESC
+      `, [userId]);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        projectId: row.project_id,
+        clientId: row.client_id,
+        title: row.title,
+        defineContent: row.define_content,
+        shiftContent: row.shift_content,
+        deliverContent: row.deliver_content,
+        googleSlidesUrl: row.google_slides_url,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as DsdBrief));
+    } catch (error) {
+      console.error("❌ Error fetching user DSD briefs:", error);
+      return [];
+    }
+  }
+
   async getDsdBriefById(id: string): Promise<DsdBrief | undefined> {
     try {
       const result = await this.client.query(

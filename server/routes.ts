@@ -617,6 +617,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // System health and error tracking
+  const systemErrors: any[] = [];
+  const MAX_ERRORS = 100;
+
+  app.get("/api/system/health", async (req, res) => {
+    try {
+      const health = {
+        database: true,
+        api: true,
+        brightData: true,
+        timestamp: new Date().toISOString()
+      };
+
+      // Test database connection
+      try {
+        await storage.getStats();
+      } catch (error) {
+        health.database = false;
+        console.error("Database health check failed:", error);
+      }
+
+      // Test Bright Data availability (check if credentials exist)
+      if (!process.env.BRIGHT_DATA_API_TOKEN) {
+        health.brightData = false;
+      }
+
+      res.json(health);
+    } catch (error) {
+      res.status(500).json({ 
+        database: false, 
+        api: false, 
+        brightData: false,
+        error: "Health check failed" 
+      });
+    }
+  });
+
+  app.get("/api/system/errors", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      res.json({ 
+        errors: systemErrors.slice(-limit).reverse(),
+        total: systemErrors.length 
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch error logs" });
+    }
+  });
+
+  app.post("/api/system/errors", async (req, res) => {
+    try {
+      const { type, level, message, stack, endpoint } = req.body;
+      
+      const error = {
+        id: Date.now().toString(),
+        type: type || 'unknown',
+        level: level || 'error',
+        message,
+        stack,
+        endpoint,
+        timestamp: new Date().toISOString(),
+        resolved: false,
+        count: 1
+      };
+
+      // Check for duplicate errors
+      const existing = systemErrors.find(e => 
+        e.message === error.message && 
+        e.type === error.type && 
+        !e.resolved
+      );
+
+      if (existing) {
+        existing.count++;
+        existing.timestamp = error.timestamp;
+      } else {
+        systemErrors.push(error);
+        
+        // Keep only the last MAX_ERRORS
+        if (systemErrors.length > MAX_ERRORS) {
+          systemErrors.shift();
+        }
+      }
+
+      console.error(`[${error.level.toUpperCase()}] ${error.type}: ${error.message}`);
+      
+      res.json({ success: true, errorId: error.id });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to log error" });
+    }
+  });
+
+  app.patch("/api/system/errors/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { resolved } = req.body;
+      
+      const error = systemErrors.find(e => e.id === id);
+      if (error) {
+        error.resolved = resolved;
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Error not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update error" });
+    }
+  });
+
+  // Enhanced error logging middleware
+  app.use((err: any, req: any, res: any, next: any) => {
+    const error = {
+      id: Date.now().toString(),
+      type: 'backend',
+      level: 'error',
+      message: err.message || 'Unknown server error',
+      stack: err.stack,
+      endpoint: `${req.method} ${req.path}`,
+      timestamp: new Date().toISOString(),
+      resolved: false,
+      count: 1
+    };
+
+    systemErrors.push(error);
+    if (systemErrors.length > MAX_ERRORS) {
+      systemErrors.shift();
+    }
+
+    console.error(`[ERROR] ${error.endpoint}: ${error.message}`);
+    
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error", errorId: error.id });
+    }
+  });
+
   // Legacy endpoints for backward compatibility (always return inactive)
   app.post("/api/schedule/start", async (req, res) => {
     res.json({ success: false, message: "Automated scanning is disabled - use manual scan instead" });
