@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   TrendingUp, 
   Radar, 
@@ -28,6 +30,12 @@ export default function ExploreSignals() {
   const [activeTab, setActiveTab] = useState("trending");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [timeFilter, setTimeFilter] = useState("24h");
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    highViral: false,
+    recentActivity: false,
+    truthAnalyzed: false
+  });
 
   // Fetch trending topics
   const { data: trendingData = [], isLoading: trendingLoading } = useQuery({
@@ -98,39 +106,66 @@ export default function ExploreSignals() {
               </Select>
             </div>
 
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                // Advanced filter functionality
-                const modal = document.createElement('div');
-                modal.innerHTML = `
-                  <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-                    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%;">
-                      <h3 style="margin: 0 0 15px 0;">Advanced Filters</h3>
-                      <p style="margin-bottom: 15px;">Apply additional filtering criteria:</p>
-                      <label style="display: block; margin-bottom: 10px;">
-                        <input type="checkbox" style="margin-right: 8px;"> High Viral Score (80+)
-                      </label>
-                      <label style="display: block; margin-bottom: 10px;">
-                        <input type="checkbox" style="margin-right: 8px;"> Recent Activity (Last 24h)
-                      </label>
-                      <label style="display: block; margin-bottom: 15px;">
-                        <input type="checkbox" style="margin-right: 8px;"> Truth Analyzed Content
-                      </label>
-                      <div style="text-align: right;">
-                        <button onclick="this.closest('div').parentElement.remove()" style="background: #f3f4f6; border: 1px solid #d1d5db; padding: 6px 12px; margin-right: 8px; border-radius: 4px;">Cancel</button>
-                        <button onclick="this.closest('div').parentElement.remove()" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px;">Apply Filters</button>
-                      </div>
-                    </div>
+            <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  More Filters
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Advanced Filters</DialogTitle>
+                  <DialogDescription>
+                    Apply additional filtering criteria to refine your signal discovery
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="highViral"
+                      checked={advancedFilters.highViral}
+                      onCheckedChange={(checked) => 
+                        setAdvancedFilters(prev => ({ ...prev, highViral: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="highViral">High Viral Score (80+)</Label>
                   </div>
-                `;
-                document.body.appendChild(modal);
-              }}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </Button>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="recentActivity"
+                      checked={advancedFilters.recentActivity}
+                      onCheckedChange={(checked) => 
+                        setAdvancedFilters(prev => ({ ...prev, recentActivity: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="recentActivity">Recent Activity (Last 24h)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="truthAnalyzed"
+                      checked={advancedFilters.truthAnalyzed}
+                      onCheckedChange={(checked) => 
+                        setAdvancedFilters(prev => ({ ...prev, truthAnalyzed: checked as boolean }))
+                      }
+                    />
+                    <Label htmlFor="truthAnalyzed">Truth Analyzed Content</Label>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setFilterDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => {
+                    // Apply filters and refresh data
+                    queryClient.invalidateQueries({ queryKey: ['/api/content'] });
+                    setFilterDialogOpen(false);
+                  }}>
+                    Apply Filters
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <Button 
               variant="outline" 

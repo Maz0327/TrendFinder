@@ -7,8 +7,18 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, Filter, TrendingUp, Radar, Globe, Brain } from "lucide-react"
 import { SignalCard } from "@/components/signals/SignalCard"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { useState } from "react"
 
 const Explore = () => {
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    highViral: false,
+    recentActivity: false,
+    truthAnalyzed: false
+  });
   const mockSignals = [
     {
       title: "Sustainable Fashion Movement Gains Momentum",
@@ -69,57 +79,66 @@ const Explore = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    // Filter functionality for Lovable explore page
-                    const filterModal = document.createElement('div');
-                    filterModal.innerHTML = `
-                      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-                        <div style="background: white; padding: 24px; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
-                          <h3 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">Signal Filters</h3>
-                          <div style="margin-bottom: 16px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Platform:</label>
-                            <select style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;">
-                              <option>All Platforms</option>
-                              <option>Instagram</option>
-                              <option>Twitter</option>
-                              <option>TikTok</option>
-                              <option>YouTube</option>
-                            </select>
-                          </div>
-                          <div style="margin-bottom: 16px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Viral Score:</label>
-                            <select style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;">
-                              <option>Any Score</option>
-                              <option>90+ (Viral)</option>
-                              <option>70-89 (High)</option>
-                              <option>50-69 (Medium)</option>
-                            </select>
-                          </div>
-                          <div style="margin-bottom: 20px;">
-                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Time Range:</label>
-                            <select style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;">
-                              <option>All Time</option>
-                              <option>Last Hour</option>
-                              <option>Last 24 Hours</option>
-                              <option>Last Week</option>
-                            </select>
-                          </div>
-                          <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                            <button onclick="this.closest('div').parentElement.remove()" style="background: #f9fafb; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; font-weight: 500;">Cancel</button>
-                            <button onclick="this.closest('div').parentElement.remove()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500;">Apply</button>
-                          </div>
-                        </div>
+                <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filters
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Signal Filters</DialogTitle>
+                      <DialogDescription>
+                        Apply filters to discover the most relevant content signals
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="highViralLovable"
+                          checked={advancedFilters.highViral}
+                          onCheckedChange={(checked) => 
+                            setAdvancedFilters(prev => ({ ...prev, highViral: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="highViralLovable">90+ Viral Score (Ultra Viral)</Label>
                       </div>
-                    `;
-                    document.body.appendChild(filterModal);
-                  }}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filters
-                </Button>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="recentActivityLovable"
+                          checked={advancedFilters.recentActivity}
+                          onCheckedChange={(checked) => 
+                            setAdvancedFilters(prev => ({ ...prev, recentActivity: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="recentActivityLovable">Recent Activity (Last 24h)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="truthAnalyzedLovable"
+                          checked={advancedFilters.truthAnalyzed}
+                          onCheckedChange={(checked) => 
+                            setAdvancedFilters(prev => ({ ...prev, truthAnalyzed: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="truthAnalyzedLovable">Truth Framework Analyzed</Label>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setFilterDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={() => {
+                        // Apply filters functionality can be implemented here
+                        console.log('Applied filters:', advancedFilters);
+                        setFilterDialogOpen(false);
+                      }}>
+                        Apply Filters
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </header>
