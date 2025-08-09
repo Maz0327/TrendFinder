@@ -1,14 +1,12 @@
-import { User } from "@shared/supabase-schema";
+import 'express';
 
-declare global {
-  namespace Express {
-    interface Request {
-      session?: {
-        userId?: string;
-        user?: User;
-      };
-    }
+declare module 'express' {
+  interface Request {
+    user?: {
+      id: string;
+      email: string;
+      metadata?: any;
+      role?: string;
+    };
   }
 }
-
-export {};
