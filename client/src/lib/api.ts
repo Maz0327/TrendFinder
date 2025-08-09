@@ -45,7 +45,7 @@ export const api = {
 
   // Search
   search: (query: string): Promise<ContentRadarItem[]> =>
-    apiRequest("GET", `/api/search?q=${encodeURIComponent(query)}`).then(res => res.json()),
+    apiRequest("GET", `/api/search?query=${encodeURIComponent(query)}`).then(res => res.json()),
 
   // Export
   exportData: (format: 'json' | 'csv' = 'json'): Promise<Response> =>

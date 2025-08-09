@@ -35,13 +35,51 @@ export class BrightDataService {
     const requestData = urls.map(url => ({ url }));
 
     try {
-      const response = await axios.post(
+      // Step 1: Trigger the collection job
+      const triggerResponse = await axios.post(
         `${this.config.baseUrl}/trigger?dataset_id=${datasetId}&format=${format}`,
         requestData,
-        { headers }
+        { headers, timeout: 30000 }
       );
 
-      return response.data;
+      const { snapshot_id } = triggerResponse.data;
+      if (!snapshot_id) {
+        throw new Error('No snapshot_id returned from trigger');
+      }
+
+      // Step 2: Poll for completion with exponential backoff
+      let status = 'processing';
+      let attempts = 0;
+      const maxAttempts = 30; // 5 minutes max wait time
+      
+      while (status !== 'succeeded' && attempts < maxAttempts) {
+        attempts++;
+        const waitTime = Math.min(2000 + (attempts * 500), 10000); // Cap at 10s
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        
+        const statusResponse = await axios.get(
+          `${this.config.baseUrl}/snapshots/${snapshot_id}`,
+          { headers, timeout: 15000 }
+        );
+        
+        status = statusResponse.data.status;
+        
+        if (status === 'failed') {
+          throw new Error(`Collection job failed: ${statusResponse.data.error || 'Unknown error'}`);
+        }
+      }
+
+      if (status !== 'succeeded') {
+        throw new Error(`Collection job timed out after ${maxAttempts} attempts`);
+      }
+
+      // Step 3: Fetch the actual results
+      const resultsResponse = await axios.get(
+        `${this.config.baseUrl}/snapshots/${snapshot_id}/items?format=${format}`,
+        { headers, timeout: 30000 }
+      );
+
+      return resultsResponse.data;
     } catch (error: any) {
       console.error(`Bright Data API error for dataset ${datasetId}:`, error.response?.data || error.message);
       throw error;

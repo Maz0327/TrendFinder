@@ -135,6 +135,69 @@ export class EnhancedBrightDataService {
     }
   }
 
+  // Implement proper trigger->poll->fetch pattern for social media scraping
+  private async triggerAndPoll(datasetId: string, inputUrls: string[]): Promise<any> {
+    if (!this.apiToken) {
+      throw new Error('Bright Data API token not configured');
+    }
+
+    const headers = {
+      'Authorization': `Bearer ${this.apiToken}`,
+      'Content-Type': 'application/json'
+    };
+
+    try {
+      // Step 1: Trigger collection
+      const triggerResponse = await axios.post(
+        `${this.baseUrl}/trigger?dataset_id=${datasetId}&format=json`,
+        inputUrls.map(url => ({ url })),
+        { headers, timeout: 30000 }
+      );
+
+      const { snapshot_id } = triggerResponse.data;
+      if (!snapshot_id) {
+        throw new Error('No snapshot_id returned from trigger');
+      }
+
+      // Step 2: Poll for completion
+      let status = 'processing';
+      let attempts = 0;
+      const maxAttempts = 40; // 8+ minutes for complex social media scraping
+      
+      while (status !== 'succeeded' && attempts < maxAttempts) {
+        attempts++;
+        const waitTime = Math.min(3000 + (attempts * 1000), 15000); // Longer waits for social media
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        
+        const statusResponse = await axios.get(
+          `${this.baseUrl}/snapshots/${snapshot_id}`,
+          { headers, timeout: 15000 }
+        );
+        
+        status = statusResponse.data.status;
+        
+        if (status === 'failed') {
+          throw new Error(`Social media scraping failed: ${statusResponse.data.error || 'Unknown error'}`);
+        }
+      }
+
+      if (status !== 'succeeded') {
+        throw new Error(`Social media scraping timed out after ${maxAttempts} attempts`);
+      }
+
+      // Step 3: Fetch results
+      const resultsResponse = await axios.get(
+        `${this.baseUrl}/snapshots/${snapshot_id}/items?format=json`,
+        { headers, timeout: 45000 }
+      );
+
+      return resultsResponse.data;
+    } catch (error: any) {
+      console.error(`Enhanced Bright Data error for dataset ${datasetId}:`, error.response?.data || error.message);
+      throw error;
+    }
+  }
+
   private async rateLimitedRequest(platform: string): Promise<void> {
     const config = this.platformConfigs[platform];
     if (!config) return;
@@ -162,6 +225,9 @@ export class EnhancedBrightDataService {
     }
 
     await this.rateLimitedRequest(platform);
+
+    // Use proper trigger->poll->fetch pattern instead of immediate response
+    return await this.triggerAndPoll(config.datasetId, urls);
 
     const headers = {
       'Authorization': `Bearer ${this.apiToken}`,

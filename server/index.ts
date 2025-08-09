@@ -1,32 +1,68 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import { Pool } from "pg";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { debugLogger, errorHandler } from "./services/debug-logger";
 import { systemMonitor } from "./services/system-monitor";
+import { errorHandler as globalErrorHandler, notFoundHandler, asyncHandler } from "./middleware/errorHandler";
+import { requestSizeLimit, validateContentType, requestTimeout, apiRateLimit } from "./middleware/requestValidation";
+import { requestLogger, errorLogger } from "./middleware/logging";
+import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
+import { extensionSecurity } from "./security/chromeExtensionSecurity";
+import { productionMonitor } from "./monitoring/productionMonitor";
 
-const MemStore = MemoryStore(session);
+const PgSession = connectPgSimple(session);
+
+// PostgreSQL connection pool for sessions
+const sessionPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 const app = express();
+
+// Trust proxy for Replit deployment
+app.set('trust proxy', 1);
+
+// Logging and monitoring middleware
+app.use(requestLogger);
+app.use(productionMonitor.trackApiRequest);
+
+// Security and reliability middleware
+app.use(requestTimeout()); // 30s timeout
+app.use(requestSizeLimit); // Request size validation
+app.use(validateContentType(['application/json', 'application/x-www-form-urlencoded']));
+app.use('/api/', apiRateLimit); // Rate limiting for API routes
+
+// Chrome Extension Security
+app.use('/api/extension/', extensionSecurity.validateExtensionOrigin);
+app.use('/api/extension/', extensionSecurity.extensionRateLimit);
+app.use('/api/extension/', extensionSecurity.authenticateExtension);
+app.use('/api/extension/', extensionSecurity.validateRequestSize);
+app.use('/api/extension/', extensionSecurity.setExtensionCSP);
+
 // Increase payload limits for visual analysis with base64 images
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// Session configuration
+// PostgreSQL-backed session configuration
 app.use(
   session({
-    store: new MemStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
+    store: new PgSession({
+      pool: sessionPool,
+      tableName: 'session',
+      createTableIfMissing: false // We'll handle this via migration
     }),
-    secret: process.env.SESSION_SECRET || 'content-radar-secret-key-change-in-production',
+    secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Disable secure for development
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'lax' // More permissive for development
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
   })
 );
@@ -214,9 +250,6 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
-  // Enhanced error handler with debug logging
-  app.use(errorHandler);
-
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -225,6 +258,13 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
   }
+
+  // Global error handling middleware - MUST be after Vite setup
+  app.use(errorLogger);
+  app.use(globalErrorHandler);
+
+  // 404 handler for unmatched routes - LAST middleware
+  app.use(notFoundHandler);
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.

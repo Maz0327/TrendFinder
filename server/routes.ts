@@ -24,6 +24,8 @@ import { setupSettingsRoutes } from "./routes/settings";
 import { setupAnnotationsRoutes } from "./routes/annotations";
 import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupSearchRoutes } from "./routes/search";
+import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
+import { productionMonitor } from "./monitoring/productionMonitor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const aiAnalyzer = new AIAnalyzer();
@@ -52,6 +54,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Google exports routes
   app.use("/api/google", googleExportsRouter);
+
+  // Health check routes
+  app.get("/health", healthCheckEndpoint);
+  app.get("/health/ready", readinessCheck);
+  
+  // Production monitoring and metrics
+  app.get("/metrics", productionMonitor.metricsEndpoint);
   
   // Register new routes for Lovable UI support
   setupSettingsRoutes(app);

@@ -1,6 +1,67 @@
-node_modules
-dist
-.DS_Store
-server/public
-vite.config.ts.*
+# Dependencies
+node_modules/
+*.lock
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.vite/
+.cache/
+*.log
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.env.*
+.local
+
+# Session/auth artifacts
+cookies.txt
+*cookie*.txt
+*cookies*.txt
+headers.txt
+session.jar
+test_session.jar
+*.session
+
+# Replit specific
+.replit
+.upm/
+
+# Assets & bundles
+attached_assets/
+*.zip
 *.tar.gz
+*.jar
+
+# OS & IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing & debugging
+coverage/
+.nyc_output/
+test-results/
+debug*.txt
+*debug*.txt
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Misc
+*.tsbuildinfo
+.eslintcache

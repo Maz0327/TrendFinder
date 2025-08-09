@@ -15,6 +15,9 @@ import type {
 } from "@shared/supabase-schema";
 
 export interface IStorage {
+  // Health check for monitoring
+  healthCheck(): Promise<{ status: string; timestamp: string }>;
+
   // User Management
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -123,6 +126,19 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   private client: Client;
+
+  // Health check for monitoring
+  async healthCheck(): Promise<{ status: string; timestamp: string }> {
+    try {
+      const result = await this.client.query('SELECT 1 as test');
+      return {
+        status: 'healthy',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      throw new Error(`Database health check failed: ${error}`);
+    }
+  }
 
   constructor() {
     // Use DATABASE_URL directly for Neon/Supabase connection
@@ -273,6 +289,12 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
+      // Defensive password hashing - ensure password is always hashed
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = insertUser.password.startsWith('$2') 
+        ? insertUser.password 
+        : await bcrypt.hash(insertUser.password, 10);
+
       const result = await this.client.query(`
         INSERT INTO users (id, email, username, password, role, onboarding_completed, tour_completed, progress_data, google_tokens, created_at, updated_at)
         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
@@ -280,7 +302,7 @@ export class DatabaseStorage implements IStorage {
       `, [
         insertUser.email,
         insertUser.username,
-        insertUser.password,
+        hashedPassword,
         insertUser.role || 'user',
         insertUser.onboardingCompleted || false,
         insertUser.tourCompleted || false,
