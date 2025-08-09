@@ -221,23 +221,6 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    // Add Vite asset serving middleware before setupVite
-    const { createServer: createViteServer } = await import("vite");
-    const viteConfig = await import("../vite.config");
-    
-    const vite = await createViteServer({
-      ...viteConfig.default,
-      configFile: false,
-      server: {
-        middlewareMode: true,
-        hmr: { server },
-      },
-      appType: "custom",
-    });
-    
-    // Add Vite middleware for asset serving (JS, CSS, etc.) BEFORE setupVite
-    app.use(vite.middlewares);
-    
     await setupVite(app, server);
   } else {
     serveStatic(app);
