@@ -226,30 +226,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get content items with filtering
+  // Get content items with filtering (Fixed for Explore Signals)
   app.get("/api/content", async (req, res) => {
     try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const {
-        category,
+        type,
         platform,
+        time,
+        category,
         timeRange,
         sortBy,
         limit = '50',
         offset = '0'
       } = req.query;
 
-      const filters = {
-        category: category as string,
-        platform: platform as string,
-        timeRange: timeRange as string,
-        sortBy: sortBy as string,
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
-      };
+      // Get user captures and transform them for trending content
+      const captures = await storage.getUserCaptures(req.session.user.id);
+      
+      // Filter based on parameters
+      let filteredCaptures = captures;
+      
+      if (platform && platform !== 'all') {
+        filteredCaptures = filteredCaptures.filter(c => c.platform === platform);
+      }
+      
+      // Handle time filtering (convert 'time' parameter to timeRange)
+      const timeFilter = time || timeRange;
+      if (timeFilter && timeFilter !== 'all') {
+        const now = new Date();
+        let cutoffDate = new Date();
+        
+        switch (timeFilter) {
+          case '1h':
+            cutoffDate.setHours(now.getHours() - 1);
+            break;
+          case '24h':
+            cutoffDate.setDate(now.getDate() - 1);
+            break;
+          case '7d':
+            cutoffDate.setDate(now.getDate() - 7);
+            break;
+          case '30d':
+            cutoffDate.setDate(now.getDate() - 30);
+            break;
+        }
+        
+        filteredCaptures = filteredCaptures.filter(c => 
+          new Date(c.createdAt) >= cutoffDate
+        );
+      }
+      
+      // Handle trending content (high viral scores or recent activity)
+      if (type === 'trending') {
+        filteredCaptures = filteredCaptures
+          .filter(c => (c.viralScore && c.viralScore > 60) || c.analysisStatus === 'completed' || !c.viralScore)
+          .sort((a, b) => (b.viralScore || 0) - (a.viralScore || 0));
+      }
+      
+      // Transform captures to content format
+      const contentItems = filteredCaptures
+        .slice(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string))
+        .map(capture => ({
+          id: capture.id,
+          title: capture.title || `${capture.platform} Signal`,
+          description: capture.summary || capture.content?.substring(0, 200) + '...',
+          platform: capture.platform,
+          url: capture.url,
+          viralScore: capture.viralScore || 0,
+          engagement: capture.metadata?.engagement || 'Unknown',
+          createdAt: capture.createdAt,
+          tags: capture.tags || []
+        }));
 
-      const items = await storage.getContentItems(filters);
-      res.json(items);
+      res.json(contentItems);
     } catch (error) {
+      console.error("Error fetching content:", error);
       res.status(500).json({ error: "Failed to fetch content" });
     }
   });
