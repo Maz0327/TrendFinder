@@ -45,25 +45,27 @@ export function AppSidebar() {
   const collapsed = state === "collapsed"
 
   const isActive = (path: string) => currentPath === path
-  const getNavCls = (active: boolean) =>
-    active ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" : "hover:bg-sidebar-accent/50 transition-smooth"
 
   return (
     <Sidebar
-      className={`${collapsed ? "w-14" : "w-60"} bg-sidebar-background border-sidebar-border transition-smooth`}
+      className={`${collapsed ? "w-14" : "w-60"} transition-smooth`}
+      style={{ 
+        backgroundColor: 'var(--sidebar-background)', 
+        borderColor: 'var(--sidebar-border)' 
+      }}
       collapsible="icon"
     >
-      <SidebarContent className="bg-sidebar-background">
+      <SidebarContent style={{ backgroundColor: 'var(--sidebar-background)' }}>
         {/* Logo Section */}
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="p-4 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-glow">
               <Radar className="w-5 h-5 text-white" />
             </div>
             {!collapsed && (
               <div>
-                <h1 className="text-lg font-bold text-sidebar-foreground">TrendFinder</h1>
-                <p className="text-xs text-sidebar-foreground/60">Content Radar</p>
+                <h1 className="text-lg font-bold" style={{ color: 'var(--sidebar-foreground)' }}>TrendFinder</h1>
+                <p className="text-xs" style={{ color: 'var(--sidebar-foreground)', opacity: 0.6 }}>Content Radar</p>
               </div>
             )}
           </div>
@@ -71,7 +73,7 @@ export function AppSidebar() {
 
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/80 font-medium">
+          <SidebarGroupLabel className="font-medium" style={{ color: 'var(--sidebar-foreground)', opacity: 0.8 }}>
             Strategic Intelligence
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -81,10 +83,15 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <Link 
                       href={item.url}
-                      className={getNavCls(isActive(item.url))}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth"
+                      style={{
+                        backgroundColor: isActive(item.url) ? 'var(--sidebar-accent)' : 'transparent',
+                        color: isActive(item.url) ? 'var(--sidebar-primary)' : 'var(--sidebar-foreground)',
+                        fontWeight: isActive(item.url) ? 'bold' : 'normal'
+                      }}
                     >
-                      <item.icon className="w-4 h-4 text-sidebar-primary" />
-                      {!collapsed && <span className="text-sidebar-foreground">{item.title}</span>}
+                      <item.icon className="w-4 h-4" style={{ color: 'var(--sidebar-primary)' }} />
+                      {!collapsed && <span>{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -95,7 +102,7 @@ export function AppSidebar() {
 
         {/* Analytics Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/80 font-medium">
+          <SidebarGroupLabel className="font-medium" style={{ color: 'var(--sidebar-foreground)', opacity: 0.8 }}>
             Analytics
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -105,10 +112,15 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <Link 
                       href={item.url}
-                      className={getNavCls(isActive(item.url))}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth"
+                      style={{
+                        backgroundColor: isActive(item.url) ? 'var(--sidebar-accent)' : 'transparent',
+                        color: isActive(item.url) ? 'var(--sidebar-primary)' : 'var(--sidebar-foreground)',
+                        fontWeight: isActive(item.url) ? 'bold' : 'normal'
+                      }}
                     >
-                      <item.icon className="w-4 h-4 text-sidebar-primary" />
-                      {!collapsed && <span className="text-sidebar-foreground">{item.title}</span>}
+                      <item.icon className="w-4 h-4" style={{ color: 'var(--sidebar-primary)' }} />
+                      {!collapsed && <span>{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -125,12 +137,15 @@ export function AppSidebar() {
                 <SidebarMenuButton asChild>
                   <Link 
                     href="/settings"
-                    className={isActive("/settings") 
-                      ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" 
-                      : "hover:bg-sidebar-accent/50 transition-smooth"}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth"
+                    style={{
+                      backgroundColor: isActive('/settings') ? 'var(--sidebar-accent)' : 'transparent',
+                      color: isActive('/settings') ? 'var(--sidebar-primary)' : 'var(--sidebar-foreground)',
+                      fontWeight: isActive('/settings') ? 'bold' : 'normal'
+                    }}
                   >
-                    <Settings className="w-4 h-4 text-sidebar-primary" />
-                    {!collapsed && <span className="text-sidebar-foreground">Settings</span>}
+                    <Settings className="w-4 h-4" style={{ color: 'var(--sidebar-primary)' }} />
+                    {!collapsed && <span>Settings</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
