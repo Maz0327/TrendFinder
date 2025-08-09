@@ -1,0 +1,68 @@
+Yep—happy to take a look. I pulled up your repo and did a quick triage pass. Here’s what jumped out right away (highest-priority first):
+
+1. Sensitive/session artifacts are committed
+   Files like `cookies.txt`, `headers.txt`, `session.jar`, `test_session.jar`, etc. are in the repo. Those can leak auth and get you banned by APIs. Purge them from history and rotate any keys/sessions they relate to. ([GitHub][1])
+
+2. Massive junk checked in (will slow everything and cause odd bugs)
+   `node_modules/`, `.cache/`, `.local/ state/ replit/ agent`, `.upm/`, a bunch of `*.zip` and `*.jar` blobs are all tracked. These belong in `.gitignore` (or LFS if you truly need binaries). Also, `node_modules` should never be committed. ([GitHub][1])
+
+3. README clone path is wrong
+   Your README says to clone `strategic-content-analysis-platform.git`, but this repo is `Strategist-App`. That’ll confuse contributors and scripts. Update the instructions. ([GitHub][1])
+
+4. Mixed stacks at the root
+   You’ve got Node/TS (Vite/Express/Drizzle) alongside Python files (`pyproject.toml`, `uv.lock`) at top level. Split Python into its own `/python` folder (with its own venv and `.gitignore`) or a separate repo to avoid tooling collisions. ([GitHub][1])
+
+5. Build artifacts and one-off exports in root
+   Multiple Chrome extension zips and tarballs are versioned. Ship these via Releases or ignore them; don’t keep generated bundles in `main`. ([GitHub][1])
+
+6. Env hygiene
+   `.env.example` exists (great). Expand it to include every integration your README claims (OpenAI, Reddit, YouTube, Google Trends, News APIs, DB URL, session secret, etc.) so new envs don’t silently half-work. ([GitHub][1])
+
+Quick fixes you can apply now
+
+* Add/replace `.gitignore` with at least:
+
+  ```
+  node_modules/
+  .cache/
+  .local/
+  .upm/
+  attached_assets/
+  chrome-extension-*.zip
+  *.jar
+  *.tar.gz
+  *.log
+  cookies.txt
+  headers.txt
+  .env
+  ```
+
+* Remove tracked junk and secrets, then commit:
+
+  ```
+  git rm -r --cached node_modules .cache .local .upm attached_assets *.zip *.jar *.tar.gz cookies.txt headers.txt
+  git commit -m "chore: untrack build artifacts, secrets, and caches"
+  ```
+
+* (Strongly recommended) Purge secrets from history:
+
+  * If you can install it: `git filter-repo --path cookies.txt --path headers.txt --invert-paths`
+  * Or use BFG Repo-Cleaner.
+    Then force-push and rotate any tokens/sessions that ever lived in the repo.
+
+* Fix README clone instructions and any port/URL mismatches (README currently mentions running at `http://localhost:5000`; confirm that matches your server config). ([GitHub][1])
+
+About your Bright Data timeouts (based on the issues you’ve described before): common causes & quick hardening
+
+* Set explicit timeouts and retries with backoff on your HTTP client.
+* Use keep-alive agents (Node’s `http.Agent({ keepAlive: true })`) to reduce socket churn.
+* Add per-request and overall job time budgets; move long crawls to a queue/worker (BullMQ/Redis).
+* Log every outbound call’s URL, status, duration, and error so you can spot rate-limit patterns.
+* Validate proxies/creds at boot and fail fast if they’re missing.
+
+Limits of this pass
+GitHub’s UI wouldn’t let me open individual files in this session (I could see the root listing and README snippet but not drill into `server/` or `client/` code). If you want a line-by-line code audit (routes, schema, Bright Data calls, OpenAI usage, error handling, etc.), zip just `/server` and `/client` (or grant a read-only mirror) and I’ll do a deeper review with concrete diffs and fixes. ([GitHub][1])
+
+Want me to generate a cleaned `.gitignore` and a one-shot script to sanitize the repo history for you?
+
+[1]: https://github.com/Maz0327/Strategist-App "GitHub - Maz0327/Strategist-App"

@@ -1,0 +1,295 @@
+Awesome—thanks for the zip. I unpacked and read through your repo locally. Here’s a focused audit tailored for **Replit + Supabase** with concrete fixes.
+
+# 🔴 Critical (fix first)
+
+1. Secrets and artifacts in git
+   `cookies.txt`, multiple `*cookies*.txt`, and huge dumps under `attached_assets/` are committed. Purge from history and rotate anything they touched.
+   **Fix**
+
+```bash
+# stop tracking
+git rm -r --cached attached_assets "*.zip" "*.tar.gz" "*.jar" "*cookie*.txt" cookies.txt
+git commit -m "chore: remove assets and cookies from VCS"
+
+# (recommended) purge history, then force-push
+git filter-repo --invert-paths --path-glob "*cookie*.txt" --path cookies.txt --path attached_assets
+git push --force
+```
+
+Also expand `.gitignore` (see “Hygiene” below).
+
+2. Passwords can be stored unhashed (security)
+   `AuthService.register` hashes; but `storage.createUser` inserts whatever it’s given. A future code path could accidentally pass plaintext.
+   **Fix (storage.ts)** — hash defensively:
+
+```ts
+// before INSERT, ensure hash
+import bcrypt from "bcryptjs";
+// ...
+const hashed = insertUser.password.startsWith("$2") 
+  ? insertUser.password 
+  : await bcrypt.hash(insertUser.password, 10);
+// use `hashed` in the INSERT
+```
+
+3. Session store is in-memory
+   `express-session` + `memorystore` will drop sessions on every Replit restart and won’t scale. Use **Postgres-backed sessions** via `connect-pg-simple` against your Supabase DB.
+   **Fix (server/index.ts)**
+
+```ts
+import pgSession from "connect-pg-simple";
+import { Pool } from "pg";
+
+const PgSession = pgSession(session);
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized:false }});
+
+app.set("trust proxy", 1); // important on Replit/proxies
+
+app.use(session({
+  store: new PgSession({ pool, tableName: "session" }),
+  secret: process.env.SESSION_SECRET!,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  },
+}));
+```
+
+Add a small migration to create the session table (shown below).
+
+4. Bright Data flow is wrong (logic)
+   `brightDataService` / `enhancedBrightDataService` call the **trigger** endpoint and then immediately read `response.data` as if results were returned. Triggering a Collector usually returns a job/snapshot id—you must **poll** until done and then **fetch results**.
+   **Fix (sketch)**
+
+```ts
+// 1) trigger
+const { snapshot_id } = await axios.post(`${base}/trigger?...`, urls, { headers }).then(r=>r.data);
+// 2) poll status
+let status="processing"; 
+for (let i=0;i<30 && status!=="succeeded";i++){
+  await new Promise(r=>setTimeout(r, 2000));
+  const snap = await axios.get(`${base}/snapshots/${snapshot_id}`, { headers }).then(r=>r.data);
+  status = snap.status;
+}
+// 3) fetch items
+const items = await axios.get(`${base}/snapshots/${snapshot_id}/items?format=json`, { headers, timeout: 30000 }).then(r=>r.data);
+```
+
+(Keep per-platform rate-limit + retries you already started.)
+
+5. Chrome extension hardcodes your Replit URL
+   `background-enhanced.js` uses a fixed `API_BASE_URL`. That breaks per-deployment and leaks env details.
+   **Fix**
+
+* Read `API_BASE_URL` from `chrome.storage.sync` (configurable in the popup), or derive from the page you’re on.
+* Narrow permissions and `matches` (see “Extension” below).
+
+6. Supabase UUID mismatch in schema
+   Your Drizzle schema defaults use `uuid_generate_v4()` (requires `uuid-ossp`) while your inserts use `gen_random_uuid()` (requires `pgcrypto`). On many Supabase projects only `pgcrypto` is enabled by default.
+   **Fix**
+
+* EITHER change defaults to `gen_random_uuid()` across tables
+* OR add a migration to `CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`.
+
+7. Missing DB migrations
+   `drizzle.config.ts` points to `out: "./migrations"` but no migrations are committed. You’re relying on runtime inserts.
+   **Fix**
+
+* Run `npx drizzle-kit generate` (after adjusting schema) and commit the migrations.
+* Add an init migration to create the **session** table (for `connect-pg-simple`) and enable needed extensions:
+
+```sql
+-- 00_init.sql
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- optional if you keep uuid_generate_v4:
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- session table used by connect-pg-simple
+CREATE TABLE IF NOT EXISTS "session" (
+  sid varchar NOT NULL PRIMARY KEY,
+  sess json NOT NULL,
+  expire timestamp NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+```
+
+# 🟠 Functional bugs & correctness
+
+* **Search API param mismatch**
+  Client calls `/api/search?q=...`, server expects `?query=...`.
+  **Fix (client/src/lib/api.ts)**
+
+```ts
+search: (query: string) =>
+  apiRequest("GET", `/api/search?query=${encodeURIComponent(query)}`).then(r=>r.json()),
+```
+
+* **OpenAI/Gemini model names may be invalid**
+  `aiAnalyzer.ts` and `enhancedAIAnalyzer.ts` call `model: "gpt-5"` and `gemini-2.5-pro`. Make models **configurable** via env and add a fallback (e.g., `OPENAI_MODEL`, default to a stable one). Also defensively handle API shape changes.
+  **Fix**
+
+```ts
+const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+const resp = await openai.chat.completions.create({ model, ... });
+// try/catch around JSON.parse; default safe fields on failure
+```
+
+* **Puppeteer launch in Replit**
+  `brightDataBrowser.ts` does `puppeteer.launch()` (needs local Chrome not present on Autoscale). Gate it behind env and prefer `puppeteer.connect` to a hosted browser (you already wrote `LiveBrightDataService` for this).
+  **Fix**
+
+* Feature-flag local browser with `ENABLE_LOCAL_BROWSER=false` (default).
+
+* Only use `LiveBrightDataService` when `BRIGHT_DATA_BROWSER_WSS` is set.
+
+* **CORS/HTTPS cookies**
+  You set origins for `localhost` and `REPLIT_DEV_DOMAIN`. On Autoscale, you’ll likely need your public URL too. Also set `app.set('trust proxy', 1)` and `secure: true` cookies in prod (see session snippet above).
+
+# 🧩 Replit + Supabase setup (env)
+
+Create a **complete `.env.example`** (and ignore `.env`):
+
+```
+# server
+PORT=5000
+SESSION_SECRET=change-me
+DATABASE_URL=postgres://...  # Supabase 'Project > Settings > Database > Connection string'
+
+# openai / gemini
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
+GEMINI_API_KEY=
+
+# google cloud
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=https://<your-public-domain>/auth/google/callback
+GOOGLE_API_KEY=
+YOUTUBE_API_KEY=
+NEWS_API_KEY=
+
+# bright data
+BRIGHT_DATA_API_TOKEN=
+BRIGHT_DATA_BROWSER_WSS=wss://...   # optional
+BRIGHT_DATA_BROWSER_USER=
+BRIGHT_DATA_BROWSER_PASS=
+
+# replit
+REPLIT_DEV_DOMAIN=<something>.repl.co
+PUBLIC_ORIGIN=https://<your-public-domain>
+```
+
+# 🧱 Hygiene & repo shape
+
+* **.gitignore (replace/extend)**
+
+```
+# node/build
+node_modules/
+dist/
+build/
+.vite/
+.cache/
+*.log
+
+# env & local
+.env
+*.env.*
+*.local
+
+# assets & bundles
+attached_assets/
+*.zip
+*.tar.gz
+*.jar
+
+# secrets
+cookies.txt
+*cookie*.txt
+```
+
+* **Kill baggage**
+  `attached_assets/` contains duplicate apps, zips, and code dumps. Delete it from the repo. Keep example docs in `/docs/` if needed.
+
+* **CI guardrails**
+  Add a tiny GitHub Action to typecheck/lint so mismatches (like `/api/search`) get caught:
+
+```yaml
+name: ci
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: 'npm' }
+      - run: npm ci
+      - run: npm run check
+```
+
+# 🧪 Stability & DX
+
+* **HTTP resilience**
+  Wrap all outbound axios/fetch calls with **timeout + retry + jitter**. You already set `timeout` in Bright Data calls—add exponential backoff and classify errors (4xx vs 5xx vs ECONN). Reuse agents / keep-alive.
+
+* **Input validation everywhere**
+  Many routes use Zod (nice). Add it to the remaining ones (`PATCH /api/captures/:id`, some test/scan routes).
+
+* **Request/response logging**
+  You built a good `debugLogger`. Consider a structured logger (pino) and add a `requestId` to every request. Emit `{ url, status, ms }` for each outbound call.
+
+# 🧩 Chrome extension hardening
+
+* **Configurable backend URL**
+  Add a popup “Settings” page that writes `API_BASE_URL` to `chrome.storage.sync` and read that in `background-enhanced.js`.
+
+* **Permissions**
+  Replace `"<all_urls>"` with specific `host_permissions` (your domain) and narrow `content_scripts.matches` to `"http://*/*", "https://*/*"` only if you really need it—ideally scope further by domain.
+
+* **CSP**
+  Avoid `unsafe-eval`; don’t inject inline scripts; your manifest looks safe, but keep it tight.
+
+# 🗃️ Supabase schema notes (Drizzle)
+
+* Prefer `gen_random_uuid()` defaults for all `uuid` PKs to match Supabase defaults, **or** enable `uuid-ossp`.
+* Commit generated migrations and run them on deploy:
+
+```bash
+npx drizzle-kit generate
+npm run db:push   # or better, apply generated SQL through Supabase
+```
+
+# ✅ Quick patches you can drop in now
+
+1. **client/src/lib/api.ts** (search param)
+
+```diff
+- search: (query: string): Promise<ContentRadarItem[]> =>
+-   apiRequest("GET", `/api/search?q=${encodeURIComponent(query)}`).then(res => res.json()),
++ search: (query: string): Promise<ContentRadarItem[]> =>
++   apiRequest("GET", `/api/search?query=${encodeURIComponent(query)}`).then(res => res.json()),
+```
+
+2. **server/index.ts** (sessions via Postgres; cookie flags; trust proxy)
+   Use the snippet under Critical #3.
+
+3. **Bright Data** (trigger → poll → fetch results)
+   Refactor `brightDataService`/`enhancedBrightDataService` to the 3-step flow (trigger, poll, fetch) with retries.
+
+4. **Schema**
+   Replace `uuid_generate_v4()` with `gen_random_uuid()` or enable extension via migration.
+
+---
+
+If you want, I can generate:
+
+* a **ready-to-commit `.gitignore`**,
+* an **initial Drizzle migration** (SQL) aligned to Supabase (including the session table), and
+* a small **popup UI** for the extension to set `API_BASE_URL`.
+
+Say the word and I’ll drop those files in.

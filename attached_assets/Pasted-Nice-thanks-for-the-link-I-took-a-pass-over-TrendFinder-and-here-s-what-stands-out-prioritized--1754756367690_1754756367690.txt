@@ -1,0 +1,108 @@
+Nice—thanks for the link. I took a pass over `TrendFinder` and here’s what stands out (prioritized):
+
+## 🔴 Critical
+
+* **Secrets/cookies committed.** Tons of cookie/session artifacts are versioned at the repo root (`cookies.txt`, `dashboard_test_cookies.txt`, `filter_*_cookies.txt`, `final_*_cookies.txt`, `test_*_cookies.txt`, etc.). These can leak auth and cause bans. Purge from history and rotate anything they touched. ([GitHub][1])
+* **Large/binary junk tracked.** `attached_assets/` and build/test artifacts are in Git. Move to releases or ignore. ([GitHub][1])
+
+## 🟠 Structural/DX
+
+* **Monorepo-ish layout** is good (`server/`, `client/`, `shared/`)—just make sure your root scripts orchestrate both apps (concurrently), and that `shared/` is consumed cleanly (tsconfig path alias or a local package). ([GitHub][1])
+* **Drizzle present** (`drizzle.config.ts`). Double-check `out` dir and migration scripts exist/are used in CI. ([GitHub][1])
+* **Chrome extension** code is included. Keep it isolated with its own build/test scripts and exclude packaged zips from Git. Also keep `manifest.json` permissions tight. ([GitHub][1])
+* **Replit config** exists (`.replit`). Make sure it doesn’t conflict with local dev scripts. ([GitHub][1])
+* **Languages:** Mostly TypeScript (\~90%), with some JS/CSS and a touch of Python. Good to standardize on TS if possible. ([GitHub][1])
+
+## ✅ Quick fixes you can do now
+
+1. **Harden `.gitignore`** (keep yours, but add these lines if missing):
+
+```
+# universal
+.DS_Store
+*.log
+.env
+*.local
+
+# node/build
+node_modules/
+dist/
+build/
+.cache/
+.vite/
+
+# replit/temp/assets
+.replit
+attached_assets/
+
+# test artifacts, cookies, sessions
+*cookie*.txt
+cookies.txt
+```
+
+2. **Untrack what slipped in:**
+
+```bash
+git rm -r --cached attached_assets \
+  "*.log" "*.zip" "*.tar.gz" "*.jar" \
+  "*.local" \
+  cookies.txt "*cookie*.txt"
+git commit -m "chore(repo): stop tracking assets/logs/cookies"
+```
+
+3. **Purge secrets from history (recommended):**
+
+* If you can install it:
+
+```bash
+git filter-repo --invert-paths --path cookies.txt --path-glob "*cookie*.txt"
+```
+
+* Or use **BFG Repo-Cleaner** with a glob.
+  Then **force-push** and **rotate** any impacted tokens/cookies immediately.
+
+4. **Add an `.env.example`** with every required var (server + client + extension) so fresh setups don’t silently fail.
+
+5. **Root `package.json` scripts** (if you’re not already doing this) to orchestrate dev:
+
+```json
+{
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev-*\"",
+    "dev-server": "npm --workspace server run dev",
+    "dev-client": "npm --workspace client run dev",
+    "typecheck": "tsc -b",
+    "lint": "eslint ."
+  }
+}
+```
+
+6. **CI sanity (GitHub Actions)** — catches breakages early:
+
+```yaml
+name: ci
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+```
+
+## 🧪 Runtime reliability (common pain points I see in repos like this)
+
+* Set **per-request timeouts + retry w/ backoff** for all fetchers (news APIs, social APIs, etc.).
+* Use **keep-alive** agents for HTTP(S) to reduce socket churn.
+* Add **observability**: log URL, status, duration, and error cause per outbound call.
+* Separate long jobs into a **queue/worker** (BullMQ + Redis) and cap overall job time budgets.
+
+---
+
+If you want, point me at any specific file you’re worried about (e.g., `server/src/index.ts`, `shared/…`, or the extension’s `manifest.json`) and I’ll do a deeper line-by-line with exact diffs. For now, your top priority is: **remove/purge the cookie files and rotate credentials**. Everything else is cleanup and DX. ([GitHub][1])
+
+[1]: https://github.com/Maz0327/TrendFinder.git "GitHub - Maz0327/TrendFinder"
