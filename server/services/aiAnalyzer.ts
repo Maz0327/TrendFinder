@@ -15,9 +15,9 @@ export interface AnalysisResult {
 export class AIAnalyzer {
   async analyzeContent(title: string, content: string, platform: string): Promise<AnalysisResult> {
     try {
-      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      // Updated to GPT-5 (released August 7, 2025) for 50% cost savings on input tokens and improved accuracy
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5",
         messages: [
           {
             role: "system",
@@ -68,9 +68,9 @@ Respond with JSON in this exact format:
 
   async generateAdditionalHooks(title: string, content: string, existingHooks: string[]): Promise<string[]> {
     try {
-      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      // Updated to GPT-5 (released August 7, 2025) for 50% cost savings on input tokens and improved accuracy
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5",
         messages: [
           {
             role: "system",

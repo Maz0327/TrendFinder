@@ -48,9 +48,9 @@ Also assess:
 Return as JSON with exact field names: fact, observation, insight, humanTruth, culturalMoment, strategicValue, viralPotential, briefSectionSuggestion, keywords, tone, confidence
 `;
 
-      // Use GPT-4o for comprehensive analysis - the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      // Updated to GPT-5 (released August 7, 2025) for 50% cost savings on input tokens and improved accuracy
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5",
         messages: [
           {
             role: "system",
@@ -98,7 +98,7 @@ Return as JSON with exact field names: fact, observation, insight, humanTruth, c
         observation: "Analysis temporarily unavailable",
         insight: "Strategic analysis will be processed shortly",
         humanTruth: "Cultural intelligence processing",
-        culturalMoment: null,
+        culturalMoment: undefined,
         strategicValue: 5,
         viralPotential: 5,
         briefSectionSuggestion: 'define',
@@ -120,9 +120,9 @@ Content: ${content}
 Return JSON with: summary (2 sentences), tags (3-5 strategic tags)
 `;
 
-      // Use GPT-4o for quick analysis - the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      // Updated to GPT-5 (released August 7, 2025) for 50% cost savings on input tokens and improved accuracy
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5",
         messages: [{ role: "user", content: quickPrompt }],
         response_format: { type: "json_object" },
         temperature: 0.2,
