@@ -96,14 +96,14 @@ export default function AuthLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <Card className="border-border/50 backdrop-blur-sm bg-card/95 shadow-2xl">
+        <Card className="border-border/50 backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 shadow-2xl">
           <CardHeader className="space-y-1 text-center">
             <motion.div
               initial={{ scale: 0 }}
@@ -266,7 +266,7 @@ export default function AuthLogin() {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute top-20 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl"
+            className="absolute top-20 left-10 w-64 h-64 bg-primary/10 dark:bg-primary/20 rounded-full blur-3xl"
           />
           <motion.div
             animate={{
@@ -278,7 +278,7 @@ export default function AuthLogin() {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute bottom-20 right-10 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"
+            className="absolute bottom-20 right-10 w-80 h-80 bg-primary/8 dark:bg-primary/15 rounded-full blur-3xl"
           />
         </div>
       </motion.div>
