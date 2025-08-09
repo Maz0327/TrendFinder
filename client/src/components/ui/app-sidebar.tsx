@@ -45,13 +45,15 @@ export function AppSidebar() {
   const collapsed = state === "collapsed"
 
   const isActive = (path: string) => currentPath === path
+  const getNavCls = (active: boolean) =>
+    active ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" : "hover:bg-sidebar-accent/50 transition-smooth"
 
   return (
     <Sidebar
-      className={`${collapsed ? "w-14" : "w-60"} bg-sidebar border-sidebar-border transition-smooth`}
+      className={`${collapsed ? "w-14" : "w-60"} bg-sidebar-background border-sidebar-border transition-smooth`}
       collapsible="icon"
     >
-      <SidebarContent className="bg-sidebar">
+      <SidebarContent className="bg-sidebar-background">
         {/* Logo Section */}
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
@@ -79,9 +81,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <Link 
                       href={item.url}
-                      className={isActive(item.url) 
-                        ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" 
-                        : "hover:bg-sidebar-accent/50 transition-smooth"}
+                      className={getNavCls(isActive(item.url))}
                     >
                       <item.icon className="w-4 h-4 text-sidebar-primary" />
                       {!collapsed && <span className="text-sidebar-foreground">{item.title}</span>}
@@ -105,9 +105,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <Link 
                       href={item.url}
-                      className={isActive(item.url) 
-                        ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-glow" 
-                        : "hover:bg-sidebar-accent/50 transition-smooth"}
+                      className={getNavCls(isActive(item.url))}
                     >
                       <item.icon className="w-4 h-4 text-sidebar-primary" />
                       {!collapsed && <span className="text-sidebar-foreground">{item.title}</span>}
