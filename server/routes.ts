@@ -20,6 +20,10 @@ import { z } from "zod";
 import { registerProjectRoutes } from "./routes/projects";
 import { registerBriefRoutes } from "./routes/briefs";
 import googleExportsRouter from "./routes/google-exports";
+import { setupSettingsRoutes } from "./routes/settings";
+import { setupAnnotationsRoutes } from "./routes/annotations";
+import { setupAnalyticsRoutes } from "./routes/analytics";
+import { setupSearchRoutes } from "./routes/search";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const aiAnalyzer = new AIAnalyzer();
@@ -48,6 +52,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Google exports routes
   app.use("/api/google", googleExportsRouter);
+  
+  // Register new routes for Lovable UI support
+  setupSettingsRoutes(app);
+  setupAnnotationsRoutes(app);
+  setupAnalyticsRoutes(app);
+  setupSearchRoutes(app);
 
   // Get all captures for the user (for My Captures page)
   app.get("/api/captures/all", async (req, res) => {

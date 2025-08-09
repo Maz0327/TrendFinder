@@ -8,7 +8,10 @@ import type {
   DsdBrief, InsertDsdBrief,
   CollectivePattern, InsertCollectivePattern,
   CulturalMoment, InsertCulturalMoment,
-  HypothesisValidation, InsertHypothesisValidation
+  HypothesisValidation, InsertHypothesisValidation,
+  UserSettings, InsertUserSettings,
+  Annotation, InsertAnnotation,
+  AnalyticsData, InsertAnalyticsData
 } from "@shared/supabase-schema";
 
 export interface IStorage {
@@ -87,6 +90,34 @@ export interface IStorage {
   // Hypothesis Tracking
   getHypothesisValidations(captureId?: string): Promise<HypothesisValidation[]>;
   createHypothesisValidation(validation: InsertHypothesisValidation): Promise<HypothesisValidation>;
+  
+  // User Settings Management
+  getUserSettings(userId: string): Promise<UserSettings | undefined>;
+  createUserSettings(settings: InsertUserSettings): Promise<UserSettings>;
+  updateUserSettings(userId: string, updates: Partial<InsertUserSettings>): Promise<UserSettings>;
+  
+  // Annotations Management
+  getAnnotations(captureId: string): Promise<Annotation[]>;
+  getAnnotationById(id: string): Promise<Annotation | undefined>;
+  createAnnotation(annotation: InsertAnnotation): Promise<Annotation>;
+  updateAnnotation(id: string, updates: Partial<InsertAnnotation>): Promise<Annotation>;
+  deleteAnnotation(id: string): Promise<void>;
+  
+  // Analytics Data Management
+  getAnalyticsData(filter: {
+    userId?: string;
+    projectId?: string;
+    metricType?: string;
+    timeframe?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<AnalyticsData[]>;
+  createAnalyticsData(data: InsertAnalyticsData): Promise<AnalyticsData>;
+  getDashboardMetrics(userId: string): Promise<any>;
+  
+  // Search and Filtering
+  searchCaptures(query: string, filters?: any): Promise<Capture[]>;
+  getPendingCaptures(): Promise<Capture[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1786,6 +1817,499 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("❌ Error creating hypothesis validation:", error);
       throw error;
+    }
+  }
+
+  // User Settings Management
+  async getUserSettings(userId: string): Promise<UserSettings | undefined> {
+    try {
+      const result = await this.client.query(
+        'SELECT * FROM user_settings WHERE user_id = $1 LIMIT 1',
+        [userId]
+      );
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          userId: row.user_id,
+          extensionSettings: row.extension_settings,
+          dashboardSettings: row.dashboard_settings,
+          searchSettings: row.search_settings,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        } as UserSettings;
+      }
+      return undefined;
+    } catch (error) {
+      console.error("❌ Error fetching user settings:", error);
+      return undefined;
+    }
+  }
+
+  async createUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO user_settings (
+          id, user_id, extension_settings, dashboard_settings, 
+          search_settings, created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, NOW(), NOW()
+        )
+        RETURNING *
+      `, [
+        settings.userId,
+        JSON.stringify(settings.extensionSettings || {}),
+        JSON.stringify(settings.dashboardSettings || {}),
+        JSON.stringify(settings.searchSettings || {})
+      ]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userId: row.user_id,
+        extensionSettings: row.extension_settings,
+        dashboardSettings: row.dashboard_settings,
+        searchSettings: row.search_settings,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as UserSettings;
+    } catch (error) {
+      console.error("❌ Error creating user settings:", error);
+      throw error;
+    }
+  }
+
+  async updateUserSettings(userId: string, updates: Partial<InsertUserSettings>): Promise<UserSettings> {
+    try {
+      const updateFields: string[] = [];
+      const values: any[] = [userId];
+      let paramIndex = 2;
+
+      if (updates.extensionSettings !== undefined) {
+        updateFields.push(`extension_settings = $${paramIndex}`);
+        values.push(JSON.stringify(updates.extensionSettings));
+        paramIndex++;
+      }
+      if (updates.dashboardSettings !== undefined) {
+        updateFields.push(`dashboard_settings = $${paramIndex}`);
+        values.push(JSON.stringify(updates.dashboardSettings));
+        paramIndex++;
+      }
+      if (updates.searchSettings !== undefined) {
+        updateFields.push(`search_settings = $${paramIndex}`);
+        values.push(JSON.stringify(updates.searchSettings));
+        paramIndex++;
+      }
+
+      updateFields.push('updated_at = NOW()');
+
+      const result = await this.client.query(`
+        UPDATE user_settings
+        SET ${updateFields.join(', ')}
+        WHERE user_id = $1
+        RETURNING *
+      `, values);
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userId: row.user_id,
+        extensionSettings: row.extension_settings,
+        dashboardSettings: row.dashboard_settings,
+        searchSettings: row.search_settings,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as UserSettings;
+    } catch (error) {
+      console.error("❌ Error updating user settings:", error);
+      throw error;
+    }
+  }
+
+  // Annotations Management
+  async getAnnotations(captureId: string): Promise<Annotation[]> {
+    try {
+      const result = await this.client.query(
+        'SELECT * FROM annotations WHERE capture_id = $1 ORDER BY version DESC',
+        [captureId]
+      );
+      return result.rows.map(row => ({
+        id: row.id,
+        captureId: row.capture_id,
+        userId: row.user_id,
+        canvasData: row.canvas_data,
+        annotationType: row.annotation_type,
+        coordinates: row.coordinates,
+        version: row.version,
+        parentId: row.parent_id,
+        isShared: row.is_shared,
+        collaborators: row.collaborators,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as Annotation));
+    } catch (error) {
+      console.error("❌ Error fetching annotations:", error);
+      return [];
+    }
+  }
+
+  async getAnnotationById(id: string): Promise<Annotation | undefined> {
+    try {
+      const result = await this.client.query(
+        'SELECT * FROM annotations WHERE id = $1 LIMIT 1',
+        [id]
+      );
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          captureId: row.capture_id,
+          userId: row.user_id,
+          canvasData: row.canvas_data,
+          annotationType: row.annotation_type,
+          coordinates: row.coordinates,
+          version: row.version,
+          parentId: row.parent_id,
+          isShared: row.is_shared,
+          collaborators: row.collaborators,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        } as Annotation;
+      }
+      return undefined;
+    } catch (error) {
+      console.error("❌ Error fetching annotation:", error);
+      return undefined;
+    }
+  }
+
+  async createAnnotation(annotation: InsertAnnotation): Promise<Annotation> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO annotations (
+          id, capture_id, user_id, canvas_data, annotation_type,
+          coordinates, version, parent_id, is_shared, collaborators,
+          created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()
+        )
+        RETURNING *
+      `, [
+        annotation.captureId,
+        annotation.userId,
+        JSON.stringify(annotation.canvasData),
+        annotation.annotationType || 'canvas',
+        JSON.stringify(annotation.coordinates || null),
+        annotation.version || 1,
+        annotation.parentId || null,
+        annotation.isShared || false,
+        JSON.stringify(annotation.collaborators || [])
+      ]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        captureId: row.capture_id,
+        userId: row.user_id,
+        canvasData: row.canvas_data,
+        annotationType: row.annotation_type,
+        coordinates: row.coordinates,
+        version: row.version,
+        parentId: row.parent_id,
+        isShared: row.is_shared,
+        collaborators: row.collaborators,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as Annotation;
+    } catch (error) {
+      console.error("❌ Error creating annotation:", error);
+      throw error;
+    }
+  }
+
+  async updateAnnotation(id: string, updates: Partial<InsertAnnotation>): Promise<Annotation> {
+    try {
+      const updateFields: string[] = [];
+      const values: any[] = [id];
+      let paramIndex = 2;
+
+      if (updates.canvasData !== undefined) {
+        updateFields.push(`canvas_data = $${paramIndex}`);
+        values.push(JSON.stringify(updates.canvasData));
+        paramIndex++;
+      }
+      if (updates.coordinates !== undefined) {
+        updateFields.push(`coordinates = $${paramIndex}`);
+        values.push(JSON.stringify(updates.coordinates));
+        paramIndex++;
+      }
+      if (updates.isShared !== undefined) {
+        updateFields.push(`is_shared = $${paramIndex}`);
+        values.push(updates.isShared);
+        paramIndex++;
+      }
+      if (updates.collaborators !== undefined) {
+        updateFields.push(`collaborators = $${paramIndex}`);
+        values.push(JSON.stringify(updates.collaborators));
+        paramIndex++;
+      }
+
+      updateFields.push('updated_at = NOW()');
+
+      const result = await this.client.query(`
+        UPDATE annotations
+        SET ${updateFields.join(', ')}
+        WHERE id = $1
+        RETURNING *
+      `, values);
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        captureId: row.capture_id,
+        userId: row.user_id,
+        canvasData: row.canvas_data,
+        annotationType: row.annotation_type,
+        coordinates: row.coordinates,
+        version: row.version,
+        parentId: row.parent_id,
+        isShared: row.is_shared,
+        collaborators: row.collaborators,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as Annotation;
+    } catch (error) {
+      console.error("❌ Error updating annotation:", error);
+      throw error;
+    }
+  }
+
+  async deleteAnnotation(id: string): Promise<void> {
+    try {
+      await this.client.query('DELETE FROM annotations WHERE id = $1', [id]);
+    } catch (error) {
+      console.error("❌ Error deleting annotation:", error);
+      throw error;
+    }
+  }
+
+  // Analytics Data Management
+  async getAnalyticsData(filter: {
+    userId?: string;
+    projectId?: string;
+    metricType?: string;
+    timeframe?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<AnalyticsData[]> {
+    try {
+      let query = 'SELECT * FROM analytics_data WHERE 1=1';
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      if (filter.userId) {
+        query += ` AND user_id = $${paramIndex}`;
+        values.push(filter.userId);
+        paramIndex++;
+      }
+      if (filter.projectId) {
+        query += ` AND project_id = $${paramIndex}`;
+        values.push(filter.projectId);
+        paramIndex++;
+      }
+      if (filter.metricType) {
+        query += ` AND metric_type = $${paramIndex}`;
+        values.push(filter.metricType);
+        paramIndex++;
+      }
+      if (filter.timeframe) {
+        query += ` AND timeframe = $${paramIndex}`;
+        values.push(filter.timeframe);
+        paramIndex++;
+      }
+      if (filter.startDate) {
+        query += ` AND recorded_at >= $${paramIndex}`;
+        values.push(filter.startDate);
+        paramIndex++;
+      }
+      if (filter.endDate) {
+        query += ` AND recorded_at <= $${paramIndex}`;
+        values.push(filter.endDate);
+        paramIndex++;
+      }
+
+      query += ' ORDER BY recorded_at DESC';
+
+      const result = await this.client.query(query, values);
+      return result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        projectId: row.project_id,
+        metricType: row.metric_type,
+        metricValue: row.metric_value.toString(),
+        recordedAt: row.recorded_at,
+        timeframe: row.timeframe,
+        dimensions: row.dimensions,
+        aggregatedData: row.aggregated_data
+      } as AnalyticsData));
+    } catch (error) {
+      console.error("❌ Error fetching analytics data:", error);
+      return [];
+    }
+  }
+
+  async createAnalyticsData(data: InsertAnalyticsData): Promise<AnalyticsData> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO analytics_data (
+          id, user_id, project_id, metric_type, metric_value,
+          recorded_at, timeframe, dimensions, aggregated_data
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, NOW(), $5, $6, $7
+        )
+        RETURNING *
+      `, [
+        data.userId,
+        data.projectId || null,
+        data.metricType,
+        data.metricValue,
+        data.timeframe || 'daily',
+        JSON.stringify(data.dimensions || {}),
+        JSON.stringify(data.aggregatedData || {})
+      ]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userId: row.user_id,
+        projectId: row.project_id,
+        metricType: row.metric_type,
+        metricValue: row.metric_value.toString(),
+        recordedAt: row.recorded_at,
+        timeframe: row.timeframe,
+        dimensions: row.dimensions,
+        aggregatedData: row.aggregated_data
+      } as AnalyticsData;
+    } catch (error) {
+      console.error("❌ Error creating analytics data:", error);
+      throw error;
+    }
+  }
+
+  async getDashboardMetrics(userId: string): Promise<any> {
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const [captures, viral, trends] = await Promise.all([
+        this.client.query(`
+          SELECT COUNT(*) as total, 
+                 COUNT(CASE WHEN created_at >= $2 THEN 1 END) as recent
+          FROM captures 
+          WHERE user_id = $1
+        `, [userId, sevenDaysAgo]),
+        
+        this.client.query(`
+          SELECT AVG(viral_score) as avg_viral,
+                 MAX(viral_score) as max_viral
+          FROM captures 
+          WHERE user_id = $1 AND viral_score IS NOT NULL
+        `, [userId]),
+        
+        this.getAnalyticsData({
+          userId,
+          metricType: 'trend',
+          startDate: sevenDaysAgo
+        })
+      ]);
+
+      return {
+        totalCaptures: parseInt(captures.rows[0].total),
+        recentCaptures: parseInt(captures.rows[0].recent),
+        avgViralScore: parseFloat(viral.rows[0].avg_viral || '0'),
+        maxViralScore: parseFloat(viral.rows[0].max_viral || '0'),
+        trendData: trends
+      };
+    } catch (error) {
+      console.error("❌ Error fetching dashboard metrics:", error);
+      return {
+        totalCaptures: 0,
+        recentCaptures: 0,
+        avgViralScore: 0,
+        maxViralScore: 0,
+        trendData: []
+      };
+    }
+  }
+
+  // Search and Filtering
+  async searchCaptures(query: string, filters?: any): Promise<Capture[]> {
+    try {
+      let sql = `
+        SELECT * FROM captures 
+        WHERE (
+          title ILIKE $1 OR 
+          content ILIKE $1 OR 
+          summary ILIKE $1 OR
+          tags::text ILIKE $1
+        )
+      `;
+      const values: any[] = [`%${query}%`];
+      let paramIndex = 2;
+
+      if (filters?.platform) {
+        sql += ` AND platform = $${paramIndex}`;
+        values.push(filters.platform);
+        paramIndex++;
+      }
+      if (filters?.projectId) {
+        sql += ` AND project_id = $${paramIndex}`;
+        values.push(filters.projectId);
+        paramIndex++;
+      }
+      if (filters?.analysisStatus) {
+        sql += ` AND analysis_status = $${paramIndex}`;
+        values.push(filters.analysisStatus);
+        paramIndex++;
+      }
+
+      sql += ' ORDER BY created_at DESC LIMIT 100';
+
+      const result = await this.client.query(sql, values);
+      return result.rows.map(row => ({
+        id: row.id,
+        projectId: row.project_id,
+        userId: row.user_id,
+        type: row.type,
+        title: row.title,
+        content: row.content,
+        url: row.url,
+        platform: row.platform,
+        screenshotUrl: row.screenshot_url,
+        summary: row.summary,
+        tags: row.tags,
+        metadata: row.metadata,
+        truthAnalysis: row.truth_analysis,
+        analysisStatus: row.analysis_status,
+        googleAnalysis: row.google_analysis,
+        dsdTags: row.dsd_tags,
+        dsdSection: row.dsd_section,
+        viralScore: row.viral_score,
+        culturalResonance: row.cultural_resonance,
+        prediction: row.prediction,
+        outcome: row.outcome,
+        workspaceNotes: row.workspace_notes,
+        briefSectionAssignment: row.brief_section_assignment,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as Capture));
+    } catch (error) {
+      console.error("❌ Error searching captures:", error);
+      return [];
     }
   }
 }
