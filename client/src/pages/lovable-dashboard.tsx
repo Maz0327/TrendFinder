@@ -88,8 +88,8 @@ const Index = () => {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-4 space-y-4">
-            {/* Metrics Overview with TrendFinder-LVUI-Push StatsOverview */}
+          <main className="flex-1 p-3 space-y-3 overflow-hidden">
+            {/* Top Row: 4 Metrics */}
             <StatsOverview
               variant="dashboard"
               stats={{
@@ -102,33 +102,55 @@ const Index = () => {
               }}
             />
 
-            {/* Trend Analysis & System Status */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <TrendChart
-                title="Signal Detection Rate"
-                data={trendData}
-              />
-              <SystemStatus />
-            </div>
-
-            {/* Latest Signals */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-foreground">Latest Signals</h2>
-                <Button variant="outline" className="text-primary border-primary/20 hover:bg-primary/5">
-                  View All Signals
-                </Button>
+            {/* Bottom Row: 3 Components */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 h-[calc(100vh-280px)]">
+              {/* Signal Detection Rate */}
+              <div className="lg:col-span-1">
+                <TrendChart
+                  title="Signal Detection Rate"
+                  data={trendData}
+                />
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-                {signalsLoading ? (
-                  <div className="col-span-full flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : (
-                  displaySignals.slice(0, 6).map((signal, index) => (
-                    <SignalCard key={signal.id || index} {...signal} />
-                  ))
-                )}
+              
+              {/* System Status */}
+              <div className="lg:col-span-1">
+                <SystemStatus />
+              </div>
+              
+              {/* Latest Signals */}
+              <div className="lg:col-span-1 flex flex-col">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-lg font-semibold text-foreground">Latest Signals</h2>
+                  <Button variant="outline" size="sm" className="text-primary border-primary/20 hover:bg-primary/5">
+                    View All
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto space-y-2">
+                  {signalsLoading ? (
+                    <div className="flex justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    </div>
+                  ) : displaySignals.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground text-sm">No signals detected yet. Start capturing content to see insights here.</p>
+                    </div>
+                  ) : (
+                    displaySignals.slice(0, 6).map((signal, index) => (
+                      <SignalCard 
+                        key={index}
+                        title={signal.title}
+                        content={signal.content}
+                        platform={signal.platform}
+                        engagement={signal.engagement}
+                        viralScore={signal.viralScore}
+                        tags={signal.tags}
+                        timestamp={signal.timestamp}
+                        author={signal.author}
+                        url={signal.url}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </main>
