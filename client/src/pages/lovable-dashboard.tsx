@@ -80,7 +80,7 @@ const LovableDashboard = () => {
                     className="pl-10 w-64 bg-muted/50 border-border"
                   />
                 </div>
-                <Link to="/signal-capture">
+                <Link href="/signal-capture">
                   <Button variant="outline">Extension Preview</Button>
                 </Link>
                 <Button variant="default" className="bg-gradient-primary shadow-glow">
@@ -139,19 +139,19 @@ const LovableDashboard = () => {
                 <div className="bg-card rounded-lg border border-border p-4">
                   <h3 className="text-lg font-semibold mb-3 text-foreground">Quick Actions</h3>
                   <div className="space-y-2">
-                    <Link to="/signal-capture">
+                    <Link href="/signal-capture">
                       <Button variant="outline" className="w-full justify-start">
                         <Radar className="w-4 h-4 mr-2" />
                         New Signal Capture
                       </Button>
                     </Link>
-                    <Link to="/brief-lab">
+                    <Link href="/brief-lab">
                       <Button variant="outline" className="w-full justify-start">
                         <Activity className="w-4 h-4 mr-2" />
                         Strategic Brief Lab
                       </Button>
                     </Link>
-                    <Link to="/explore-signals">
+                    <Link href="/explore-signals">
                       <Button variant="outline" className="w-full justify-start">
                         <Search className="w-4 h-4 mr-2" />
                         Explore Signals
@@ -166,7 +166,7 @@ const LovableDashboard = () => {
             <div className="bg-card rounded-lg border border-border p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-foreground">Recent Signals</h2>
-                <Link to="/explore-signals">
+                <Link href="/explore-signals">
                   <Button variant="ghost" size="sm">View All</Button>
                 </Link>
               </div>
