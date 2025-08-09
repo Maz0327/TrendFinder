@@ -171,6 +171,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Production monitoring and metrics
   app.get("/metrics", productionMonitor.metricsEndpoint);
 
+  // PUBLIC API ROUTES (No Authentication Required)
+  
+  // Public AI Analysis Routes  
+  app.post("/api/public/ai-analysis", async (req, res) => {
+    try {
+      const { content, type = "quick" } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ error: "Content is required for analysis" });
+      }
+
+      console.log(`🧠 Running ${type} AI analysis on content snippet`);
+      
+      const analysis = await aiAnalyzer.analyzeContent("Quick Analysis", content, "web");
+      
+      res.json({
+        success: true,
+        analysis,
+        type,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      res.status(500).json({ 
+        error: "Failed to analyze content",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Public Truth Analysis Routes
+  app.post("/api/public/truth-analysis", async (req, res) => {
+    try {
+      const { content } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ error: "Content is required for truth analysis" });
+      }
+
+      console.log(`🔍 Running Truth Analysis Framework on content`);
+      
+      const truthAnalysis = await truthFramework.analyzeContent(content, "web", {});
+      
+      res.json({
+        success: true,
+        truthAnalysis,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("Truth analysis error:", error);
+      res.status(500).json({ 
+        error: "Failed to perform truth analysis",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Public Bright Data Testing Route
+  app.post("/api/public/bright-data-test", async (req, res) => {
+    try {
+      const { platform = "twitter", query = "AI trends" } = req.body;
+      
+      console.log(`🚀 Testing Bright Data collection for ${platform} with query: ${query}`);
+      
+      const result = await liveBrightData.fetchLiveData(platform, [query], 5);
+      
+      res.json({
+        success: true,
+        platform,
+        query,
+        dataCount: result.data?.length || 0,
+        data: result.data || [],
+        source: result.source || 'bright-data-api'
+      });
+      
+    } catch (error) {
+      console.error("Bright Data test error:", error);
+      res.status(500).json({ 
+        error: "Failed to test Bright Data collection",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Bright Data Integration Routes
   app.post("/api/bright-data/trigger", async (req, res) => {
     try {
@@ -203,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Analysis Routes (Public for testing - authentication handled by Chrome extension)
+  // Public AI Analysis Routes (no auth required for testing)
   app.post("/api/ai/quick-analysis", async (req, res) => {
     try {
       const { content, type = "quick", context } = req.body;
@@ -233,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Truth Analysis Framework Routes
+  // Public Truth Analysis Routes (no auth required for testing)  
   app.post("/api/truth-analysis", async (req, res) => {
     try {
       const { content, captureId } = req.body;
@@ -245,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔍 Running Truth Analysis Framework on content`);
       
       // Use the truth framework for deep analysis
-      const truthAnalysis = await truthFramework.analyzeContent(content, "web", context);
+      const truthAnalysis = await truthFramework.analyzeContent(content, "web", {});
       
       // If captureId provided, update the capture with analysis
       if (captureId && req.session?.user?.id) {
