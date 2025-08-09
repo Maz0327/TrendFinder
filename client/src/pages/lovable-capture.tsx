@@ -10,15 +10,93 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Link, Upload, Zap, Brain, Target } from "lucide-react"
 import { useState } from "react"
+import { useQuery, useMutation } from "@tanstack/react-query"
+import { queryClient } from "@/lib/queryClient"
+import { useToast } from "@/hooks/use-toast"
 
 const Capture = () => {
   const [urlInput, setUrlInput] = useState("")
+  const [manualContent, setManualContent] = useState("")
+  const [selectedProject, setSelectedProject] = useState("")
   const [analyzing, setAnalyzing] = useState(false)
+  const { toast } = useToast()
+
+  // Get projects for selection
+  const { data: projects = [] } = useQuery({
+    queryKey: ["/api/projects"],
+  });
+
+  // Create capture mutation
+  const createCapture = useMutation({
+    mutationFn: async (captureData: any) => {
+      const response = await fetch('/api/captures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(captureData),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create capture');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Capture Created",
+        description: "Your content has been captured and is being analyzed.",
+      });
+      setUrlInput("");
+      setManualContent("");
+      queryClient.invalidateQueries({ queryKey: ["/api/captures"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Capture Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleAnalyzeUrl = () => {
-    setAnalyzing(true)
-    // Simulate AI analysis
-    setTimeout(() => setAnalyzing(false), 3000)
+    if (!selectedProject) {
+      toast({
+        title: "Project Required",
+        description: "Please select a project first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setAnalyzing(true);
+    createCapture.mutate({
+      projectId: selectedProject,
+      type: "url",
+      content: urlInput,
+      url: urlInput,
+      title: "URL Capture",
+      platform: "manual"
+    });
+    setAnalyzing(false);
+  }
+
+  const handleManualSubmit = () => {
+    if (!selectedProject) {
+      toast({
+        title: "Project Required", 
+        description: "Please select a project first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createCapture.mutate({
+      projectId: selectedProject,
+      type: "text",
+      content: manualContent,
+      title: "Manual Entry",
+      platform: "manual"
+    });
   }
 
   return (
@@ -118,6 +196,21 @@ const Capture = () => {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
+                          <Label htmlFor="project">Project</Label>
+                          <Select value={selectedProject} onValueChange={setSelectedProject}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a project" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {projects.map((project: any) => (
+                                <SelectItem key={project.id} value={project.id}>
+                                  {project.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
                           <Label htmlFor="platform">Platform</Label>
                           <Select>
                             <SelectTrigger>
@@ -177,6 +270,8 @@ const Capture = () => {
                           id="content" 
                           placeholder="Paste or type the content here..." 
                           className="min-h-[120px]"
+                          value={manualContent}
+                          onChange={(e) => setManualContent(e.target.value)}
                         />
                       </div>
 
@@ -211,9 +306,22 @@ const Capture = () => {
                         <Input id="tags" placeholder="ai, technology, viral, trending" />
                       </div>
 
-                      <Button className="w-full bg-gradient-primary shadow-glow">
-                        <Target className="w-4 h-4 mr-2" />
-                        Analyze Manual Entry
+                      <Button 
+                        onClick={handleManualSubmit}
+                        disabled={!manualContent.trim() || createCapture.isPending}
+                        className="w-full bg-gradient-primary shadow-glow"
+                      >
+                        {createCapture.isPending ? (
+                          <>
+                            <Zap className="w-4 h-4 mr-2 animate-pulse" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <Target className="w-4 h-4 mr-2" />
+                            Analyze Manual Entry
+                          </>
+                        )}
                       </Button>
                     </CardContent>
                   </Card>

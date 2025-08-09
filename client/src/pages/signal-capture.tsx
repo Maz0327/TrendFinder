@@ -56,9 +56,15 @@ export default function SignalCapture() {
       const response = await fetch('/api/captures', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(captureData),
+        body: JSON.stringify({
+          ...captureData,
+          projectId: captureData.projectId || (projects[0]?.id),
+        }),
       });
-      if (!response.ok) throw new Error('Failed to create capture');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create capture');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -166,6 +172,7 @@ export default function SignalCapture() {
                     <Label htmlFor="url">Content URL</Label>
                     <Input
                       id="url"
+                      data-testid="input-content-url"
                       placeholder="https://example.com/content"
                       value={form.content}
                       onChange={(e) => updateForm('content', e.target.value)}
