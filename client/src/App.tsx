@@ -26,6 +26,7 @@ import AuthRegister from "@/pages/auth-register";
 // Legacy pages (keeping for backward compatibility)
 import SignalMining from "@/pages/signal-mining";
 import Projects from "@/pages/projects";
+import ProjectDetails from "@/pages/project-details";
 import BriefBuilder from "@/pages/brief-builder";
 import MyCaptures from "@/pages/my-captures";
 import IntelligenceHub from "@/pages/intelligence";
@@ -53,7 +54,8 @@ function Router() {
       <Route path="/explore" component={() => <ProtectedRoute><LovableExplore /></ProtectedRoute>} />
       <Route path="/capture" component={() => <ProtectedRoute><LovableCapture /></ProtectedRoute>} />
       <Route path="/lab" component={() => <ProtectedRoute><LovableStrategicLab /></ProtectedRoute>} />
-      <Route path="/projects" component={() => <ProtectedRoute><LovableProjects /></ProtectedRoute>} />
+      <Route path="/projects" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
+      <Route path="/projects/:id" component={() => <ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
       <Route path="/trends" component={() => <ProtectedRoute><LovableTrends /></ProtectedRoute>} />
       <Route path="/search" component={() => <ProtectedRoute><LovableSearch /></ProtectedRoute>} />
       <Route path="/insights" component={() => <ProtectedRoute><LovableInsights /></ProtectedRoute>} />

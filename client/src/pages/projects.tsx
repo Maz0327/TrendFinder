@@ -28,7 +28,7 @@ export default function Projects() {
   const [, navigate] = useLocation();
 
   // Fetch projects
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/projects"],
     enabled: true,
   });
