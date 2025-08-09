@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Radar, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { queryClient } from "@/lib/queryClient";
 import { 
   HoverScaleButton, 
   RippleButton,
@@ -76,10 +77,11 @@ export default function AuthLogin() {
         description: "Successfully logged in to Content Radar",
       });
 
-      // Redirect after animation
-      setTimeout(() => {
-        setLocation("/");
-      }, 1500);
+      // Invalidate auth query to refresh user state
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      // Immediate redirect to dashboard
+      setLocation("/");
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
       form.setError("password", { message: "" }); // Trigger shake animation
