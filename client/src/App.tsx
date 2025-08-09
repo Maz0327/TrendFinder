@@ -54,7 +54,7 @@ function Router() {
       <Route path="/explore" component={() => <ProtectedRoute><LovableExplore /></ProtectedRoute>} />
       <Route path="/capture" component={() => <ProtectedRoute><LovableCapture /></ProtectedRoute>} />
       <Route path="/lab" component={() => <ProtectedRoute><LovableStrategicLab /></ProtectedRoute>} />
-      <Route path="/projects" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
+      <Route path="/projects" component={() => <ProtectedRoute><LovableProjects /></ProtectedRoute>} />
       <Route path="/projects/:id" component={() => <ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
       <Route path="/trends" component={() => <ProtectedRoute><LovableTrends /></ProtectedRoute>} />
       <Route path="/search" component={() => <ProtectedRoute><LovableSearch /></ProtectedRoute>} />
