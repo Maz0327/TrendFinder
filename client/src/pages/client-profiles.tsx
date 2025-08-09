@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/ui/app-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -206,38 +208,158 @@ export default function ClientProfiles() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col">
+            <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+              <div className="flex items-center justify-between h-full px-6">
+                <div className="flex items-center gap-4">
+                  <SidebarTrigger className="text-muted-foreground hover:text-primary" />
+                  <h1 className="text-xl font-bold text-foreground">Client Profiles</h1>
+                  <div className="text-sm text-muted-foreground">
+                    Manage brand voice and strategic alignment for clients
+                  </div>
+                </div>
+              </div>
+            </header>
+            <main className="flex-1 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Client Profiles</h1>
-          <p className="text-muted-foreground">Manage brand voice and strategic alignment for clients</p>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center justify-between h-full px-6">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="text-muted-foreground hover:text-primary" />
+                <h1 className="text-xl font-bold text-foreground">Client Profiles</h1>
+                <div className="text-sm text-muted-foreground">
+                  Manage brand voice and strategic alignment for clients
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Dialog open={isCreateOpen} onOpenChange={(open) => {
+                  setIsCreateOpen(open);
+                  if (!open) {
+                    setEditingProfile(null);
+                    form.reset();
+                  }
+                }}>
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-create-profile">
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Profile
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+              </div>
+            </div>
+          </header>
+          
+          {/* Main Content */}
+          <main className="flex-1 p-6">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {profiles.map((profile: ClientProfile) => (
+                  <Card key={profile.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="w-5 h-5" />
+                          {profile.name}
+                        </CardTitle>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(profile)}
+                            data-testid={`button-edit-${profile.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteMutation.mutate(profile.id)}
+                            data-testid={`button-delete-${profile.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {profile.brandVoice && (
+                        <CardDescription className="text-sm text-muted-foreground">
+                          {profile.brandVoice.slice(0, 100)}...
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      {profile.targetAudience?.demographics && profile.targetAudience.demographics.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Top Demographics</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {profile.targetAudience.demographics.slice(0, 3).map((demo, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {demo}
+                              </Badge>
+                            ))}
+                            {profile.targetAudience.demographics.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{profile.targetAudience.demographics.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {profiles.length === 0 && (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Client Profiles</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first client profile to start building strategic intelligence
+                    </p>
+                    <Button onClick={() => setIsCreateOpen(true)} data-testid="button-create-first-profile">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create First Profile
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </main>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={(open) => {
-          setIsCreateOpen(open);
-          if (!open) {
-            setEditingProfile(null);
-            form.reset();
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create-profile">
-              <Plus className="w-4 h-4 mr-2" />
-              New Profile
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingProfile ? 'Edit Client Profile' : 'Create Client Profile'}
-              </DialogTitle>
-            </DialogHeader>
+      </div>
+      
+      {/* Dialog Form - Outside the main layout */}
+      <Dialog open={isCreateOpen} onOpenChange={(open) => {
+        setIsCreateOpen(open);
+        if (!open) {
+          setEditingProfile(null);
+          form.reset();
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProfile ? 'Edit Client Profile' : 'Create Client Profile'}
+            </DialogTitle>
+          </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -404,112 +526,6 @@ export default function ClientProfiles() {
             </Form>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {profiles.map((profile: ClientProfile) => (
-          <Card key={profile.id} className="bg-gradient-surface border-border/50 hover:border-primary/20 transition-smooth">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg">{profile.name}</CardTitle>
-                  <CardDescription className="mt-1">
-                    Created {new Date(profile.createdAt).toLocaleDateString()}
-                  </CardDescription>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(profile)}
-                    data-testid={`button-edit-${profile.id}`}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteMutation.mutate(profile.id)}
-                    disabled={deleteMutation.isPending}
-                    data-testid={`button-delete-${profile.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {profile.brandVoice && (
-                <div>
-                  <h4 className="text-sm font-medium mb-1">Brand Voice</h4>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{profile.brandVoice}</p>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <h4 className="font-medium mb-1">Demographics</h4>
-                  <p className="text-muted-foreground">
-                    {profile.targetAudience?.demographics?.length || 0} tags
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-1">Channels</h4>
-                  <p className="text-muted-foreground">
-                    {Object.keys(profile.channelPreferences || {}).length} configured
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-1">Pain Points</h4>
-                  <p className="text-muted-foreground">
-                    {profile.targetAudience?.painPoints?.length || 0} identified
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-1">No-Go Zones</h4>
-                  <p className="text-muted-foreground">
-                    {profile.noGoZones?.length || 0} restrictions
-                  </p>
-                </div>
-              </div>
-
-              {profile.targetAudience?.demographics && profile.targetAudience.demographics.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Top Demographics</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {profile.targetAudience.demographics.slice(0, 3).map((demo, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {demo}
-                      </Badge>
-                    ))}
-                    {profile.targetAudience.demographics.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{profile.targetAudience.demographics.length - 3} more
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {profiles.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Client Profiles</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first client profile to start building strategic intelligence
-            </p>
-            <Button onClick={() => setIsCreateOpen(true)} data-testid="button-create-first-profile">
-              <Plus className="w-4 h-4 mr-2" />
-              Create First Profile
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+    </SidebarProvider>
   );
 }

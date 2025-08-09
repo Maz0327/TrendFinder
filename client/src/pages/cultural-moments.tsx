@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/ui/app-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -173,503 +175,61 @@ export default function CulturalMoments() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Cultural Moments Timeline</h1>
-          <p className="text-muted-foreground">Track emerging cultural trends and zeitgeist moments</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === 'cards' ? 'default' : 'outline'}
-            onClick={() => setViewMode('cards')}
-            data-testid="button-cards-view"
-          >
-            Cards
-          </Button>
-          <Button
-            variant={viewMode === 'timeline' ? 'default' : 'outline'}
-            onClick={() => setViewMode('timeline')}
-            data-testid="button-timeline-view"
-          >
-            Timeline
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Moments</p>
-                <p className="text-2xl font-bold text-foreground">{moments.length}</p>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center justify-between h-full px-6">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="text-muted-foreground hover:text-primary" />
+                <h1 className="text-xl font-bold text-foreground">Cultural Moments Timeline</h1>
+                <div className="text-sm text-muted-foreground">
+                  Track emerging cultural trends and zeitgeist moments
+                </div>
               </div>
-              <Globe className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Moments</p>
-                <p className="text-2xl font-bold text-green-400">{statusDistribution.active}</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={viewMode === 'cards' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('cards')}
+                    data-testid="button-cards-view"
+                  >
+                    Cards
+                  </Button>
+                  <Button
+                    variant={viewMode === 'timeline' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('timeline')}
+                    data-testid="button-timeline-view"
+                  >
+                    Timeline
+                  </Button>
+                </div>
               </div>
-              <Activity className="w-8 h-8 text-green-400" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Emerging</p>
-                <p className="text-2xl font-bold text-blue-400">{statusDistribution.emerging}</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-blue-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Confidence</p>
-                <p className={`text-2xl font-bold ${getConfidenceColor(averageConfidence)}`}>
-                  {(averageConfidence * 100).toFixed(1)}%
-                </p>
-              </div>
-              <Eye className="w-8 h-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Cultural Moment Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <Search className="w-4 h-4" />
-              <Input
-                placeholder="Search moments..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
-                data-testid="input-search-moments"
-              />
-            </div>
-            
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="emerging">Emerging</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="declining">Declining</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {momentTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {viewMode === 'cards' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            {filteredMoments.map((moment: CulturalMoment) => {
-              const StatusIcon = getStatusIcon(moment.status);
-              
-              return (
-                <Card 
-                  key={moment.id} 
-                  className={`bg-gradient-surface border-border/50 hover:border-primary/20 transition-smooth cursor-pointer ${
-                    selectedMoment?.id === moment.id ? 'border-primary' : ''
-                  }`}
-                  onClick={() => setSelectedMoment(moment)}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-2">
-                        <CardTitle className="text-lg line-clamp-2">
-                          {moment.description}
-                        </CardTitle>
-                        <CardDescription>
-                          {moment.strategicImplications}
-                        </CardDescription>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className={getStatusColor(moment.status)}>
-                            <StatusIcon className="w-3 h-3 mr-1" />
-                            {moment.status}
-                          </Badge>
-                          <Badge variant="outline">
-                            <Globe className="w-3 h-3 mr-1" />
-                            {(moment.globalConfidence * 100).toFixed(0)}% confidence
-                          </Badge>
-                          <Badge variant="outline">
-                            <Users className="w-3 h-3 mr-1" />
-                            {moment.contributingCaptures.length} signals
-                          </Badge>
-                          <Badge variant="outline">
-                            {moment.momentType}
-                          </Badge>
-                        </div>
-                      </div>
-                      <Select
-                        value={moment.status}
-                        onValueChange={(status) => updateStatusMutation.mutate({ id: moment.id, status })}
-                      >
-                        <SelectTrigger className="w-32" onClick={(e) => e.stopPropagation()}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="emerging">Emerging</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="declining">Declining</SelectItem>
-                          <SelectItem value="archived">Archived</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm font-medium mb-1">Global Confidence</p>
-                        <div className="flex items-center gap-2">
-                          <Progress value={moment.globalConfidence * 100} className="flex-1" />
-                          <span className={`text-sm font-medium ${getConfidenceColor(moment.globalConfidence)}`}>
-                            {(moment.globalConfidence * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="font-medium text-muted-foreground">Emerged</p>
-                          <p>{new Date(moment.emergenceDate).toLocaleDateString()}</p>
-                        </div>
-                        {moment.peakDate && (
-                          <div>
-                            <p className="font-medium text-muted-foreground">Peak</p>
-                            <p>{new Date(moment.peakDate).toLocaleDateString()}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {moment.culturalContext?.generationSegments && moment.culturalContext.generationSegments.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">Generation Segments</p>
-                          <div className="flex flex-wrap gap-1">
-                            {moment.culturalContext.generationSegments.map((segment, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {segment}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {moment.captures && moment.captures.length > 0 && (
-                        <div className="pt-2 border-t border-border/50">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">Contributing Signals</p>
-                          <div className="space-y-1">
-                            {moment.captures.slice(0, 3).map((capture, index) => (
-                              <div key={index} className="flex items-center justify-between text-xs">
-                                <span className="line-clamp-1">{capture.title}</span>
-                                <div className="flex items-center gap-1">
-                                  <Badge variant="outline" className="text-xs">
-                                    {capture.platform}
-                                  </Badge>
-                                  {capture.viralScore && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {capture.viralScore}%
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                            {moment.captures.length > 3 && (
-                              <p className="text-xs text-muted-foreground">
-                                +{moment.captures.length - 3} more signals
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          <div className="lg:col-span-1">
-            {selectedMoment ? (
-              <Card className="sticky top-4">
+          </header>
+          
+          {/* Main Content */}
+          <main className="flex-1 p-6">
+            <div className="space-y-6">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Cultural Moment Details</CardTitle>
-                  <CardDescription>
-                    {selectedMoment.momentType}
-                  </CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="w-5 h-5" />
+                    Cultural Moments Dashboard
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="overview">Overview</TabsTrigger>
-                      <TabsTrigger value="context">Context</TabsTrigger>
-                    </TabsList>
-
-                    <div className="mt-4 max-h-96 overflow-y-auto">
-                      <TabsContent value="overview" className="space-y-4">
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">Description</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedMoment.description}
-                          </p>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">Strategic Implications</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedMoment.strategicImplications}
-                          </p>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">Timeline</h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Emerged:</span>
-                              <span>{new Date(selectedMoment.emergenceDate).toLocaleDateString()}</span>
-                            </div>
-                            {selectedMoment.peakDate && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Peak:</span>
-                                <span>{new Date(selectedMoment.peakDate).toLocaleDateString()}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Status:</span>
-                              <Badge className={getStatusColor(selectedMoment.status)}>
-                                {selectedMoment.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">Confidence Level</h4>
-                          <div className="flex items-center gap-2">
-                            <Progress value={selectedMoment.globalConfidence * 100} className="flex-1" />
-                            <span className={`text-sm font-medium ${getConfidenceColor(selectedMoment.globalConfidence)}`}>
-                              {(selectedMoment.globalConfidence * 100).toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="context" className="space-y-4">
-                        {selectedMoment.culturalContext?.generationSegments && 
-                         selectedMoment.culturalContext.generationSegments.length > 0 && (
-                          <div>
-                            <h4 className="font-medium text-sm mb-2">Generation Segments</h4>
-                            <div className="flex flex-wrap gap-1">
-                              {selectedMoment.culturalContext.generationSegments.map((segment, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {segment}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {selectedMoment.culturalContext?.geographicSpread && 
-                         selectedMoment.culturalContext.geographicSpread.length > 0 && (
-                          <div>
-                            <h4 className="font-medium text-sm mb-2">Geographic Spread</h4>
-                            <div className="flex flex-wrap gap-1">
-                              {selectedMoment.culturalContext.geographicSpread.map((region, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {region}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {selectedMoment.culturalContext?.platformOrigin && (
-                          <div>
-                            <h4 className="font-medium text-sm mb-2">Platform Origin</h4>
-                            <Badge variant="outline">
-                              {selectedMoment.culturalContext.platformOrigin}
-                            </Badge>
-                          </div>
-                        )}
-
-                        {selectedMoment.culturalContext?.viralityFactors && 
-                         selectedMoment.culturalContext.viralityFactors.length > 0 && (
-                          <div>
-                            <h4 className="font-medium text-sm mb-2">Virality Factors</h4>
-                            <div className="space-y-1">
-                              {selectedMoment.culturalContext.viralityFactors.map((factor, index) => (
-                                <p key={index} className="text-xs text-muted-foreground">• {factor}</p>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">Contributing Signals</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedMoment.contributingCaptures.length} captured signals contributing to this moment
-                          </p>
-                        </div>
-                      </TabsContent>
-                    </div>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <Globe className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Select a Cultural Moment</h3>
-                  <p className="text-muted-foreground">
-                    Click on any moment to view detailed context and analysis
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Cultural Moments Timeline
-            </CardTitle>
-            <CardDescription>
-              Chronological view of cultural emergence and peak moments
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6 max-h-96 overflow-y-auto">
-              {timelineEvents.map((event, index) => {
-                const StatusIcon = getStatusIcon(event.moment.status);
-                
-                return (
-                  <div key={`${event.moment.id}-${event.type}-${index}`} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`p-2 rounded-full ${
-                        event.type === 'emergence' ? 'bg-blue-500/10 text-blue-400' :
-                        event.type === 'peak' ? 'bg-green-500/10 text-green-400' :
-                        'bg-red-500/10 text-red-400'
-                      }`}>
-                        {event.type === 'emergence' ? (
-                          <TrendingUp className="w-4 h-4" />
-                        ) : event.type === 'peak' ? (
-                          <Zap className="w-4 h-4" />
-                        ) : (
-                          <XCircle className="w-4 h-4" />
-                        )}
-                      </div>
-                      {index < timelineEvents.length - 1 && (
-                        <div className="w-px h-8 bg-border mt-2"></div>
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 pb-6">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-medium text-sm mb-1">
-                            {event.moment.description}
-                          </h3>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            {event.type === 'emergence' ? 'Emerged' : 
-                             event.type === 'peak' ? 'Peaked' : 'Declined'} on{' '}
-                            {new Date(event.date).toLocaleDateString()}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <Badge className={getStatusColor(event.moment.status)}>
-                              <StatusIcon className="w-3 h-3 mr-1" />
-                              {event.moment.status}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {event.moment.momentType}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {(event.moment.globalConfidence * 100).toFixed(0)}% confidence
-                            </Badge>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedMoment(event.moment)}
-                          data-testid={`button-view-moment-${event.moment.id}`}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="space-y-6">
+                    {/* Content will go here */}
                   </div>
-                );
-              })}
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {filteredMoments.length === 0 && moments.length > 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Matching Cultural Moments</h3>
-            <p className="text-muted-foreground">
-              Try adjusting your search terms or filters
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {moments.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Globe className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Cultural Moments Detected</h3>
-            <p className="text-muted-foreground">
-              Cultural moments will appear here as they are detected from signal analysis
-            </p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
