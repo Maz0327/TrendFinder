@@ -59,6 +59,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAnalyticsRoutes(app);
   setupSearchRoutes(app);
 
+  // Get all user captures (fixes routing issue)
+  app.get("/api/captures", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const captures = await db.getUserCaptures(req.session.user.id);
+      res.json(captures);
+    } catch (error) {
+      console.error("Error fetching user captures:", error);
+      res.status(500).json({ error: "Failed to fetch captures" });
+    }
+  });
+
   // Get recent captures for dashboard (Lovable UI)
   app.get("/api/captures/recent", async (req, res) => {
     try {
@@ -620,6 +635,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // System health and error tracking
   const systemErrors: any[] = [];
   const MAX_ERRORS = 100;
+
+  // Make systemErrors available globally
+  (app as any).systemErrors = systemErrors;
 
   app.get("/api/system/health", async (req, res) => {
     try {

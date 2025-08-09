@@ -173,22 +173,7 @@ app.use((req, res, next) => {
     }
   });
 
-  app.get('/api/system/health', async (req, res) => {
-    try {
-      const health = systemMonitor.getHealthStatus();
-      const status = health.healthy ? 200 : 503;
-      res.status(status).json({ 
-        success: health.healthy,
-        data: health
-      });
-    } catch (error: any) {
-      debugLogger.error('Failed to retrieve system health', error);
-      res.status(500).json({ 
-        success: false, 
-        error: "Failed to retrieve system health"
-      });
-    }
-  });
+  // Health endpoint moved to routes.ts to avoid duplication
 
   app.get('/api/system/metrics', async (req, res) => {
     try {
