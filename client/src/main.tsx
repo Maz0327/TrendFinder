@@ -1,6 +1,9 @@
 import { createRoot } from "react-dom/client";
-import SimpleApp from "./SimpleApp";
-// import App from "./App";
+import App from "./App";
 import "./index.css";
+import { errorLogger } from "./lib/errorLogger";
 
-createRoot(document.getElementById("root")!).render(<SimpleApp />);
+// Initialize global error logging
+errorLogger;
+
+createRoot(document.getElementById("root")!).render(<App />);
