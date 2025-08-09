@@ -9,6 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { 
+  CardSkeleton, 
+  StaggerContainer, 
+  StaggerItem, 
+  PulseDotsLoader,
+  ContentPlaceholder 
+} from "@/components/ui/loading-states";
+import { 
+  HoverScaleButton, 
+  AnimatedCounter,
+  GlowCard 
+} from "@/components/ui/micro-interactions";
 
 const NewDashboard = () => {
   // Fetch dashboard metrics
@@ -78,13 +90,15 @@ const NewDashboard = () => {
                   />
                 </div>
                 <Link href="/extension-preview">
-                  <Button variant="outline">Extension Preview</Button>
+                  <HoverScaleButton className="px-4 py-2 border rounded-md bg-background hover:bg-accent transition-colors">
+                    Extension Preview
+                  </HoverScaleButton>
                 </Link>
                 <Link href="/signal-capture">
-                  <Button variant="default" className="bg-gradient-primary shadow-glow">
-                    <Radar className="w-4 h-4 mr-2" />
+                  <HoverScaleButton className="px-4 py-2 bg-gradient-primary text-white rounded-md shadow-glow">
+                    <Radar className="w-4 h-4 mr-2 inline" />
                     New Scan
-                  </Button>
+                  </HoverScaleButton>
                 </Link>
               </div>
             </div>
@@ -93,40 +107,60 @@ const NewDashboard = () => {
           {/* Main Content */}
           <main className="flex-1 p-6 space-y-6">
             {/* Metrics Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard
-                title="Active Signals"
-                value={metrics?.totalCaptures?.toString() || "0"}
-                change={`+${metrics?.recentCaptures || 0}`}
-                changeType="positive"
-                icon={Radar}
-                description="total captures"
-              />
-              <MetricCard
-                title="Viral Score Avg"
-                value={metrics?.avgViralScore?.toFixed(1) || "0.0"}
-                change={`max: ${metrics?.maxViralScore?.toFixed(0) || 0}`}
-                changeType="positive"
-                icon={TrendingUp}
-                description="trending up"
-              />
-              <MetricCard
-                title="Engagement Rate"
-                value="23.8%"
-                change="+2.1%"
-                changeType="positive"
-                icon={Users}
-                description="across platforms"
-              />
-              <MetricCard
-                title="Response Time"
-                value="1.2h"
-                change="-18min"
-                changeType="positive"
-                icon={Clock}
-                description="faster analysis"
-              />
-            </div>
+            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {metricsLoading ? (
+                <>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-card rounded-lg border border-border p-4">
+                      <ContentPlaceholder lines={2} />
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <StaggerItem>
+                    <MetricCard
+                      title="Active Signals"
+                      value={<AnimatedCounter value={metrics?.totalCaptures || 0} />}
+                      change={`+${metrics?.recentCaptures || 0}`}
+                      changeType="positive"
+                      icon={Radar}
+                      description="total captures"
+                    />
+                  </StaggerItem>
+                  <StaggerItem>
+                    <MetricCard
+                      title="Viral Score Avg"
+                      value={<AnimatedCounter value={parseFloat(metrics?.avgViralScore?.toFixed(1) || "0")} />}
+                      change={`max: ${metrics?.maxViralScore?.toFixed(0) || 0}`}
+                      changeType="positive"
+                      icon={TrendingUp}
+                      description="trending up"
+                    />
+                  </StaggerItem>
+                  <StaggerItem>
+                    <MetricCard
+                      title="Engagement Rate"
+                      value="23.8%"
+                      change="+2.1%"
+                      changeType="positive"
+                      icon={Users}
+                      description="across platforms"
+                    />
+                  </StaggerItem>
+                  <StaggerItem>
+                    <MetricCard
+                      title="Response Time"
+                      value="1.2h"
+                      change="-18min"
+                      changeType="positive"
+                      icon={Clock}
+                      description="faster analysis"
+                    />
+                  </StaggerItem>
+                </>
+              )}
+            </StaggerContainer>
 
             {/* Trend Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -168,15 +202,24 @@ const NewDashboard = () => {
               </div>
               
               {capturesLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading signals...</div>
-              ) : signals.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {signals.map((signal, index) => (
-                    <SignalCard key={index} {...signal} />
+                  {[1, 2, 3].map((i) => (
+                    <CardSkeleton key={i} />
                   ))}
                 </div>
+              ) : signals.length > 0 ? (
+                <StaggerContainer className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {signals.map((signal, index) => (
+                    <StaggerItem key={index}>
+                      <GlowCard>
+                        <SignalCard {...signal} />
+                      </GlowCard>
+                    </StaggerItem>
+                  ))}
+                </StaggerContainer>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
+                  <PulseDotsLoader className="justify-center mb-4" />
                   No signals captured yet. Start by launching a content scan.
                 </div>
               )}

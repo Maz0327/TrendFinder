@@ -10,8 +10,8 @@ import BriefLab from "@/pages/brief-lab";
 import Manage from "@/pages/manage";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
+import AuthLogin from "@/pages/auth-login";
+import AuthRegister from "@/pages/auth-register";
 // Legacy pages (keeping for backward compatibility)
 import SignalMining from "@/pages/signal-mining";
 import Projects from "@/pages/projects";
@@ -30,8 +30,8 @@ import { SampleContentProvider } from "@/components/onboarding/SampleContent";
 function Router() {
   return (
     <Switch>
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
+      <Route path="/login" component={AuthLogin} />
+      <Route path="/register" component={AuthRegister} />
       <Route path="/dashboard" component={() => <ProtectedRoute><NewDashboard /></ProtectedRoute>} />
       <Route path="/" component={() => <ProtectedRoute><NewDashboard /></ProtectedRoute>} />
       
