@@ -56,6 +56,7 @@ export default function SignalCapture() {
       const response = await fetch('/api/captures', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           ...captureData,
           projectId: captureData.projectId || (projects[0]?.id),
@@ -370,7 +371,67 @@ export default function SignalCapture() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Recent Captures Display */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Signal Captures</CardTitle>
+            <CardDescription>
+              Your latest captured content and analysis status
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RecentCapturesDisplay />
+          </CardContent>
+        </Card>
       </div>
     </PageLayout>
+  );
+}
+
+// Recent captures component
+function RecentCapturesDisplay() {
+  const { data: captures = [], isLoading } = useQuery({
+    queryKey: ["/api/captures"],
+  });
+
+  if (isLoading) {
+    return <div className="text-center py-4">Loading captures...</div>;
+  }
+
+  if (captures.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p>No captures yet. Create your first signal capture above.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {captures.slice(0, 5).map((capture: any) => (
+        <div key={capture.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div className="flex-1">
+            <h4 className="font-medium text-sm">{capture.title || 'Untitled Capture'}</h4>
+            <p className="text-xs text-gray-600 truncate">{capture.content?.slice(0, 100)}...</p>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">{capture.platform}</Badge>
+              <Badge variant={capture.analysisStatus === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                {capture.analysisStatus === 'completed' ? 'Analyzed' : 'Processing'}
+              </Badge>
+              {capture.viralScore > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  Viral: {capture.viralScore}/100
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div className="text-xs text-gray-500">
+            {new Date(capture.createdAt).toLocaleTimeString()}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
