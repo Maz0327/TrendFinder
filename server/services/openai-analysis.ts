@@ -50,7 +50,7 @@ Return as JSON with exact field names: fact, observation, insight, humanTruth, c
 
       // Updated to GPT-5 with selective reasoning for better strategic analysis
       const requestParams: any = {
-        model: "gpt-5-thinking",
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [
           {
             role: "system",
