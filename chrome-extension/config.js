@@ -1,20 +1,8 @@
 window.CONFIG = {
     // Auto-detect API base URL based on environment
     API_BASE_URL: (() => {
-        // Check if we're in development or production
-        const hostname = window.location?.hostname;
-        
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return 'http://localhost:5000';
-        }
-        
-        // Check for Replit domains
-        if (hostname && hostname.includes('replit.')) {
-            return `https://${hostname}`;
-        }
-        
-        // Default fallback
-        return 'http://localhost:5000';
+        // For Chrome extension, use the Replit app URL
+        return 'https://8b8b11fe-8b26-478c-833b-4cb2c7d9c3ca-00-1u6v7kw2cbj6z.worf.replit.dev';
     })(),
     
     // Extension settings

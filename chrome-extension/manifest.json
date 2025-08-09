@@ -53,7 +53,8 @@
   "host_permissions": [
     "http://localhost:*/*",
     "https://*.replit.app/*",
-    "https://*.replit.dev/*"
+    "https://*.replit.dev/*",
+    "https://8b8b11fe-8b26-478c-833b-4cb2c7d9c3ca-00-1u6v7kw2cbj6z.worf.replit.dev/*"
   ],
   "background": {
     "service_worker": "background-enhanced.js"

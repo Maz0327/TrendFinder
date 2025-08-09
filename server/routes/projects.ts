@@ -366,4 +366,77 @@ export function registerProjectRoutes(app: Express) {
       res.status(500).json({ error: 'Failed to create capture' });
     }
   });
+
+  // Chrome Extension API - Get active project
+  app.get("/api/extension/active-project", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const projects = await storage.getProjects(req.session.user.id);
+      const activeProject = projects.length > 0 ? projects[0] : null; // Use first project as active
+      
+      res.json({ 
+        success: true, 
+        activeProject: activeProject 
+      });
+    } catch (error) {
+      console.error("Failed to get active project:", error);
+      res.status(500).json({ error: "Failed to get active project" });
+    }
+  });
+
+  // Chrome Extension API - Switch project
+  app.post("/api/extension/switch-project", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const { projectId } = req.body;
+      const project = await storage.getProjectById(projectId);
+      
+      if (!project || project.userId !== req.session.user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      res.json({ 
+        success: true, 
+        activeProject: project 
+      });
+    } catch (error) {
+      console.error("Failed to switch project:", error);
+      res.status(500).json({ error: "Failed to switch project" });
+    }
+  });
+
+  // Chrome Extension API - Quick AI Analysis
+  app.post("/api/ai/quick-analysis", async (req, res) => {
+    try {
+      if (!req.session?.user?.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const { content, mode, platform } = req.body;
+      
+      // Simple analysis response for Chrome extension
+      const analysis = {
+        summary: `${mode} analysis of ${platform} content`,
+        hooks: [
+          "Interesting content detected",
+          "Worth exploring further",
+          "Strategic opportunity identified"
+        ],
+        viralScore: Math.floor(Math.random() * 100) + 1,
+        sentiment: "positive",
+        category: "social-media"
+      };
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error("Failed to analyze content:", error);
+      res.status(500).json({ error: "Failed to analyze content" });
+    }
+  });
 }

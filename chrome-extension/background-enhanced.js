@@ -1,5 +1,5 @@
 // Enhanced Background Service Worker with Advanced Features
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://8b8b11fe-8b26-478c-833b-4cb2c7d9c3ca-00-1u6v7kw2cbj6z.worf.replit.dev/api';
 
 // Session Storage for 24-hour memory
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours

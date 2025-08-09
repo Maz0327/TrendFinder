@@ -243,9 +243,8 @@ class StrategicContentCapture {
     }
 
     openDashboard() {
-        // Open the main dashboard
-        const dashboardUrl = this.apiBaseUrl.replace('5000', '3000'); // Adjust port for frontend
-        chrome.tabs.create({ url: dashboardUrl });
+        // Open the main dashboard - same URL as API since they're served together
+        chrome.tabs.create({ url: this.apiBaseUrl });
     }
 }
 
