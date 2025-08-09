@@ -20,6 +20,10 @@ import MyCaptures from "@/pages/my-captures";
 import IntelligenceHub from "@/pages/intelligence";
 import AnalysisCenter from "@/pages/analysis";
 import BriefGenerator from "@/pages/briefs";
+import LovableProjects from "@/pages/lovable-projects";
+import LovableTrends from "@/pages/lovable-trends";
+import LovableSearch from "@/pages/lovable-search";
+import LovableInsights from "@/pages/lovable-insights";
 import MobileNavBar from "@/components/layout/MobileNavBar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -38,10 +42,10 @@ function Router() {
       <Route path="/explore" component={() => <ProtectedRoute><LovableExplore /></ProtectedRoute>} />
       <Route path="/capture" component={() => <ProtectedRoute><LovableCapture /></ProtectedRoute>} />
       <Route path="/lab" component={() => <ProtectedRoute><LovableStrategicLab /></ProtectedRoute>} />
-      <Route path="/projects" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
-      <Route path="/trends" component={() => <ProtectedRoute><Projects /></ProtectedRoute>} />
-      <Route path="/search" component={() => <ProtectedRoute><SignalMining /></ProtectedRoute>} />
-      <Route path="/insights" component={() => <ProtectedRoute><IntelligenceHub /></ProtectedRoute>} />
+      <Route path="/projects" component={() => <ProtectedRoute><LovableProjects /></ProtectedRoute>} />
+      <Route path="/trends" component={() => <ProtectedRoute><LovableTrends /></ProtectedRoute>} />
+      <Route path="/search" component={() => <ProtectedRoute><LovableSearch /></ProtectedRoute>} />
+      <Route path="/insights" component={() => <ProtectedRoute><LovableInsights /></ProtectedRoute>} />
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       
       {/* Legacy Routes (backward compatibility) */}
