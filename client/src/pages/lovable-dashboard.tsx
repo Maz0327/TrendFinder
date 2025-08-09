@@ -88,7 +88,7 @@ const Index = () => {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-6 space-y-6">
+          <main className="flex-1 p-4 space-y-4">
             {/* Metrics Overview with TrendFinder-LVUI-Push StatsOverview */}
             <StatsOverview
               variant="dashboard"
@@ -103,7 +103,7 @@ const Index = () => {
             />
 
             {/* Trend Analysis & System Status */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <TrendChart
                 title="Signal Detection Rate"
                 data={trendData}
@@ -119,7 +119,7 @@ const Index = () => {
                   View All Signals
                 </Button>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                 {signalsLoading ? (
                   <div className="col-span-full flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

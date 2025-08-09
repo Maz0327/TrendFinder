@@ -20,12 +20,12 @@ interface StatsOverviewProps {
 export default function StatsOverview({ stats, variant = 'dashboard' }: StatsOverviewProps) {
   if (!stats) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         {[...Array(4)].map((_, i) => (
           <Card key={i}>
-            <CardContent className="p-6">
-              <Skeleton className="h-12 w-full mb-4" />
-              <Skeleton className="h-4 w-full" />
+            <CardContent className="p-4">
+              <Skeleton className="h-8 w-full mb-2" />
+              <Skeleton className="h-3 w-2/3" />
             </CardContent>
           </Card>
         ))}
@@ -119,7 +119,7 @@ export default function StatsOverview({ stats, variant = 'dashboard' }: StatsOve
 
   return (
     <FadeIn>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <StaggeredFadeIn staggerDelay={50}>
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
@@ -128,19 +128,19 @@ export default function StatsOverview({ stats, variant = 'dashboard' }: StatsOve
                 key={index} 
                 className="hover:shadow-lg transition-all duration-300 hover:scale-105 border-l-4 border-l-transparent hover:border-l-blue-500"
               >
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{stat.title}</p>
-                      <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{stat.title}</p>
+                      <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                         {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                       </p>
                     </div>
-                    <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center transition-transform duration-300 hover:scale-110`}>
-                      <Icon className={`${stat.iconColor} h-6 w-6`} />
+                    <div className={`w-10 h-10 ${stat.bgColor} rounded-lg flex items-center justify-center transition-transform duration-300 hover:scale-110`}>
+                      <Icon className={`${stat.iconColor} h-5 w-5`} />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm">
+                  <div className="mt-2 flex items-center text-xs">
                     <span className="text-green-600 font-medium">{stat.change}</span>
                     {stat.changeLabel && (
                       <span className="text-gray-600 dark:text-gray-400 ml-1">{stat.changeLabel}</span>
