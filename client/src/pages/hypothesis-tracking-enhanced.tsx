@@ -1,5 +1,8 @@
 import PageLayout from "@/components/layout/PageLayout";
 import StrategicCard from "@/components/dashboard/StrategicCard";
+import StatsOverview from "@/components/dashboard/StatsOverview";
+import SystemStatus from "@/components/dashboard/SystemStatus";
+import StrategicModal from "@/components/dashboard/StrategicModal";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 import { LoadingCard, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState } from "react";
@@ -17,6 +20,7 @@ export default function HypothesisTrackingEnhanced() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedHypothesis, setSelectedHypothesis] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Fetch hypothesis validations
   const { data: hypotheses = [], isLoading, refetch } = useQuery({
@@ -91,54 +95,32 @@ export default function HypothesisTrackingEnhanced() {
       onRefresh={() => refetch()}
     >
       <div className="space-y-6">
-        {/* Overview Stats */}
-        <FadeIn>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Overview Stats with TrendFinder-LVUI-Push StatsOverview */}
+        <StatsOverview
+          variant="strategic"
+          stats={{
+            totalTrends: hypotheses.length,
+            viralPotential: validatedHypotheses.length > 0 
+              ? Math.round((validatedHypotheses.length / (validatedHypotheses.length + invalidatedHypotheses.length)) * 100)
+              : 0,
+            activeSources: activeHypotheses.length,
+            avgScore: 8.5,
+            truthAnalyzed: validatedHypotheses.length,
+            hypothesesTracked: activeHypotheses.length
+          }}
+        />
+
+        {/* System Status with TrendFinder-LVUI-Push SystemStatus */}
+        <FadeIn delay={100}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <SystemStatus />
+            </div>
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <div className="text-2xl font-bold">{activeHypotheses.length}</div>
-                    <p className="text-sm text-muted-foreground">Active</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <div>
-                    <div className="text-2xl font-bold">{validatedHypotheses.length}</div>
-                    <p className="text-sm text-muted-foreground">Validated</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
-                  <div>
-                    <div className="text-2xl font-bold">{invalidatedHypotheses.length}</div>
-                    <p className="text-sm text-muted-foreground">Invalidated</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <BarChart3 className="h-5 w-5 text-purple-600" />
-                  <div>
-                    <div className="text-2xl font-bold">
-                      {validatedHypotheses.length > 0 
-                        ? Math.round((validatedHypotheses.length / (validatedHypotheses.length + invalidatedHypotheses.length)) * 100)
-                        : 0}%
-                    </div>
-                    <p className="text-sm text-muted-foreground">Accuracy</p>
-                  </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{validatedHypotheses.length}</div>
+                  <p className="text-sm text-muted-foreground">Validated Predictions</p>
                 </div>
               </CardContent>
             </Card>
@@ -370,7 +352,14 @@ export default function HypothesisTrackingEnhanced() {
                   staggerDelay={50}
                 >
                   {hypotheses.map((hypothesis: any) => (
-                    <Card key={hypothesis.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <Card 
+                      key={hypothesis.id} 
+                      className="hover:shadow-lg transition-shadow cursor-pointer"
+                      onClick={() => {
+                        setSelectedHypothesis(hypothesis);
+                        setModalOpen(true);
+                      }}
+                    >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <CardTitle className="text-lg line-clamp-2">
@@ -416,6 +405,16 @@ export default function HypothesisTrackingEnhanced() {
           </Tabs>
         </FadeIn>
       </div>
+
+      {/* Strategic Modal for Detailed Hypothesis Analysis */}
+      <StrategicModal
+        capture={selectedHypothesis}
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedHypothesis(null);
+        }}
+      />
     </PageLayout>
   );
 }

@@ -1,5 +1,8 @@
 import PageLayout from "@/components/layout/PageLayout";
 import StrategicCard from "@/components/dashboard/StrategicCard";
+import StatsOverview from "@/components/dashboard/StatsOverview";
+import SystemStatus from "@/components/dashboard/SystemStatus";
+import StrategicModal from "@/components/dashboard/StrategicModal";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 import { LoadingCard, LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useState } from "react";
@@ -19,6 +22,7 @@ export default function CulturalMomentsEnhanced() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterIntensity, setFilterIntensity] = useState("all");
   const [selectedMoment, setSelectedMoment] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Fetch cultural moments
   const { data: moments = [], isLoading, refetch } = useQuery({
@@ -77,38 +81,35 @@ export default function CulturalMomentsEnhanced() {
       onRefresh={() => refetch()}
     >
       <div className="space-y-6">
-        {/* Cultural Intelligence Overview */}
-        <FadeIn>
-          <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Flame className="h-5 w-5 text-orange-600" />
-                <span>Cultural Intelligence Network</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Cultural Intelligence Overview with TrendFinder-LVUI-Push StatsOverview */}
+        <StatsOverview
+          variant="strategic"
+          stats={{
+            totalTrends: moments.length,
+            viralPotential: moments.length > 0 ? Math.round(moments.reduce((acc: number, m: any) => acc + m.intensity, 0) / moments.length) : 0,
+            activeSources: viralMoments.length,
+            avgScore: 8.5,
+            truthAnalyzed: growingMoments.length,
+            hypothesesTracked: emergingMoments.length
+          }}
+        />
+
+        {/* System Status with TrendFinder-LVUI-Push SystemStatus */}
+        <FadeIn delay={100}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <SystemStatus />
+            </div>
+            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+              <CardContent className="p-4">
                 <div className="text-center">
+                  <Flame className="h-6 w-6 mx-auto mb-2 text-orange-600" />
                   <div className="text-2xl font-bold text-red-600">{viralMoments.length}</div>
                   <p className="text-sm text-muted-foreground">Viral Moments</p>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{growingMoments.length}</div>
-                  <p className="text-sm text-muted-foreground">Growing Trends</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{emergingMoments.length}</div>
-                  <p className="text-sm text-muted-foreground">Emerging Signals</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {moments.length > 0 ? Math.round(moments.reduce((acc: number, m: any) => acc + m.intensity, 0) / moments.length) : 0}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Avg. Intensity</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </FadeIn>
 
         {/* Search and Filters */}
@@ -198,7 +199,14 @@ export default function CulturalMomentsEnhanced() {
                   staggerDelay={50}
                 >
                   {filteredMoments.map((moment: any) => (
-                    <Card key={moment.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+                    <Card 
+                      key={moment.id} 
+                      className="hover:shadow-lg transition-shadow cursor-pointer group"
+                      onClick={() => {
+                        setSelectedMoment(moment);
+                        setModalOpen(true);
+                      }}
+                    >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <CardTitle className="text-lg line-clamp-2">
@@ -400,6 +408,16 @@ export default function CulturalMomentsEnhanced() {
           </Tabs>
         </FadeIn>
       </div>
+
+      {/* Strategic Modal for Detailed Cultural Moment Analysis */}
+      <StrategicModal
+        capture={selectedMoment}
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedMoment(null);
+        }}
+      />
     </PageLayout>
   );
 }
