@@ -1,0 +1,8 @@
+# Replit configuration for this Vite + React + TS app
+# Replit will run `install` once, then use the `run` command for previews.
+
+install = "npm install"
+run = "npm run dev -- --host 0.0.0.0 --port $PORT"
+
+# Optional: hide heavy folders in the Replit file tree
+hidden = ["node_modules", ".git"]
