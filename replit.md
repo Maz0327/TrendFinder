@@ -43,6 +43,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (January 2025)
 
+### **Critical Vite Routing Fix (January 9, 2025)**
+- **Root Cause Resolution**: Fixed major routing conflict in `server/vite.ts` where catch-all route was serving React HTML for API endpoints
+- **Simple Fix**: Added API route skip logic (`if (url.startsWith("/api/")) { return next(); }`) to prevent Vite from intercepting API calls
+- **Impact**: All API endpoints now return proper JSON responses instead of HTML, eliminating need for workaround implementations
+- **System Reliability**: Ensures any future API endpoints will work correctly without additional configuration
+
 ### **Chrome Extension Testing Complete (January 9, 2025)**
 - **Extension Package Ready**: Created installable `strategic-content-capture-extension.tar.gz` (22.4 KB) with complete functionality
 - **API Integration Verified**: All extension endpoints working - `/api/extension/active-project`, `/api/extension/switch-project`, `/api/ai/quick-analysis`, `/api/extension/capture`
