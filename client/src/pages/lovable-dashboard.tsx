@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { Link } from "wouter"
 
-const LovableDashboard = () => {
-  // Mock data for demonstration (exact Lovable design)
+const Index = () => {
+  // Mock data for demonstration
   const trendData = [
     { name: "Mon", value: 45, engagement: 32 },
     { name: "Tue", value: 52, engagement: 41 },
@@ -125,53 +125,31 @@ const LovableDashboard = () => {
                 change="-18min"
                 changeType="positive"
                 icon={Clock}
-                description="faster detection"
+                description="avg detection"
               />
             </div>
 
-            {/* Charts and Insights */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <TrendChart data={trendData} />
-              </div>
-              
-              <div className="space-y-4">
-                <div className="bg-card rounded-lg border border-border p-4">
-                  <h3 className="text-lg font-semibold mb-3 text-foreground">Quick Actions</h3>
-                  <div className="space-y-2">
-                    <Link href="/signal-capture">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Radar className="w-4 h-4 mr-2" />
-                        New Signal Capture
-                      </Button>
-                    </Link>
-                    <Link href="/brief-lab">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Activity className="w-4 h-4 mr-2" />
-                        Strategic Brief Lab
-                      </Button>
-                    </Link>
-                    <Link href="/explore-signals">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Search className="w-4 h-4 mr-2" />
-                        Explore Signals
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+            {/* Trend Analysis */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TrendChart
+                title="Signal Detection Rate"
+                data={trendData}
+              />
+              <TrendChart
+                title="Platform Engagement Trends"
+                data={trendData}
+              />
             </div>
 
-            {/* Recent Signals */}
-            <div className="bg-card rounded-lg border border-border p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-foreground">Recent Signals</h2>
-                <Link href="/explore-signals">
-                  <Button variant="ghost" size="sm">View All</Button>
-                </Link>
+            {/* Latest Signals */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-foreground">Latest Signals</h2>
+                <Button variant="outline" className="text-primary border-primary/20 hover:bg-primary/5">
+                  View All Signals
+                </Button>
               </div>
-              
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {mockSignals.map((signal, index) => (
                   <SignalCard key={index} {...signal} />
                 ))}
@@ -181,7 +159,7 @@ const LovableDashboard = () => {
         </div>
       </div>
     </SidebarProvider>
-  )
-}
+  );
+};
 
-export default LovableDashboard
+export default Index;

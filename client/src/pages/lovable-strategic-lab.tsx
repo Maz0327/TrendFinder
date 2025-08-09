@@ -1,59 +1,65 @@
+import { useEffect, useState } from "react"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/ui/app-sidebar"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Progress } from "@/components/ui/progress"
-import { FlaskConical, FileText, TrendingUp, Users, Target, Lightbulb, ChevronRight } from "lucide-react"
+import { SignalCard } from "@/components/signals/SignalCard"
+import { FlaskConical, Brain, FileText, Download, CheckCircle2, Zap } from "lucide-react"
 
-const LovableStrategicLab = () => {
-  const briefTemplates = [
-    {
-      name: "Trend Analysis Brief",
-      description: "Comprehensive trend analysis with actionable insights",
-      signals: 23,
-      completion: 85,
-      lastUpdated: "2h ago"
-    },
-    {
-      name: "Competitive Intelligence",
-      description: "Monitor competitor activities and market positioning",
-      signals: 18,
-      completion: 62,
-      lastUpdated: "4h ago"
-    },
-    {
-      name: "Consumer Sentiment Report",
-      description: "Track consumer opinions and brand perception",
-      signals: 31,
-      completion: 90,
-      lastUpdated: "1h ago"
+const StrategicLab = () => {
+  // Basic SEO setup per page
+  useEffect(() => {
+    document.title = "Strategic Brief Lab | TrendFinder"
+    let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.setAttribute('name', 'description')
+      document.head.appendChild(meta)
     }
-  ]
+    meta.setAttribute('content', 'Strategic brief lab to synthesize signals into an actionable strategy with AI insights.')
 
-  const insights = [
-    {
-      title: "Rising Interest in Sustainable Tech",
-      impact: "High",
-      confidence: 87,
-      signals: 12,
-      trend: "+34%"
-    },
-    {
-      title: "Shift Toward Remote-First Culture",
-      impact: "Medium",
-      confidence: 73,
-      signals: 8,
-      trend: "+18%"
-    },
-    {
-      title: "AI Integration in Daily Workflows",
-      impact: "High",
-      confidence: 92,
-      signals: 15,
-      trend: "+52%"
+    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
+    if (!link) {
+      link = document.createElement('link')
+      link.setAttribute('rel', 'canonical')
+      document.head.appendChild(link)
     }
+    link.setAttribute('href', window.location.href)
+  }, [])
+
+  const [brief, setBrief] = useState({
+    objective: "",
+    audience: "",
+    channels: "",
+    summary: "",
+  })
+
+  const mockSignals = [
+    {
+      title: "AI content tools drive creator productivity",
+      content: "Short-form creators report 3x output with AI assistance; engagement holds steady.",
+      platform: "twitter" as const,
+      engagement: { likes: 12800, comments: 760, shares: 980 },
+      viralScore: 82,
+      tags: ["ai", "creator-economy", "productivity"],
+      timestamp: "2h ago",
+      author: "CreatorTech",
+      url: "#"
+    },
+    {
+      title: "YouTube shorts adoption spikes in B2B niches",
+      content: "B2B channels embrace shorts for awareness; watch-time improves with series playlists.",
+      platform: "youtube" as const,
+      engagement: { likes: 25400, comments: 1200, shares: 2100 },
+      viralScore: 88,
+      tags: ["youtube", "shorts", "b2b"],
+      timestamp: "5h ago",
+      author: "PipelineGrowth",
+      url: "#"
+    },
   ]
 
   return (
@@ -67,181 +73,107 @@ const LovableStrategicLab = () => {
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="text-muted-foreground hover:text-primary" />
                 <h1 className="text-xl font-bold text-foreground">Strategic Brief Lab</h1>
-                <div className="text-sm text-muted-foreground">
-                  Transform signals into strategic insights
-                </div>
+                <div className="text-sm text-muted-foreground">Synthesize signals into an actionable brief</div>
               </div>
-              <div className="flex items-center gap-3">
-                <Button variant="outline">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" className="hidden sm:flex">
                   <FileText className="w-4 h-4 mr-2" />
-                  Export Brief
+                  Export Draft
                 </Button>
-                <Button variant="default" className="bg-gradient-primary shadow-glow">
-                  <FlaskConical className="w-4 h-4 mr-2" />
-                  New Brief
+                <Button className="bg-gradient-primary shadow-glow">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export PDF
                 </Button>
               </div>
             </div>
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Active Briefs */}
-              <div className="lg:col-span-2 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FlaskConical className="w-5 h-5 text-primary" />
-                      Active Strategic Briefs
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {briefTemplates.map((brief, index) => (
-                      <div key={index} className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-semibold text-foreground">{brief.name}</h3>
-                            <p className="text-sm text-muted-foreground">{brief.description}</p>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
-                          <span>{brief.signals} signals</span>
-                          <span>Updated {brief.lastUpdated}</span>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span>Completion</span>
-                            <span>{brief.completion}%</span>
-                          </div>
-                          <Progress value={brief.completion} className="h-2" />
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+          <main className="flex-1 p-6 space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Brief Builder */}
+              <Card className="bg-gradient-surface border-border/50 shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <FlaskConical className="w-5 h-5 text-primary" />
+                    Brief Builder
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm text-muted-foreground">Objective</label>
+                      <Input value={brief.objective} onChange={(e) => setBrief({ ...brief, objective: e.target.value })} placeholder="e.g., Launch awareness campaign" />
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Audience</label>
+                      <Input value={brief.audience} onChange={(e) => setBrief({ ...brief, audience: e.target.value })} placeholder="e.g., SMB founders" />
+                    </div>
+                    <div>
+                      <label className="text-sm text-muted-foreground">Key Channels</label>
+                      <Input value={brief.channels} onChange={(e) => setBrief({ ...brief, channels: e.target.value })} placeholder="e.g., YouTube, TikTok" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground">Executive Summary</label>
+                    <Textarea value={brief.summary} onChange={(e) => setBrief({ ...brief, summary: e.target.value })} placeholder="Summarize the brief in 4-6 sentences..." className="min-h-[140px]" />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline">
+                      <Brain className="w-4 h-4 mr-2" />
+                      Generate Outline
+                    </Button>
+                    <Button variant="outline">
+                      <Zap className="w-4 h-4 mr-2" />
+                      Suggest KPIs
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
-                {/* Key Insights */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lightbulb className="w-5 h-5 text-primary" />
-                      Key Strategic Insights
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {insights.map((insight, index) => (
-                      <div key={index} className="border border-border rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-foreground">{insight.title}</h3>
-                            <div className="flex items-center gap-3 mt-2">
-                              <Badge variant={insight.impact === 'High' ? 'default' : 'secondary'}>
-                                {insight.impact} Impact
-                              </Badge>
-                              <span className="text-sm text-muted-foreground">
-                                {insight.signals} signals
-                              </span>
-                              <Badge variant="outline" className="text-success">
-                                {insight.trend}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span>Confidence Level</span>
-                            <span>{insight.confidence}%</span>
-                          </div>
-                          <Progress value={insight.confidence} className="h-2" />
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Sidebar */}
+              {/* Key Findings & Hooks */}
               <div className="space-y-6">
-                {/* Quick Stats */}
-                <Card>
+                <Card className="bg-gradient-surface border-border/50 shadow-card">
                   <CardHeader>
-                    <CardTitle className="text-base">Lab Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4 text-primary" />
-                        <span className="text-sm">Active Briefs</span>
-                      </div>
-                      <span className="font-semibold">3</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-primary" />
-                        <span className="text-sm">Signals Analyzed</span>
-                      </div>
-                      <span className="font-semibold">72</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-primary" />
-                        <span className="text-sm">Insights Generated</span>
-                      </div>
-                      <span className="font-semibold">18</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Template Library */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Brief Templates</CardTitle>
+                    <CardTitle className="text-foreground">Key Findings</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button variant="outline" className="w-full justify-start" size="sm">
-                      Market Analysis
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" size="sm">
-                      Competitive Intelligence
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" size="sm">
-                      Trend Forecast
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" size="sm">
-                      Consumer Insights
-                    </Button>
-                    <Button variant="ghost" className="w-full justify-start text-primary" size="sm">
-                      + Custom Template
-                    </Button>
+                    {["AI-assisted creation accelerates publishing cadence","Short-form series outperform one-offs in B2B","Educational content with concrete frameworks drives shares"].map((item, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <CheckCircle2 className="w-4 h-4 mt-1 text-primary" />
+                        <p className="text-sm text-foreground">{item}</p>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
 
-                {/* Export Options */}
-                <Card>
+                <Card className="bg-gradient-surface border-border/50 shadow-card">
                   <CardHeader>
-                    <CardTitle className="text-base">Export & Share</CardTitle>
+                    <CardTitle className="text-foreground">Suggested Content Hooks</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start" size="sm">
-                      <FileText className="w-4 h-4 mr-2" />
-                      PDF Report
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" size="sm">
-                      <FileText className="w-4 h-4 mr-2" />
-                      PowerPoint
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" size="sm">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Executive Summary
-                    </Button>
+                  <CardContent className="flex flex-wrap gap-2">
+                    {["3-step AI workflow","Framework first, demo second","From 0→1 playlist", "Behind-the-scenes ops"]
+                      .map((tag, i) => (
+                        <Badge key={i} variant="secondary">{tag}</Badge>
+                      ))}
                   </CardContent>
                 </Card>
               </div>
             </div>
+
+            {/* Attached Signals */}
+            <Card className="bg-gradient-surface border-border/50 shadow-card">
+              <CardHeader>
+                <CardTitle className="text-foreground">Attached Signals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {mockSignals.map((signal, idx) => (
+                    <SignalCard key={idx} {...signal} />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </main>
         </div>
       </div>
@@ -249,4 +181,4 @@ const LovableStrategicLab = () => {
   )
 }
 
-export default LovableStrategicLab
+export default StrategicLab

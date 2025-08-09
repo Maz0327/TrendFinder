@@ -5,14 +5,21 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Radar, Plus, Upload, Globe, Chrome, Smartphone, Link as LinkIcon } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Plus, Link, Upload, Zap, Brain, Target } from "lucide-react"
+import { useState } from "react"
 
-const LovableCapture = () => {
-  const platforms = ["reddit", "twitter", "youtube", "instagram", "tiktok", "linkedin"]
-  const captureTypes = ["URL", "Text", "Upload", "Extension"]
+const Capture = () => {
+  const [urlInput, setUrlInput] = useState("")
+  const [analyzing, setAnalyzing] = useState(false)
+
+  const handleAnalyzeUrl = () => {
+    setAnalyzing(true)
+    // Simulate AI analysis
+    setTimeout(() => setAnalyzing(false), 3000)
+  }
 
   return (
     <SidebarProvider>
@@ -24,20 +31,10 @@ const LovableCapture = () => {
             <div className="flex items-center justify-between h-full px-6">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="text-muted-foreground hover:text-primary" />
-                <h1 className="text-xl font-bold text-foreground">Signal Capture</h1>
+                <h1 className="text-xl font-bold text-foreground">New Signal Capture</h1>
                 <div className="text-sm text-muted-foreground">
-                  Capture content for analysis
+                  Add content for AI analysis
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <Chrome className="w-3 h-3" />
-                  Extension Connected
-                </Badge>
-                <Button variant="outline">
-                  <Globe className="w-4 h-4 mr-2" />
-                  Browser Extension
-                </Button>
               </div>
             </div>
           </header>
@@ -47,204 +44,221 @@ const LovableCapture = () => {
             <div className="max-w-4xl mx-auto space-y-6">
               {/* Capture Methods */}
               <Tabs defaultValue="url" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="url" className="flex items-center gap-2">
-                    <LinkIcon className="w-4 h-4" />
+                <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+                  <TabsTrigger value="url" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Link className="w-4 h-4 mr-2" />
                     URL Capture
                   </TabsTrigger>
-                  <TabsTrigger value="text" className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
+                  <TabsTrigger value="manual" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Plus className="w-4 h-4 mr-2" />
                     Manual Entry
                   </TabsTrigger>
-                  <TabsTrigger value="upload" className="flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    Upload File
-                  </TabsTrigger>
-                  <TabsTrigger value="extension" className="flex items-center gap-2">
-                    <Chrome className="w-4 h-4" />
-                    Extension
+                  <TabsTrigger value="upload" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Upload className="w-4 h-4 mr-2" />
+                    File Upload
                   </TabsTrigger>
                 </TabsList>
 
+                {/* URL Capture */}
                 <TabsContent value="url" className="mt-6">
-                  <Card>
+                  <Card className="bg-gradient-surface border-border/50 shadow-card">
                     <CardHeader>
-                      <CardTitle>URL Capture</CardTitle>
+                      <CardTitle className="flex items-center gap-2 text-foreground">
+                        <Link className="w-5 h-5 text-primary" />
+                        Capture from URL
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="url">Content URL</Label>
-                        <Input 
-                          id="url"
-                          placeholder="https://example.com/article" 
-                          className="w-full"
-                        />
+                        <div className="flex gap-2">
+                          <Input
+                            id="url"
+                            placeholder="https://reddit.com/r/example/post or https://twitter.com/user/status..."
+                            value={urlInput}
+                            onChange={(e) => setUrlInput(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button 
+                            onClick={handleAnalyzeUrl}
+                            disabled={analyzing || !urlInput}
+                            className="bg-gradient-primary shadow-glow"
+                          >
+                            {analyzing ? (
+                              <>
+                                <Zap className="w-4 h-4 mr-2 animate-pulse" />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                <Brain className="w-4 h-4 mr-2" />
+                                Analyze
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                      {analyzing && (
+                        <Card className="bg-primary/5 border-primary/20">
+                          <CardContent className="pt-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                              <span className="text-sm text-primary">AI is analyzing the content...</span>
+                            </div>
+                            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                              <div>✓ Extracting content and metadata</div>
+                              <div>✓ Analyzing viral potential</div>
+                              <div>✓ Generating content hooks</div>
+                              <div className="opacity-50">⏳ Calculating engagement metrics</div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="platform">Platform</Label>
                           <Select>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select platform" />
+                              <SelectValue placeholder="Auto-detect platform" />
                             </SelectTrigger>
                             <SelectContent>
-                              {platforms.map((platform) => (
-                                <SelectItem key={platform} value={platform}>{platform}</SelectItem>
-                              ))}
+                              <SelectItem value="reddit">Reddit</SelectItem>
+                              <SelectItem value="twitter">Twitter/X</SelectItem>
+                              <SelectItem value="instagram">Instagram</SelectItem>
+                              <SelectItem value="tiktok">TikTok</SelectItem>
+                              <SelectItem value="youtube">YouTube</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="priority">Priority Level</Label>
+                          <Label htmlFor="project">Project</Label>
                           <Select>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select priority" />
+                              <SelectValue placeholder="Select project" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                              <SelectItem value="urgent">Urgent</SelectItem>
+                              <SelectItem value="general">General Monitoring</SelectItem>
+                              <SelectItem value="competitor">Competitor Analysis</SelectItem>
+                              <SelectItem value="trend">Trend Research</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="notes">Notes (Optional)</Label>
-                        <Textarea 
-                          id="notes"
-                          placeholder="Add any context or notes about this signal..."
-                          className="min-h-[100px]"
-                        />
-                      </div>
-                      <Button className="w-full bg-gradient-primary shadow-glow">
-                        <Radar className="w-4 h-4 mr-2" />
-                        Capture Signal
-                      </Button>
                     </CardContent>
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="text" className="mt-6">
-                  <Card>
+                {/* Manual Entry */}
+                <TabsContent value="manual" className="mt-6">
+                  <Card className="bg-gradient-surface border-border/50 shadow-card">
                     <CardHeader>
-                      <CardTitle>Manual Entry</CardTitle>
+                      <CardTitle className="flex items-center gap-2 text-foreground">
+                        <Plus className="w-5 h-5 text-primary" />
+                        Manual Content Entry
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Title</Label>
-                        <Input 
-                          id="title"
-                          placeholder="Signal title" 
-                          className="w-full"
-                        />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="title">Content Title</Label>
+                          <Input id="title" placeholder="Enter content title..." />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="author">Author/Creator</Label>
+                          <Input id="author" placeholder="@username or name" />
+                        </div>
                       </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="content">Content</Label>
                         <Textarea 
-                          id="content"
-                          placeholder="Enter the signal content..."
-                          className="min-h-[200px]"
+                          id="content" 
+                          placeholder="Paste or type the content here..." 
+                          className="min-h-[120px]"
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                      <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="platform">Platform</Label>
+                          <Label htmlFor="platform-manual">Platform</Label>
                           <Select>
                             <SelectTrigger>
                               <SelectValue placeholder="Select platform" />
                             </SelectTrigger>
                             <SelectContent>
-                              {platforms.map((platform) => (
-                                <SelectItem key={platform} value={platform}>{platform}</SelectItem>
-                              ))}
+                              <SelectItem value="reddit">Reddit</SelectItem>
+                              <SelectItem value="twitter">Twitter/X</SelectItem>
+                              <SelectItem value="instagram">Instagram</SelectItem>
+                              <SelectItem value="tiktok">TikTok</SelectItem>
+                              <SelectItem value="youtube">YouTube</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="author">Author</Label>
-                          <Input 
-                            id="author"
-                            placeholder="Content author" 
-                            className="w-full"
-                          />
+                          <Label htmlFor="engagement">Engagement Count</Label>
+                          <Input id="engagement" type="number" placeholder="Total engagement" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="timestamp">Posted</Label>
+                          <Input id="timestamp" placeholder="e.g., 2h ago" />
                         </div>
                       </div>
+
                       <div className="space-y-2">
-                        <Label htmlFor="tags">Tags</Label>
-                        <Input 
-                          id="tags"
-                          placeholder="Add tags separated by commas" 
-                          className="w-full"
-                        />
+                        <Label htmlFor="tags">Tags (comma-separated)</Label>
+                        <Input id="tags" placeholder="ai, technology, viral, trending" />
                       </div>
+
                       <Button className="w-full bg-gradient-primary shadow-glow">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Signal
+                        <Target className="w-4 h-4 mr-2" />
+                        Analyze Manual Entry
                       </Button>
                     </CardContent>
                   </Card>
                 </TabsContent>
 
+                {/* File Upload */}
                 <TabsContent value="upload" className="mt-6">
-                  <Card>
+                  <Card className="bg-gradient-surface border-border/50 shadow-card">
                     <CardHeader>
-                      <CardTitle>Upload File</CardTitle>
+                      <CardTitle className="flex items-center gap-2 text-foreground">
+                        <Upload className="w-5 h-5 text-primary" />
+                        File Upload
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                    <CardContent>
+                      <div className="border-2 border-dashed border-border rounded-lg p-12 text-center">
                         <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="text-lg font-semibold mb-2">Upload Content</h3>
+                        <h3 className="text-lg font-medium text-foreground mb-2">Upload Content Files</h3>
                         <p className="text-muted-foreground mb-4">
                           Drag and drop files here, or click to browse
                         </p>
-                        <Button variant="outline">
+                        <p className="text-sm text-muted-foreground">
+                          Supports: Images, Videos, CSV files, Text files
+                        </p>
+                        <Button variant="outline" className="mt-4">
                           Choose Files
                         </Button>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Supports: Images, PDFs, Text files, Screenshots
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="extension" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Browser Extension</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-center py-8">
-                        <Chrome className="w-16 h-16 mx-auto mb-4 text-primary" />
-                        <h3 className="text-lg font-semibold mb-2">Extension Active</h3>
-                        <p className="text-muted-foreground mb-4">
-                          Use the browser extension to capture signals while browsing
-                        </p>
-                        <div className="space-y-2">
-                          <Badge variant="secondary" className="mr-2">
-                            Quick Capture: Ctrl+Shift+S
-                          </Badge>
-                          <Badge variant="secondary">
-                            Context Menu: Right-click
-                          </Badge>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 </TabsContent>
               </Tabs>
 
-              {/* Recent Captures */}
-              <Card>
+              {/* AI Analysis Preview */}
+              <Card className="bg-gradient-surface border-border/50 shadow-card">
                 <CardHeader>
-                  <CardTitle>Recent Captures</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <Brain className="w-5 h-5 text-primary" />
+                    AI Analysis Preview
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8 text-muted-foreground">
-                    <Radar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-lg font-semibold mb-2">No recent captures</h3>
-                    <p>Start capturing signals to see them here</p>
+                    <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Capture content above to see AI analysis results</p>
                   </div>
                 </CardContent>
               </Card>
@@ -256,4 +270,4 @@ const LovableCapture = () => {
   )
 }
 
-export default LovableCapture
+export default Capture
