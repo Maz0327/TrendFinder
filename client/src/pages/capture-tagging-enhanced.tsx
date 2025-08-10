@@ -135,7 +135,7 @@ export default function CaptureTaggingEnhanced() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Platforms</SelectItem>
-                    {platforms.map(platform => (
+                    {platforms.map((platform: string) => (
                       <SelectItem key={platform} value={platform}>
                         {platform}
                       </SelectItem>

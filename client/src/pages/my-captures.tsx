@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import PageLayout from "@/components/layout/PageLayout";
 import {
@@ -141,8 +142,9 @@ export default function MyCaptures() {
   );
 
   // Fetch projects for filtering
-  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
+    queryFn: () => api.get<Project[]>("/api/projects"),
   });
 
   // Fetch all captures
@@ -150,13 +152,9 @@ export default function MyCaptures() {
     data: captures = [],
     isLoading: capturesLoading,
     refetch,
-  } = useQuery({
+  } = useQuery<CaptureItem[]>({
     queryKey: ["/api/captures/all"],
-    queryFn: async () => {
-      const response = await fetch("/api/captures/all");
-      if (!response.ok) throw new Error("Failed to fetch captures");
-      return response.json();
-    },
+    queryFn: () => api.get<CaptureItem[]>("/api/captures/all"),
   });
 
   // Update capture mutation
@@ -168,13 +166,7 @@ export default function MyCaptures() {
       id: string;
       updates: Partial<CaptureItem>;
     }) => {
-      const response = await fetch(`/api/captures/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-      if (!response.ok) throw new Error("Failed to update capture");
-      return response.json();
+      return api.patch<CaptureItem>(`/api/captures/${id}`, updates);
     },
     onSuccess: () => {
       toast({ title: "Capture updated successfully" });
@@ -187,11 +179,7 @@ export default function MyCaptures() {
   // Delete capture mutation
   const deleteCaptureMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/captures/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete capture");
-      return response.json();
+      return api.del<{ success: boolean }>(`/api/captures/${id}`);
     },
     onSuccess: () => {
       toast({ title: "Capture deleted successfully" });

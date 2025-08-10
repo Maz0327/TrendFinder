@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, RefreshCw, Zap, TrendingUp, Globe, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { api } from "@/lib/queryClient";
+import { api } from "@/lib/api";
 
 interface PlatformStatus {
   platform: string;

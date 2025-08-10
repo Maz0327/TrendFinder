@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Copy, Bookmark, Share2, ExternalLink, Wand2, Loader2 } from "lucide-react";
-import { api } from "@/lib/queryClient";
+import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { ContentRadarItem } from "@/types";
 
@@ -36,7 +36,7 @@ export default function TrendModal({ trend, isOpen, onClose }: TrendModalProps) 
   const { toast } = useToast();
 
   const generateHooksMutation = useMutation({
-    mutationFn: (id: string) => api.generateAdditionalHooks(id),
+    mutationFn: (id: string) => api.post<string[]>(`/api/captures/${id}/hooks`),
     onSuccess: (data) => {
       setAdditionalHooks(data.hooks);
       toast({

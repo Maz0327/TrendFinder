@@ -1,40 +1,27 @@
-// Minimal API wrapper that adds Authorization header if a Supabase token is present.
-// If you already have a Supabase client, you can swap the token getter below.
+// client/src/lib/api.ts
+export type Json = Record<string, any> | any[];
 
-async function getSupabaseToken(): Promise<string | null> {
-  try {
-    // Common places to look (adjust if you already store differently)
-    const raw = localStorage.getItem("sb-access-token") || localStorage.getItem("supabase.auth.token");
-    if (raw) {
-      // supabase.auth.token often stores a JSON object; try parse then fallback
-      try {
-        const obj = JSON.parse(raw);
-        // v2 session shape: { currentSession: { access_token: "..." }, ... }
-        const token =
-          obj?.currentSession?.access_token ||
-          obj?.access_token ||
-          obj?.accessToken ||
-          null;
-        return token || null;
-      } catch {
-        return raw;
-      }
-    }
-    return null;
-  } catch {
-    return null;
+async function apiRequest<T = unknown>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    credentials: "include",
+    ...init,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
   }
+  // try json, fallback to void
+  const ct = res.headers.get("content-type") || "";
+  return ct.includes("application/json") ? (await res.json()) as T : (undefined as T);
 }
 
-export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  const token = await getSupabaseToken();
-  const headers = new Headers(init.headers || {});
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-  headers.set("Content-Type", headers.get("Content-Type") || "application/json");
-  return fetch(input, { ...init, headers });
-}
-
-// Export as 'api' for compatibility with existing imports
-export const api = apiFetch;
+export const api = {
+  get: <T = unknown>(url: string) => apiRequest<T>(url),
+  post: <T = unknown>(url: string, body?: unknown) =>
+    apiRequest<T>(url, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
+  patch: <T = unknown>(url: string, body?: unknown) =>
+    apiRequest<T>(url, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
+  del: <T = unknown>(url: string) =>
+    apiRequest<T>(url, { method: "DELETE" }),
+};

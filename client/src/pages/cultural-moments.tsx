@@ -27,6 +27,7 @@ import {
   Pause,
   Archive
 } from 'lucide-react';
+import { api } from '@/lib/api';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -70,8 +71,9 @@ export default function CulturalMoments() {
   
   const { toast } = useToast();
 
-  const { data: moments = [], isLoading } = useQuery({
+  const { data: moments = [], isLoading } = useQuery<CulturalMoment[]>({
     queryKey: ['/api/cultural-moments'],
+    queryFn: () => api.get<CulturalMoment[]>('/api/cultural-moments'),
   });
 
   const updateStatusMutation = useMutation({

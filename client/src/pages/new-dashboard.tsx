@@ -132,7 +132,7 @@ const NewDashboard = () => {
                   <StaggerItem>
                     <MetricCard
                       title="Active Signals"
-                      value={<AnimatedCounter value={metrics?.totalCaptures || 0} />}
+                      value={metrics?.totalCaptures ?? 0}
                       change={`+${metrics?.recentCaptures || 0}`}
                       changeType="positive"
                       icon={Radar}
@@ -142,7 +142,7 @@ const NewDashboard = () => {
                   <StaggerItem>
                     <MetricCard
                       title="Viral Score Avg"
-                      value={<AnimatedCounter value={parseFloat(metrics?.avgViralScore?.toFixed(1) || "0")} />}
+                      value={parseFloat(metrics?.avgViralScore?.toFixed(1) || "0")}
                       change={`max: ${metrics?.maxViralScore?.toFixed(0) || 0}`}
                       changeType="positive"
                       icon={TrendingUp}

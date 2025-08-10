@@ -20,6 +20,7 @@ import {
   Filter,
   Tag
 } from 'lucide-react';
+import { api } from '@/lib/api';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -59,8 +60,9 @@ export default function CaptureTagging() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
+    queryFn: () => api.get<Project[]>('/api/projects'),
   });
 
   const { data: captures = [], isLoading } = useQuery({

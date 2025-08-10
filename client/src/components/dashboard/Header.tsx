@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, Play, Search, Loader2, Plus, Sparkles, ExternalLink } from "lucide-react";
-import { api } from "@/lib/queryClient";
+import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/layout/Navigation";
 import MobileNav from "@/components/layout/MobileNav";
@@ -18,14 +18,18 @@ export default function Header({ onRefresh }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  const { data: scheduleStatus } = useQuery({
+  type ScheduleStatus = { isRunning: boolean; lastRun?: string; nextRun?: string };
+  
+  const { data: scheduleStatus } = useQuery<ScheduleStatus>({
     queryKey: ['/api/schedule/status'],
-    queryFn: api.getScheduleStatus,
+    queryFn: () => api.get<ScheduleStatus>('/api/schedule/status'),
     refetchInterval: 5000,
   });
 
+  type ScanResult = { success: boolean; itemsProcessed: number; errors: any[] };
+
   const runScanMutation = useMutation({
-    mutationFn: api.runScan,
+    mutationFn: () => api.post<ScanResult>('/api/scan/run'),
     onSuccess: (result) => {
       toast({
         title: "Scan completed",

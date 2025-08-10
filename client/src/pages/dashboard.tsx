@@ -11,7 +11,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 import { Card } from "@/components/ui/card";
-import { api } from "@/lib/queryClient";
+import { api } from "@/lib/api";
 import type { ContentRadarItem, ContentFilters as FilterType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -27,14 +27,16 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 9;
 
-  const { data: content = [], isLoading: contentLoading, refetch: refetchContent } = useQuery({
+  const { data: content = [], isLoading: contentLoading, refetch: refetchContent } = useQuery<ContentRadarItem[]>({
     queryKey: ['/api/content', filters],
-    queryFn: () => api.getContent(filters),
+    queryFn: () => api.get<ContentRadarItem[]>(`/api/content?${new URLSearchParams(filters as any).toString()}`),
   });
 
-  const { data: stats } = useQuery({
+  type DashboardStats = { totalCaptures?: number; recentCaptures?: number; trendingTopics?: number };
+  
+  const { data: stats } = useQuery<DashboardStats>({
     queryKey: ['/api/stats'],
-    queryFn: () => fetch('/api/stats').then(res => res.json()),
+    queryFn: () => api.get<DashboardStats>('/api/stats'),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 

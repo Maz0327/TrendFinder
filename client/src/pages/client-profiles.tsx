@@ -16,6 +16,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Edit, Trash2, Users, Target, MessageSquare, Shield } from 'lucide-react';
+import { api } from '@/lib/api';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -93,8 +94,9 @@ export default function ClientProfiles() {
     },
   });
 
-  const { data: profiles = [], isLoading } = useQuery({
+  const { data: profiles = [], isLoading } = useQuery<ClientProfile[]>({
     queryKey: ['/api/client-profiles'],
+    queryFn: () => api.get<ClientProfile[]>('/api/client-profiles'),
   });
 
   const createMutation = useMutation({

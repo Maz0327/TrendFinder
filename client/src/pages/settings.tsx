@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Settings, Key, Database, Puzzle, Save, TestTube, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { api } from "@/lib/queryClient";
+import { api } from "@/lib/api";
 
 interface PlatformConfig {
   platform: string;
@@ -30,22 +30,25 @@ export default function SettingsPage() {
   const [platformConfigs, setPlatformConfigs] = useState<Record<string, string>>({});
   const [testResults, setTestResults] = useState<Record<string, any>>({});
 
+  type BrightDataStatus = { status: string; message?: string };
+  type Instructions = { platforms: PlatformConfig[] };
+
   // Get Bright Data status
-  const { data: brightDataStatus } = useQuery({
+  const { data: brightDataStatus } = useQuery<BrightDataStatus>({
     queryKey: ['/api/bright-data/status'],
-    queryFn: () => api.get('/api/bright-data/status'),
+    queryFn: () => api.get<BrightDataStatus>('/api/bright-data/status'),
   });
 
   // Get configuration instructions
-  const { data: instructions } = useQuery({
+  const { data: instructions } = useQuery<Instructions>({
     queryKey: ['/api/bright-data/instructions'],
-    queryFn: () => api.get('/api/bright-data/instructions'),
+    queryFn: () => api.get<Instructions>('/api/bright-data/instructions'),
   });
 
   // Test Bright Data connection
   const testBrightData = useMutation({
     mutationFn: async () => {
-      return api.get('/api/bright-data/test');
+      return api.get<{ success: boolean; message: string }>('/api/bright-data/test');
     },
     onSuccess: (data) => {
       setTestResults(prev => ({ ...prev, brightData: data }));
@@ -66,7 +69,7 @@ export default function SettingsPage() {
   // Update dataset configuration
   const updateDatasetConfig = useMutation({
     mutationFn: async (params: { platform: string; datasetId: string }) => {
-      return api.post('/api/bright-data/config', params);
+      return api.post<{ success: boolean; message: string }>('/api/bright-data/config', params);
     },
     onSuccess: (data, variables) => {
       toast({

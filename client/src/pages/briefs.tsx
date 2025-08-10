@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Download, Loader2, Copy, CheckCircle, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { api } from "@/lib/queryClient";
+import { api } from "@/lib/api";
 
 interface BriefTemplate {
   id: string;
@@ -36,7 +36,7 @@ export default function BriefGenerator() {
   // Get recent signals for brief generation
   const { data: recentContent = [] } = useQuery({
     queryKey: ['/api/content', { limit: 20, sortBy: 'viralScore' }],
-    queryFn: () => api.getContent({ sortBy: 'viralScore' }),
+    queryFn: () => api.get<any[]>('/api/content?sortBy=viralScore'),
   });
 
   // Generate brief mutation
