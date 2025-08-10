@@ -40,7 +40,7 @@ export function setupSearchRoutes(app: Express) {
       let sortedResults = [...accessibleResults];
       if (params.sortBy === 'date') {
         sortedResults.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
         );
       } else if (params.sortBy === 'viral_score') {
         sortedResults.sort((a, b) => (b.viralScore || 0) - (a.viralScore || 0));

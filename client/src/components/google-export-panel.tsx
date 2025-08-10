@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FileText, BarChart3, Presentation, Folder, CheckCircle } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
+import { api } from '@/lib/queryClient';
 
 interface GoogleExportPanelProps {
   projectId: string;
@@ -56,7 +56,7 @@ export function GoogleExportPanel({ projectId, briefId, briefTitle }: GoogleExpo
 
   const checkAuthStatus = async () => {
     try {
-      const response = await apiRequest('/google/auth/status');
+      const response = await api.get<{ authenticated: boolean }>('/google/auth/status');
       setIsAuthenticated(response.authenticated);
       return response.authenticated;
     } catch (error) {
@@ -68,7 +68,7 @@ export function GoogleExportPanel({ projectId, briefId, briefTitle }: GoogleExpo
   const handleGoogleAuth = async () => {
     setAuthLoading(true);
     try {
-      const response = await apiRequest('/google/auth/google');
+      const response = await api.get<{ authUrl: string }>('/google/auth/google');
       window.open(response.authUrl, '_blank', 'width=500,height=600');
       
       // Poll for authentication completion
@@ -104,14 +104,11 @@ export function GoogleExportPanel({ projectId, briefId, briefTitle }: GoogleExpo
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const response = await apiRequest('/google/export', {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId,
-          briefId,
-          exportTypes,
-          title: customTitle
-        })
+      const response = await api.post<{ exports: any[] }>('/google/export', {
+        exportSlides: exportTypes.includes('slides'),
+        exportDocs: exportTypes.includes('docs'),
+        exportSheets: exportTypes.includes('sheets'),
+        selectedCaptures: [briefId],
       });
 
       setExportResults(response.exports);

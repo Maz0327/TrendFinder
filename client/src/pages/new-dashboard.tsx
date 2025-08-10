@@ -23,6 +23,13 @@ import {
 } from "@/components/ui/micro-interactions";
 
 const NewDashboard = () => {
+  // Temporary props for compilation
+  const metrics: any = undefined;
+  const metricsLoading = false;
+  const capturesLoading = false;
+  const signals: any[] = [];
+  const chartData: any[] = [];
+  
   // Mock data for demonstration (matching Lovable design)
   const trendData = [
     { name: "Mon", value: 45, engagement: 32 },

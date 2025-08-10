@@ -74,7 +74,7 @@ export function setupAnalyticsRoutes(app: Express) {
 
       // Format for chart display
       const formattedData = trendData.reduce((acc: any[], item) => {
-        const date = new Date(item.recordedAt).toLocaleDateString();
+        const date = new Date(item.recordedAt ?? 0).toLocaleDateString();
         const existing = acc.find(d => d.date === date);
         
         if (existing) {

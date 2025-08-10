@@ -33,7 +33,7 @@ export function registerBriefRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const brief = await storage.getBriefById(req.params.id);
+      const brief = await storage.getDsdBriefById(req.params.id);
       if (!brief) {
         return res.status(404).json({ error: "Brief not found" });
       }
@@ -78,7 +78,7 @@ export function registerBriefRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       
-      const brief = await storage.getBriefById(req.params.id);
+      const brief = await storage.getDsdBriefById(req.params.id);
       if (!brief) {
         return res.status(404).json({ error: "Brief not found" });
       }
@@ -89,7 +89,7 @@ export function registerBriefRoutes(app: Express) {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const updatedBrief = await storage.updateBrief(req.params.id, req.body);
+      const updatedBrief = await storage.updateDsdBrief(req.params.id, req.body);
       res.json(updatedBrief);
     } catch (error) {
       console.error("Failed to update brief:", error);

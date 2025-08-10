@@ -143,7 +143,7 @@ export default function HypothesisTracking() {
     createMutation.mutate(data);
   };
 
-  const filteredValidations = validations.filter((validation: HypothesisValidation) => {
+  const filteredValidations = (validations as HypothesisValidation[]).filter((validation: HypothesisValidation) => {
     const matchesSearch = validation.originalPrediction.prediction.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          validation.actualOutcome.outcome.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -171,14 +171,14 @@ export default function HypothesisTracking() {
     return 'bg-red-500/10 text-red-400 border-red-500/20';
   };
 
-  const overallAccuracy = validations.length > 0 
-    ? validations.reduce((sum: number, v: HypothesisValidation) => sum + v.accuracyScore, 0) / validations.length 
+  const overallAccuracy = (validations as HypothesisValidation[]).length > 0 
+    ? (validations as HypothesisValidation[]).reduce((sum: number, v: HypothesisValidation) => sum + v.accuracyScore, 0) / (validations as HypothesisValidation[]).length 
     : 0;
 
   const accuracyDistribution = {
-    high: validations.filter((v: HypothesisValidation) => v.accuracyScore >= 80).length,
-    medium: validations.filter((v: HypothesisValidation) => v.accuracyScore >= 50 && v.accuracyScore < 80).length,
-    low: validations.filter((v: HypothesisValidation) => v.accuracyScore < 50).length,
+    high: (validations as HypothesisValidation[]).filter((v: HypothesisValidation) => v.accuracyScore >= 80).length,
+    medium: (validations as HypothesisValidation[]).filter((v: HypothesisValidation) => v.accuracyScore >= 50 && v.accuracyScore < 80).length,
+    low: (validations as HypothesisValidation[]).filter((v: HypothesisValidation) => v.accuracyScore < 50).length,
   };
 
   if (isLoading) {

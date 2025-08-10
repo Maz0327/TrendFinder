@@ -177,7 +177,7 @@ export default function BriefLab() {
                 </div>
               </CardHeader>
               <CardContent>
-                {briefs.length === 0 ? (
+                {(briefs as any[]).length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No briefs yet</h3>
@@ -189,7 +189,7 @@ export default function BriefLab() {
                   </div>
                 ) : (
                   <div className="grid gap-3">
-                    {briefs.slice(0, 3).map((brief: any, index: number) => (
+                    {(briefs as any[]).slice(0, 3).map((brief: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                         <div className="flex-1">
                           <div className="font-medium">{brief.title}</div>

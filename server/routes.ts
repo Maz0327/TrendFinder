@@ -1,4 +1,5 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
+
 import { createServer, type Server } from "http";
 import cors from "cors";
 import { storage } from "./storage";
@@ -54,13 +55,20 @@ const truthFramework = new TruthAnalysisFramework();
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(requestId);
   app.use(httpLogger);
-  
-  app.use(cors({
-    origin: true,
-    credentials: true,
-    methods: ["GET","POST","PATCH","DELETE","OPTIONS"],
-    allowedHeaders: ["Content-Type","Authorization","X-Requested-With","x-extension-id"]
-  }));
+
+  app.use(
+    cors({
+      origin: true,
+      credentials: true,
+      methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "x-extension-id",
+      ],
+    }),
+  );
   app.options("*", cors());
 
   const brightData = new BrightDataService();
@@ -83,8 +91,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add rate limiting
   const publicLimiter = rateLimit({
-    windowMs: 60_000,   // 1 minute
-    limit: 60,          // 60 requests/min
+    windowMs: 60_000, // 1 minute
+    limit: 60, // 60 requests/min
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -117,12 +125,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount all API sub-routers under /api
   const { buildApiRouter } = await import("./routes/index");
   app.use("/api", buildApiRouter());
-
-
-
-
-
-
 
   // Health check routes
   app.get("/health", healthCheckEndpoint);
@@ -265,51 +267,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-app.post("/api/ai/quick-analysis", requireAuth, async (req: AuthedRequest, res) => {
-  try {
-    const { content, type = "quick", context, platform = "web" } = req.body;
+  app.post(
+    "/api/ai/quick-analysis",
+    requireAuth,
+    async (req: AuthedRequest, res) => {
+      try {
+        const { content, type = "quick", context, platform = "web" } = req.body;
 
-    if (!content) {
-      return res.status(400).json({ error: "Content is required for analysis" });
+        if (!content) {
+          return res
+            .status(400)
+            .json({ error: "Content is required for analysis" });
+        }
+
+        const job = enqueue("ai.analyze", {
+          title: "Quick Analysis",
+          content,
+          platform,
+        });
+
+        return res.json({
+          success: true,
+          jobId: job.id,
+          message: "Analysis job enqueued",
+          type,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error("AI analysis enqueue error:", error);
+        res.status(500).json({
+          error: "Failed to enqueue analysis",
+          details: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    },
+  );
+
+  app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
+    const job = getJob(req.params.id);
+    if (!job) {
+      return res.status(404).json({ error: "Job not found" });
     }
-
-    const job = enqueue("ai.analyze", {
-      title: "Quick Analysis",
-      content,
-      platform,
+    res.json({
+      id: job.id,
+      type: job.type,
+      status: job.status,
+      result: job.result ?? null,
+      error: job.error ?? null,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
     });
-
-    return res.json({
-      success: true,
-      jobId: job.id,
-      message: "Analysis job enqueued",
-      type,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("AI analysis enqueue error:", error);
-    res.status(500).json({
-      error: "Failed to enqueue analysis",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
-  const job = getJob(req.params.id);
-  if (!job) {
-    return res.status(404).json({ error: "Job not found" });
-  }
-  res.json({
-    id: job.id,
-    type: job.type,
-    status: job.status,
-    result: job.result ?? null,
-    error: job.error ?? null,
-    createdAt: job.createdAt,
-    updatedAt: job.updatedAt,
   });
-});
 
   // Public Truth Analysis Routes (no auth required for testing)
   app.post("/api/truth-analysis", async (req, res) => {
@@ -382,9 +390,11 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
       // Map to frontend format
       const signals = culturalMoments.map((moment) => ({
         id: moment.id,
-        title: moment.description || 'Cultural Moment',
+        title: moment.description || "Cultural Moment",
         description: moment.description,
-        intensity: moment.globalConfidence ? parseInt(moment.globalConfidence) : 5,
+        intensity: moment.globalConfidence
+          ? parseInt(moment.globalConfidence)
+          : 5,
         platforms: Array.isArray(moment.contributingCaptures) ? [] : ["web"],
         keywords: [],
         resonance: {},
@@ -411,7 +421,11 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
 
       // Filter for high opportunity captures
       const opportunities = captures
-        .filter((c) => (c.viralScore && c.viralScore > 70) || c.analysisStatus === "completed")
+        .filter(
+          (c) =>
+            (c.viralScore && c.viralScore > 70) ||
+            c.analysisStatus === "completed",
+        )
         .map((capture) => ({
           id: capture.id,
           title: capture.title || "Content Opportunity",
@@ -420,7 +434,8 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
           viralScore: capture.viralScore,
           url: capture.url,
           timestamp: capture.createdAt,
-          type: (capture.viralScore && capture.viralScore > 80) ? "urgent" : "normal",
+          type:
+            capture.viralScore && capture.viralScore > 80 ? "urgent" : "normal",
         }))
         .slice(0, 10);
 
@@ -623,7 +638,6 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
           platform: "twitter",
           viralScore: 92,
           analysisStatus: "completed" as const,
-
         },
         {
           userId: req.session.user.id,
@@ -636,7 +650,6 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
           platform: "tiktok",
           viralScore: 85,
           analysisStatus: "completed" as const,
-
         },
         {
           userId: req.session.user.id,
@@ -649,7 +662,6 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
           platform: "linkedin",
           viralScore: 78,
           analysisStatus: "completed" as const,
-
         },
         {
           userId: req.session.user.id,
@@ -693,8 +705,9 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
         },
         {
           momentType: "behavior",
-          description: "Social proof replacing traditional advertising",  
-          strategicImplications: "Marketing strategies pivoting to authenticity",
+          description: "Social proof replacing traditional advertising",
+          strategicImplications:
+            "Marketing strategies pivoting to authenticity",
         },
       ];
 
@@ -1206,7 +1219,9 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
       return res.status(status).json({
         error: err.message || "Internal server error",
         code,
-        ...(process.env.NODE_ENV !== "production" ? { details: err.stack } : {}),
+        ...(process.env.NODE_ENV !== "production"
+          ? { details: err.stack }
+          : {}),
       });
     }
   });
@@ -1294,8 +1309,6 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     }
   });
 
-
-
   // Phase 2: Tier 2 Platform Intelligence Routes
 
   // Get Tier 2 sources
@@ -1346,16 +1359,30 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     metadata: z.record(z.any()).optional().default({}),
   });
 
-  app.post("/api/truth-analysis/analyze", requireAuth, validateBody(truthAnalyzeSchema), async (req: ValidatedRequest<z.infer<typeof truthAnalyzeSchema>>, res) => {
-    try {
-      const { content, platform, metadata } = req.validated!.body!;
-      const analysis = await truthFramework.analyzeContent(content, platform, metadata);
-      res.json(analysis);
-    } catch (error) {
-      console.error("Error in truth analysis:", error);
-      res.status(500).json({ error: "Failed to analyze content", details: error instanceof Error ? error.message : "Unknown error" });
-    }
-  });
+  app.post(
+    "/api/truth-analysis/analyze",
+    requireAuth,
+    validateBody(truthAnalyzeSchema),
+    async (req: ValidatedRequest<z.infer<typeof truthAnalyzeSchema>>, res) => {
+      try {
+        const { content, platform, metadata } = req.validated!.body!;
+        const analysis = await truthFramework.analyzeContent(
+          content,
+          platform,
+          metadata,
+        );
+        res.json(analysis);
+      } catch (error) {
+        console.error("Error in truth analysis:", error);
+        res
+          .status(500)
+          .json({
+            error: "Failed to analyze content",
+            details: error instanceof Error ? error.message : "Unknown error",
+          });
+      }
+    },
+  );
 
   // Phase 4: Strategic Brief Generation Routes
 
@@ -1804,42 +1831,61 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     query: z.string().optional(),
     platforms: z.array(z.string()).optional(),
     tags: z.array(z.string()).optional(),
-    dateRange: z.object({
-      from: z.string().datetime().optional(),
-      to: z.string().datetime().optional(),
-    }).optional(),
+    dateRange: z
+      .object({
+        from: z.string().datetime().optional(),
+        to: z.string().datetime().optional(),
+      })
+      .optional(),
   });
 
-  app.post("/api/captures/search", requireAuth, validateBody(capturesSearchSchema), async (req: ValidatedRequest<z.infer<typeof capturesSearchSchema>>, res) => {
-    try {
-      const { query, platforms, tags } = req.validated!.body!;
-      const captures = await storage.getUserCaptures(req.user!.id);
+  app.post(
+    "/api/captures/search",
+    requireAuth,
+    validateBody(capturesSearchSchema),
+    async (
+      req: ValidatedRequest<z.infer<typeof capturesSearchSchema>>,
+      res,
+    ) => {
+      try {
+        const { query, platforms, tags } = req.validated!.body!;
+        const captures = await storage.getUserCaptures(req.user!.id);
 
-      let filtered = captures;
+        let filtered = captures;
 
-      if (query) {
-        const q = query.toLowerCase();
-        filtered = filtered.filter((c: any) =>
-          c.title?.toLowerCase().includes(q) ||
-          c.content?.toLowerCase().includes(q) ||
-          c.summary?.toLowerCase().includes(q)
-        );
+        if (query) {
+          const q = query.toLowerCase();
+          filtered = filtered.filter(
+            (c: any) =>
+              c.title?.toLowerCase().includes(q) ||
+              c.content?.toLowerCase().includes(q) ||
+              c.summary?.toLowerCase().includes(q),
+          );
+        }
+
+        if (platforms && platforms.length > 0 && !platforms.includes("all")) {
+          filtered = filtered.filter((c: any) =>
+            platforms.includes(c.platform),
+          );
+        }
+
+        if (tags && tags.length > 0) {
+          filtered = filtered.filter((c: any) =>
+            tags.some((t: string) => c.tags?.includes(t)),
+          );
+        }
+
+        res.json({
+          results: filtered,
+          total: filtered.length,
+          query: req.validated!.body!,
+        });
+      } catch (error) {
+        console.error("Error searching captures:", error);
+        res.status(500).json({ error: "Failed to search captures" });
       }
-
-      if (platforms && platforms.length > 0 && !platforms.includes("all")) {
-        filtered = filtered.filter((c: any) => platforms.includes(c.platform));
-      }
-
-      if (tags && tags.length > 0) {
-        filtered = filtered.filter((c: any) => tags.some((t: string) => c.tags?.includes(t)));
-      }
-
-      res.json({ results: filtered, total: filtered.length, query: req.validated!.body! });
-    } catch (error) {
-      console.error("Error searching captures:", error);
-      res.status(500).json({ error: "Failed to search captures" });
-    }
-  });
+    },
+  );
 
   // Analytics APIs
   app.get("/api/analytics/content-trends", async (req, res) => {
@@ -1948,32 +1994,46 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     platform: z.string().optional(),
   });
 
-  app.post("/api/ai/analyze", requireAuth, validateBody(aiAnalyzeSchema), async (req: ValidatedRequest<z.infer<typeof aiAnalyzeSchema>>, res) => {
-    try {
-      const { content, type, platform } = req.validated!.body!;
-      const analysis = {
-        summary: `Strategic analysis of ${type || "content"}: ${content.substring(0, 100)}...`,
-        sentiment: Math.random() > 0.6 ? "positive" : Math.random() > 0.3 ? "neutral" : "negative",
-        viralScore: Math.floor(Math.random() * 40) + 60,
-        strategicValue: Math.floor(Math.random() * 5) + 6,
-        keyInsights: [
-          "Strong engagement potential detected",
-          "Aligns with current trending topics",
-          "Recommended for strategic amplification",
-        ],
-        recommendations: [
-          `Optimize for ${platform || "social media"} platform`,
-          "Consider cross-platform distribution",
-          "Monitor performance metrics closely",
-        ],
-        targetAudience: { primary: "Digital natives", secondary: "Content creators", engagement: "High" },
-      };
-      res.json(analysis);
-    } catch (error) {
-      console.error("Error in AI analysis:", error);
-      res.status(500).json({ error: "Failed to analyze content" });
-    }
-  });
+  app.post(
+    "/api/ai/analyze",
+    requireAuth,
+    validateBody(aiAnalyzeSchema),
+    async (req: ValidatedRequest<z.infer<typeof aiAnalyzeSchema>>, res) => {
+      try {
+        const { content, type, platform } = req.validated!.body!;
+        const analysis = {
+          summary: `Strategic analysis of ${type || "content"}: ${content.substring(0, 100)}...`,
+          sentiment:
+            Math.random() > 0.6
+              ? "positive"
+              : Math.random() > 0.3
+                ? "neutral"
+                : "negative",
+          viralScore: Math.floor(Math.random() * 40) + 60,
+          strategicValue: Math.floor(Math.random() * 5) + 6,
+          keyInsights: [
+            "Strong engagement potential detected",
+            "Aligns with current trending topics",
+            "Recommended for strategic amplification",
+          ],
+          recommendations: [
+            `Optimize for ${platform || "social media"} platform`,
+            "Consider cross-platform distribution",
+            "Monitor performance metrics closely",
+          ],
+          targetAudience: {
+            primary: "Digital natives",
+            secondary: "Content creators",
+            engagement: "High",
+          },
+        };
+        res.json(analysis);
+      } catch (error) {
+        console.error("Error in AI analysis:", error);
+        res.status(500).json({ error: "Failed to analyze content" });
+      }
+    },
+  );
 
   const hookGenSchema = z.object({
     content: z.string().min(1),
@@ -1982,40 +2042,46 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     tone: z.string().optional(),
   });
 
-  app.post("/api/ai/hook-generator", requireAuth, validateBody(hookGenSchema), async (req: ValidatedRequest<z.infer<typeof hookGenSchema>>, res) => {
-    try {
-      const { content, platform, targetAudience, tone } = req.validated!.body!;
-      const hooks = [
-        `🔥 You won't believe what ${targetAudience || "people"} are saying about this...`,
-        `STOP scrolling! This ${platform || "content"} insight will change everything`,
-        `The secret that ${targetAudience || "everyone"} doesn't want you to know`,
-        `Why ${content.substring(0, 30)}... is trending everywhere`,
-        `This simple trick is breaking the internet right now`,
-        `${targetAudience || "People"} are going crazy over this new discovery`,
-        `Warning: This ${platform || "content"} hack is too powerful`,
-        `The ${tone || "authentic"} truth about what's happening`,
-        `Everyone is talking about this, but here's what they missed`,
-        `This changes everything we thought we knew about ${platform || "content"}`,
-      ];
-      res.json({
-        hooks: hooks.slice(0, 5),
-        metadata: {
-          platform: platform || "general",
-          targetAudience: targetAudience || "general",
-          tone: tone || "engaging",
-          optimizedFor: "maximum engagement",
-        },
-        performance: {
-          expectedCTR: `${Math.floor(Math.random() * 5) + 3}%`,
-          viralPotential: Math.floor(Math.random() * 30) + 70,
-          audienceMatch: Math.floor(Math.random() * 20) + 80,
-        },
-      });
-    } catch (error) {
-      console.error("Error generating hooks:", error);
-      res.status(500).json({ error: "Failed to generate hooks" });
-    }
-  });
+  app.post(
+    "/api/ai/hook-generator",
+    requireAuth,
+    validateBody(hookGenSchema),
+    async (req: ValidatedRequest<z.infer<typeof hookGenSchema>>, res) => {
+      try {
+        const { content, platform, targetAudience, tone } =
+          req.validated!.body!;
+        const hooks = [
+          `🔥 You won't believe what ${targetAudience || "people"} are saying about this...`,
+          `STOP scrolling! This ${platform || "content"} insight will change everything`,
+          `The secret that ${targetAudience || "everyone"} doesn't want you to know`,
+          `Why ${content.substring(0, 30)}... is trending everywhere`,
+          `This simple trick is breaking the internet right now`,
+          `${targetAudience || "People"} are going crazy over this new discovery`,
+          `Warning: This ${platform || "content"} hack is too powerful`,
+          `The ${tone || "authentic"} truth about what's happening`,
+          `Everyone is talking about this, but here's what they missed`,
+          `This changes everything we thought we knew about ${platform || "content"}`,
+        ];
+        res.json({
+          hooks: hooks.slice(0, 5),
+          metadata: {
+            platform: platform || "general",
+            targetAudience: targetAudience || "general",
+            tone: tone || "engaging",
+            optimizedFor: "maximum engagement",
+          },
+          performance: {
+            expectedCTR: `${Math.floor(Math.random() * 5) + 3}%`,
+            viralPotential: Math.floor(Math.random() * 30) + 70,
+            audienceMatch: Math.floor(Math.random() * 20) + 80,
+          },
+        });
+      } catch (error) {
+        console.error("Error generating hooks:", error);
+        res.status(500).json({ error: "Failed to generate hooks" });
+      }
+    },
+  );
 
   // Hypothesis Validation
   app.get("/api/hypothesis-validations", async (req, res) => {
@@ -2188,10 +2254,6 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     }
   });
 
-
-
-
-
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -2314,8 +2376,6 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
 
   // Auto-scanning disabled by default - users must manually start it
   console.log("📋 Scheduler initialized (auto-scan disabled by default)");
-
-
 
   const httpServer = createServer(app);
   return httpServer;

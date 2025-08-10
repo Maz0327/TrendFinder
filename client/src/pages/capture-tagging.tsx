@@ -84,7 +84,7 @@ export default function CaptureTagging() {
     },
   });
 
-  const filteredCaptures = captures.filter((capture: Capture) => {
+  const filteredCaptures = (captures as Capture[]).filter((capture: Capture) => {
     const matchesSearch = capture.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          capture.content.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSection = filterSection === 'all' || capture.dsdSection === filterSection ||

@@ -340,7 +340,7 @@ export default function DsdBriefBuilder() {
           <main className="flex-1 p-6">
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {briefs.map((brief: DsdBrief) => (
+                {(briefs as DsdBrief[]).map((brief: DsdBrief) => (
                   <Card key={brief.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -405,7 +405,7 @@ export default function DsdBriefBuilder() {
                 ))}
               </div>
 
-              {briefs.length === 0 && (
+              {(briefs as DsdBrief[]).length === 0 && (
                 <Card className="text-center py-12">
                   <CardContent>
                     <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -469,7 +469,7 @@ export default function DsdBriefBuilder() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {projects.map((project: Project) => (
+                              {(projects as Project[]).map((project: Project) => (
                                 <SelectItem key={project.id} value={project.id}>
                                   {project.name}
                                 </SelectItem>
@@ -494,7 +494,7 @@ export default function DsdBriefBuilder() {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="">No Client</SelectItem>
-                              {clientProfiles.map((client: ClientProfile) => (
+                              {(clientProfiles as ClientProfile[]).map((client: ClientProfile) => (
                                 <SelectItem key={client.id} value={client.id}>
                                   {client.name}
                                 </SelectItem>

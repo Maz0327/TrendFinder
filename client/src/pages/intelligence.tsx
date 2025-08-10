@@ -28,20 +28,20 @@ export default function IntelligenceHub() {
   // Get platform status
   const { data: systemStatus } = useQuery({
     queryKey: ['/api/system/status'],
-    queryFn: () => api.get('/api/system/status'),
+    queryFn: () => fetch('/api/system/status').then(res => res.json()),
     refetchInterval: 30000,
   });
 
   // Get Tier 2 sources
   const { data: tier2Sources = [] } = useQuery({
     queryKey: ['/api/tier2/sources'],
-    queryFn: () => api.get('/api/tier2/sources'),
+    queryFn: () => fetch('/api/tier2/sources').then(res => res.json()),
   });
 
   // Get live data status
   const { data: liveStatus } = useQuery({
     queryKey: ['/api/bright-data/live/status'],
-    queryFn: () => api.get('/api/bright-data/live/status'),
+    queryFn: () => fetch('/api/bright-data/live/status').then(res => res.json()),
   });
 
   // Fetch intelligence mutation

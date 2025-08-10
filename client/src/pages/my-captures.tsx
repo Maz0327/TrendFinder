@@ -309,7 +309,7 @@ export default function MyCaptures() {
                   <SelectItem value="all">All Projects</SelectItem>
                   {projects.map((project: Project) => (
                     <SelectItem key={project.id} value={project.id}>
-                      {project.name}
+                      {project.title}
                     </SelectItem>
                   ))}
                 </SelectContent>

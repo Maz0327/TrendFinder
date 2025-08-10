@@ -7,7 +7,7 @@ import ContentFilters from "@/components/dashboard/ContentFilters";
 import TrendCard from "@/components/dashboard/TrendCard";
 import TrendModal from "@/components/dashboard/TrendModal";
 import SystemStatus from "@/components/dashboard/SystemStatus";
-import { LoadingSpinner, LoadingState } from "@/components/ui/loading-spinner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 import { Card } from "@/components/ui/card";
@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   const { data: stats } = useQuery({
     queryKey: ['/api/stats'],
-    queryFn: api.getStats,
+    queryFn: () => fetch('/api/stats').then(res => res.json()),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 

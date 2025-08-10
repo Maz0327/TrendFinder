@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 export interface AuthedUser {
   id: string;
   email?: string;
+  metadata?: any;
+  role?: string;
 }
 
 export interface AuthedRequest extends Request {
