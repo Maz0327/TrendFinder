@@ -27,6 +27,10 @@ import { enqueue, getJob } from "./jobs/inMemoryQueue";
 import { capturesRouter } from "./routes/captures";
 import { extensionRouter } from "./routes/extension";
 import { logger } from "./logger";
+import { requestId } from "./middleware/requestId";
+import { httpLogger } from "./middleware/httpLogger";
+import aiRouter from "./routes/ai";
+import brightDataRouter from "./routes/brightData";
 import { registerProjectRoutes } from "./routes/projects";
 import { registerBriefRoutes } from "./routes/briefs";
 import googleExportsRouter from "./routes/google-exports";
@@ -45,6 +49,9 @@ const truthFramework = new TruthAnalysisFramework();
 // Note: Extension capture schema moved inline with route handler
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.use(requestId);
+  app.use(httpLogger);
+  
   app.use(cors({
     origin: true,
     credentials: true,
@@ -96,6 +103,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount modular routers
   app.use("/api", capturesRouter);
   app.use("/api", extensionRouter);
+  app.use("/api", aiRouter);
+  app.use("/api", brightDataRouter);
 
   // example log on startup
   logger.info("Mounted captures and extension routers");
@@ -2210,51 +2219,9 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     }
   });
 
-  // Fetch data using fixed Bright Data service
-  const brightFetchSchema = z.object({
-    platform: z.string().min(1),
-    keywords: z.array(z.string()).optional().default([]),
-    limit: z.number().int().min(1).max(100).optional().default(20),
-  });
 
-  app.post("/api/bright-data/fetch", requireAuth, validateBody(brightFetchSchema), async (req: ValidatedRequest<z.infer<typeof brightFetchSchema>>, res) => {
-    try {
-      const { platform, keywords, limit } = req.validated!.body!;
-      const data = await fixedBrightData.fetchPlatformData(platform, keywords, limit);
-      res.json({ success: true, platform, count: data.length, data, method: data[0]?.metadata?.source || "unknown" });
-    } catch (error) {
-      console.error("Error fetching via fixed Bright Data:", error);
-      res.status(500).json({ error: "Failed to fetch data", details: error instanceof Error ? error.message : "Unknown error", platform: (req.validated?.body as any)?.platform });
-    }
-  });
 
-  // Fetch LIVE data using enhanced Bright Data service with browser automation
-  const brightLiveSchema = z.object({
-    platform: z.string().min(1),
-    keywords: z.array(z.string()).optional().default([]),
-    limit: z.number().int().min(1).max(50).optional().default(20),
-  });
 
-  app.post("/api/bright-data/live", requireAuth, validateBody(brightLiveSchema), async (req: ValidatedRequest<z.infer<typeof brightLiveSchema>>, res) => {
-    try {
-      const { platform, keywords, limit } = req.validated!.body!;
-      const result = await liveBrightData.fetchLiveData(platform, keywords, limit);
-      res.json(result);
-    } catch (error) {
-      console.error("Error fetching live data:", error);
-      res.status(500).json({ error: "Failed to fetch live data", details: error instanceof Error ? error.message : "Unknown error", platform: (req.validated?.body as any)?.platform });
-    }
-  });
-
-  // Get live system status
-  app.get("/api/bright-data/live/status", async (req, res) => {
-    try {
-      const status = liveBrightData.getSystemStatus();
-      res.json(status);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get live system status" });
-    }
-  });
 
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
