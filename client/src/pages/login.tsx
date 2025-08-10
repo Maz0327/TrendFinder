@@ -15,7 +15,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [, navigate] = useLocation();
-  const { setUser } = useAuth();
+  const { user } = useAuth();
 
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
@@ -34,9 +34,6 @@ export default function Login() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Set user first
-      setUser(data.user);
-      
       // Invalidate auth query to force refresh
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       

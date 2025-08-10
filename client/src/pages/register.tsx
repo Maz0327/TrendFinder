@@ -15,7 +15,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [, navigate] = useLocation();
-  const { setUser } = useAuth();
+  const { user } = useAuth();
 
   const registerMutation = useMutation({
     mutationFn: async (data: { email: string; username: string; password: string }) => {
@@ -33,7 +33,6 @@ export default function Register() {
       return response.json();
     },
     onSuccess: (data) => {
-      setUser(data.user);
       navigate("/projects");
     },
   });

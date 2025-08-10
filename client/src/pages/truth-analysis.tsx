@@ -143,7 +143,7 @@ export default function TruthAnalysis() {
     },
   });
 
-  const filteredAnalyses = analyses.filter((analysis: TruthAnalysis) => {
+  const filteredAnalyses = (analyses as TruthAnalysis[]).filter((analysis: TruthAnalysis) => {
     const matchesSearch = analysis.capture?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          analysis.capture?.content.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -153,7 +153,7 @@ export default function TruthAnalysis() {
     return matchesSearch && matchesVerification && matchesPlatform;
   });
 
-  const platforms = [...new Set(analyses.map((a: TruthAnalysis) => a.capture?.platform).filter(Boolean))];
+  const platforms = [...new Set((analyses as TruthAnalysis[]).map((a: TruthAnalysis) => a.capture?.platform).filter(Boolean))];
 
   const getVerificationColor = (status: string) => {
     switch (status) {
@@ -200,7 +200,7 @@ export default function TruthAnalysis() {
                 <SelectValue placeholder="Select project" />
               </SelectTrigger>
               <SelectContent>
-                {projects.map((project: Project) => (
+                {(projects as Project[]).map((project: Project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
                   </SelectItem>
@@ -242,7 +242,7 @@ export default function TruthAnalysis() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects.map((project: Project) => (
+                    {(projects as Project[]).map((project: Project) => (
                       <SelectItem key={project.id} value={project.id}>
                         {project.name}
                       </SelectItem>

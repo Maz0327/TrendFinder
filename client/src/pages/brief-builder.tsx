@@ -570,7 +570,7 @@ export default function BriefBuilder() {
             </DialogDescription>
           </DialogHeader>
           <GoogleExportPanel
-            projectId={selectedProject?.id || ''}
+            projectId={typeof selectedProject === 'object' ? (selectedProject as any)?.id || '' : selectedProject || ''}
             briefId={briefTitle || 'untitled-brief'}
             briefTitle={briefTitle || 'Strategic Intelligence Brief'}
           />

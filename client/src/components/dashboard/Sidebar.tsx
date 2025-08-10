@@ -60,9 +60,8 @@ export default function Sidebar({ filters, onFiltersChange }: SidebarProps) {
 
   const exportMutation = useMutation({
     mutationFn: async (format: 'json' | 'csv') => {
-      const response = await api.post<{ url: string }>('/api/export', { format });
-      const data = await response.text();
-      return { data, format };
+      const response = await api.post<string>('/api/export', { format });
+      return { data: response, format };
     },
     onSuccess: ({ data, format }) => {
       const blob = new Blob([data], { 

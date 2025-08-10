@@ -1,4 +1,5 @@
 import { api } from "./api";
+import type { DashboardStats } from '@/types/dashboard';
 
 // Types for Lovable UI components
 export interface SignalData {
@@ -73,7 +74,7 @@ export async function fetchRecentCaptures(): Promise<SignalData[]> {
 
 export async function fetchMetrics(): Promise<MetricData> {
   try {
-    const response = await api.getStats();
+    const response = await api.get<DashboardStats>('/api/stats');
     return {
       activeSignals: response.totalCaptures || 0,
       avgViralScore: response.avgViralScore || 0,
@@ -94,7 +95,7 @@ export async function fetchMetrics(): Promise<MetricData> {
 
 export async function fetchTrendData(): Promise<TrendData[]> {
   try {
-    const response = await api.getStats();
+    const response = await api.get<DashboardStats>('/api/stats');
     
     // Generate trend data from stats
     return [
@@ -130,7 +131,7 @@ export async function createCapture(data: {
 }) {
   try {
     const response = await api.post('/api/captures', data);
-    return response.data;
+    return response;
   } catch (error) {
     console.error("Error creating capture:", error);
     throw error;
@@ -140,7 +141,7 @@ export async function createCapture(data: {
 export async function analyzeUrl(url: string) {
   try {
     const response = await api.post('/api/ai/analyze-url', { url });
-    return response.data;
+    return response;
   } catch (error) {
     console.error("Error analyzing URL:", error);
     throw error;

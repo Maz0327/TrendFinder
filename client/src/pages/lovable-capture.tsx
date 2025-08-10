@@ -202,7 +202,7 @@ const Capture = () => {
                               <SelectValue placeholder="Select a project" />
                             </SelectTrigger>
                             <SelectContent>
-                              {projects.map((project: any) => (
+                              {(projects as any[])?.map((project: any) => (
                                 <SelectItem key={project.id} value={project.id}>
                                   {project.name}
                                 </SelectItem>

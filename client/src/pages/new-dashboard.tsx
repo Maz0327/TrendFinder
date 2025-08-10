@@ -175,7 +175,7 @@ const NewDashboard = () => {
 
             {/* Trend Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TrendChart data={chartData} />
+              <TrendChart title="Signal Trends" data={chartData} />
               
               {/* Quick Actions */}
               <div className="bg-card rounded-lg border border-border p-6">

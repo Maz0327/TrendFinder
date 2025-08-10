@@ -32,7 +32,7 @@ export default function AnalysisCenter() {
   // Truth analysis mutation
   const analyzeTruth = useMutation({
     mutationFn: async (params: { content: string; platform: string }) => {
-      return api.post('/api/truth-analysis/analyze', {
+      return api.post<TruthAnalysis>('/api/truth-analysis/analyze', {
         content: params.content,
         platform: params.platform,
         metadata: {
@@ -41,7 +41,7 @@ export default function AnalysisCenter() {
         }
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (data: TruthAnalysis) => {
       setAnalysisResult(data);
       toast({
         title: "Analysis Complete",

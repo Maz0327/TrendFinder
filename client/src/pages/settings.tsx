@@ -196,7 +196,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {brightDataStatus?.platforms && Object.entries(brightDataStatus.platforms).map(([platform, config]: [string, any]) => (
+                    {(brightDataStatus as any)?.platforms && Object.entries((brightDataStatus as any).platforms).map(([platform, config]: [string, any]) => (
                       <div key={platform} className="flex items-center gap-4 p-4 border rounded-lg">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                   <CardContent>
                     <div className="prose prose-sm max-w-none">
                       <ol className="space-y-2">
-                        {instructions.steps?.map((step: string, index: number) => (
+                        {(instructions as any).steps?.map((step: string, index: number) => (
                           <li key={index} className="text-sm text-gray-700">{step}</li>
                         ))}
                       </ol>

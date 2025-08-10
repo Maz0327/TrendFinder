@@ -99,7 +99,7 @@ export default function CaptureTaggingEnhanced() {
     return matchesSearch && matchesPlatform && matchesSection;
   });
 
-  const platforms = [...new Set(captures.map((c: any) => c.platform))];
+  const platforms = [...new Set(captures.map((c: any) => c.platform))] as string[];
 
   return (
     <PageLayout 

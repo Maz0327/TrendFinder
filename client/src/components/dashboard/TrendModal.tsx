@@ -38,10 +38,10 @@ export default function TrendModal({ trend, isOpen, onClose }: TrendModalProps) 
   const generateHooksMutation = useMutation({
     mutationFn: (id: string) => api.post<string[]>(`/api/captures/${id}/hooks`),
     onSuccess: (data) => {
-      setAdditionalHooks(data.hooks);
+      setAdditionalHooks(data);
       toast({
         title: "New hooks generated",
-        description: `Generated ${data.hooks.length} additional hooks`,
+        description: `Generated ${data.length} additional hooks`,
       });
     },
     onError: () => {

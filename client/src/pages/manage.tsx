@@ -80,7 +80,7 @@ export default function Manage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{projects.length}</div>
+                  <div className="text-2xl font-bold">{(projects as any[])?.length || 0}</div>
                   <p className="text-xs text-gray-600">Across all campaigns</p>
                 </CardContent>
               </Card>
@@ -120,14 +120,14 @@ export default function Manage() {
                   <CardDescription>Your latest strategic initiatives</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {projects.length === 0 ? (
+                  {((projects as any[])?.length || 0) === 0 ? (
                     <div className="text-center py-6">
                       <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600">No projects yet</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {projects.slice(0, 4).map((project: any, index: number) => (
+                      {((projects as any[]) || []).slice(0, 4).map((project: any, index: number) => (
                         <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex-1">
                             <div className="font-medium text-sm">{project.name}</div>

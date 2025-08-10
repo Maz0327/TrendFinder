@@ -32,11 +32,9 @@ export default function Dashboard() {
     queryFn: () => api.get<ContentRadarItem[]>(`/api/content?${new URLSearchParams(filters as any).toString()}`),
   });
 
-  type DashboardStats = { totalCaptures?: number; recentCaptures?: number; trendingTopics?: number };
-  
-  const { data: stats } = useQuery<DashboardStats>({
+  const { data: stats } = useQuery<{ totalCaptures?: number; recentCaptures?: number; trendingTopics?: number }>({
     queryKey: ['/api/stats'],
-    queryFn: () => api.get<DashboardStats>('/api/stats'),
+    queryFn: () => api.get<{ totalCaptures?: number; recentCaptures?: number; trendingTopics?: number }>('/api/stats'),
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
@@ -71,7 +69,7 @@ export default function Dashboard() {
         <main className="flex-1 lg:ml-64 p-4 lg:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-4 lg:mb-6">
             <div className="lg:col-span-2">
-              <StatsOverview stats={stats} />
+              <StatsOverview stats={stats as any} />
             </div>
             <div className="lg:col-span-1">
               <SystemStatus />

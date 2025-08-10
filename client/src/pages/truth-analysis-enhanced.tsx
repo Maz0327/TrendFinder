@@ -180,7 +180,7 @@ export default function TruthAnalysisEnhanced() {
                   className="flex items-center space-x-2"
                   onClick={() => {
                     // Run batch analysis on pending captures
-                    pendingCaptures.slice(0, 5).forEach(capture => {
+                    pendingCaptures.slice(0, 5).forEach((capture: any) => {
                       runAnalysisMutation.mutate(capture.id);
                     });
                   }}

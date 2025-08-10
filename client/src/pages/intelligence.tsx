@@ -47,9 +47,9 @@ export default function IntelligenceHub() {
   // Fetch intelligence mutation
   const fetchIntelligence = useMutation({
     mutationFn: async (params: any) => {
-      return api.post('/api/intelligence/comprehensive', params);
+      return api.post<{ totalSignals: number; tier1Signals: number; tier2Signals: number; trends: number }>('/api/intelligence/comprehensive', params);
     },
-    onSuccess: (data) => {
+    onSuccess: (data: { totalSignals: number; tier1Signals: number; tier2Signals: number; trends: number }) => {
       toast({
         title: "Intelligence Collection Complete",
         description: `Collected ${data.totalSignals} signals across ${data.tier1Signals + data.tier2Signals} sources`,

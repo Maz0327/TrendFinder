@@ -59,7 +59,7 @@ export default function SignalCapture() {
         credentials: 'include',
         body: JSON.stringify({
           ...captureData,
-          projectId: captureData.projectId || (projects[0]?.id),
+          projectId: captureData.projectId || ((projects as any[])[0]?.id),
         }),
       });
       if (!response.ok) {
@@ -284,7 +284,7 @@ export default function SignalCapture() {
                     <SelectValue placeholder="Select project or leave unassigned" />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects.map((project: any) => (
+                    {(projects as any[])?.map((project: any) => (
                       <SelectItem key={project.id} value={project.id}>
                         {project.name}
                       </SelectItem>
@@ -399,7 +399,7 @@ function RecentCapturesDisplay() {
     return <div className="text-center py-4">Loading captures...</div>;
   }
 
-  if (captures.length === 0) {
+  if ((captures as any[])?.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -410,7 +410,7 @@ function RecentCapturesDisplay() {
 
   return (
     <div className="space-y-3">
-      {captures.slice(0, 5).map((capture: any) => (
+      {(captures as any[])?.slice(0, 5).map((capture: any) => (
         <div key={capture.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div className="flex-1">
             <h4 className="font-medium text-sm">{capture.title || 'Untitled Capture'}</h4>
