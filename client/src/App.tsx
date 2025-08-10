@@ -38,6 +38,7 @@ import LovableSearch from "@/pages/lovable-search";
 import LovableInsights from "@/pages/lovable-insights";
 import DataSources from "@/pages/data-sources";
 import SupabaseTest from "@/pages/supabase-test";
+import SupabaseSetup from "@/pages/supabase-setup";
 import MobileNavBar from "@/components/layout/MobileNavBar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/system-status" component={SystemStatus} />
       <Route path="/supabase-test" component={SupabaseTest} />
+      <Route path="/supabase-setup" component={SupabaseSetup} />
       
       {/* Strategic Intelligence Routes - Enhanced */}
       <Route path="/client-profiles" component={() => <ProtectedRoute><ClientProfiles /></ProtectedRoute>} />

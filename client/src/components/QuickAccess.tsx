@@ -28,6 +28,13 @@ export function QuickAccess() {
           >
             Detailed Supabase Connection Test
           </Button>
+          
+          <Button 
+            onClick={() => setLocation('/supabase-setup')}
+            className="w-full bg-green-600 hover:bg-green-700"
+          >
+            Fix Supabase Configuration
+          </Button>
         </div>
       </CardContent>
     </Card>
