@@ -24,21 +24,32 @@ export default function SupabaseTest() {
 
       // Test basic connectivity
       try {
-        const response = await fetch(import.meta.env.VITE_SUPABASE_URL + '/rest/v1/', {
+        console.log('Testing Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+        
+        // First test basic URL format
+        const url = new URL(import.meta.env.VITE_SUPABASE_URL + '/rest/v1/');
+        console.log('Parsed URL:', url.toString());
+        
+        const response = await fetch(url.toString(), {
           headers: {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
           }
         });
+        
         results.connectivity = {
           status: response.ok ? 'success' : 'failed',
           statusCode: response.status,
-          statusText: response.statusText
+          statusText: response.statusText,
+          url: url.toString()
         };
       } catch (error: any) {
         results.connectivity = {
           status: 'error',
-          error: error.message
+          error: error.message,
+          name: error.name,
+          stack: error.stack?.split('\n')[0]
         };
       }
 
@@ -166,9 +177,21 @@ export default function SupabaseTest() {
                       <span>{testResults.connectivity.statusCode} {testResults.connectivity.statusText}</span>
                     </div>
                   )}
+                  {testResults.connectivity?.url && (
+                    <div className="flex justify-between items-center">
+                      <span>Test URL:</span>
+                      <span className="text-sm font-mono break-all">{testResults.connectivity.url}</span>
+                    </div>
+                  )}
                   {testResults.connectivity?.error && (
                     <Alert>
-                      <AlertDescription>{testResults.connectivity.error}</AlertDescription>
+                      <AlertDescription>
+                        <div className="space-y-1">
+                          <div><strong>Error:</strong> {testResults.connectivity.error}</div>
+                          {testResults.connectivity?.name && <div><strong>Type:</strong> {testResults.connectivity.name}</div>}
+                          {testResults.connectivity?.stack && <div><strong>Stack:</strong> {testResults.connectivity.stack}</div>}
+                        </div>
+                      </AlertDescription>
                     </Alert>
                   )}
                 </div>

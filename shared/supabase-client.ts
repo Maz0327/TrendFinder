@@ -12,6 +12,8 @@ const supabaseAnonKey = typeof window !== 'undefined'
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials not configured. Some features may be unavailable.');
+  console.warn('VITE_SUPABASE_URL:', supabaseUrl);
+  console.warn('VITE_SUPABASE_ANON_KEY length:', supabaseAnonKey?.length || 0);
 }
 
 // Create a single supabase client for interacting with your database
