@@ -17,6 +17,7 @@ import { LiveBrightDataService } from "./services/liveBrightDataService";
 import { insertContentRadarSchema } from "@shared/supabase-schema";
 import { requireAuth, AuthedRequest } from "./middleware/auth";
 import { validateBody, zod as z } from "./middleware/validate";
+import rateLimit from "express-rate-limit";
 
 import { registerProjectRoutes } from "./routes/projects";
 import { registerBriefRoutes } from "./routes/briefs";
@@ -55,14 +56,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Strategic Intelligence Service ready
 
   // Add rate limiting
-  const rateLimit = (await import("express-rate-limit")).default;
   const publicLimiter = rateLimit({
-    windowMs: 60_000,
-    limit: 60, // 60 req/min
+    windowMs: 60_000,   // 1 minute
+    limit: 60,          // 60 requests/min
     standardHeaders: true,
     legacyHeaders: false,
   });
+
+  // Apply to all public testing routes
   app.use("/api/public", publicLimiter);
+  // (Optional) Also protect scraping/AI heavy routes:
+  app.use("/api/bright-data", publicLimiter);
+  app.use("/api/ai", publicLimiter);
 
   // Add content sanitization middleware
   const { sanitizeInput } = await import("./middleware/sanitization");
@@ -120,7 +125,7 @@ app.post(
   validateBody(extensionCaptureSchema),
   async (req: AuthedRequest, res) => {
     try {
-      const { projectId, content, url, platform, type, priority } = req.body as z.infer<typeof extensionCaptureSchema>;
+      const { projectId, content, url, platform, type } = req.body;
 
       // Track extension request
       const extensionId = req.headers["x-extension-id"] as string | undefined;
@@ -141,7 +146,6 @@ app.post(
         url,
         platform: platform || "web",
         title: `Extension Capture - ${new Date().toLocaleString()}`,
-        priority,
         analysisStatus: "pending",
       });
 
@@ -423,16 +427,12 @@ app.post(
   });
 
   // Get recent captures for dashboard (Lovable UI)
-  app.get("/api/captures/recent", async (req, res) => {
+  app.get("/api/captures/recent", requireAuth, async (req: AuthedRequest, res) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
+      const userId = req.user!.id;
       const limit = parseInt(req.query.limit as string) || 10;
-      const captures = await db.getUserCaptures(req.session.user.id);
+      const captures = await db.getUserCaptures(userId);
 
-      // Sort by createdAt and take the most recent ones
       const recentCaptures = captures
         .sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -449,13 +449,10 @@ app.post(
   });
 
   // Get all captures for the user (for My Captures page)
-  app.get("/api/captures/all", async (req, res) => {
+  app.get("/api/captures/all", requireAuth, async (req: AuthedRequest, res) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const captures = await db.getUserCaptures(req.session.user.id);
+      const userId = req.user!.id;
+      const captures = await db.getUserCaptures(userId);
       res.json(captures);
     } catch (error) {
       console.error("Error fetching user captures:", error);
