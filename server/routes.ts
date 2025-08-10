@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import cors from "cors";
 import { storage } from "./storage";
 import { captureAnalysisService } from "./services/capture-analysis-service";
 import { scheduler } from "./services/scheduler";
@@ -40,6 +41,14 @@ const truthFramework = new TruthAnalysisFramework();
 // Note: Extension capture schema moved inline with route handler
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ["GET","POST","PATCH","DELETE","OPTIONS"],
+    allowedHeaders: ["Content-Type","Authorization","X-Requested-With","x-extension-id"]
+  }));
+  app.options("*", cors());
+
   const brightData = new BrightDataService();
   const brightDataBrowser = new BrightDataBrowserService();
   const enhancedBrightData = new EnhancedBrightDataService();
