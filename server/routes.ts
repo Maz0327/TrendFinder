@@ -32,8 +32,17 @@ const liveBrightData = new LiveBrightDataService();
 const aiAnalyzer = new AIAnalyzer();
 const truthFramework = new TruthAnalysisFramework();
 
+// Zod schema for validating Chrome extension capture requests
+const extensionCaptureSchema = z.object({
+  projectId: z.string().uuid().optional(),
+  content: z.string().min(1, "Content is required"),
+  url: z.string().url().optional(),
+  platform: z.string().optional(),
+  type: z.string().optional(),
+  priority: z.string().optional(),
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  
   const brightData = new BrightDataService();
   const brightDataBrowser = new BrightDataBrowserService();
   const enhancedBrightData = new EnhancedBrightDataService();
@@ -41,24 +50,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔄 Using working DatabaseStorage with correct schema...");
   const db = storage; // DatabaseStorage now uses correct Supabase schema
   console.log("✅ Connected to database with public schema");
-  
+
   const strategicIntelligence = new StrategicIntelligenceService(db);
-  
+
   const tier2Service = new Tier2PlatformService();
   const briefService = new BriefGenerationService();
   const chromeExtensionService = new ChromeExtensionService();
   const fixedBrightData = new FixedBrightDataService();
-  
-  
+
   // Initialize Tier 1 sources on startup
   // Strategic Intelligence Service ready
 
-  // Register project and capture routes
-  registerProjectRoutes(app);
-  registerBriefRoutes(app);
-  
-  // Register Google exports routes
-  app.use("/api/google", googleExportsRouter);
+  // Add rate limiting
+  const rateLimit = (await import("express-rate-limit")).default;
+  const publicLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 60, // 60 req/min
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use("/api/public", publicLimiter);
+
+  // Add content sanitization middleware
+  const { sanitizeInput } = await import("./middleware/sanitization");
+  app.use(sanitizeInput);
+
+  // Start job worker
+  const { startWorker } = await import("./jobs/worker");
+  startWorker();
+
+  // Mount all API sub-routers under /api
+  const { buildApiRouter } = await import("./routes/index");
+  app.use("/api", buildApiRouter());
 
   // Chrome Extension Routes
   app.get("/api/extension/active-project", async (req, res) => {
@@ -68,7 +91,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const projects = await storage.getProjects(req.session.user.id);
-      const activeProject = projects.find((p: any) => p.status === 'active') || projects[0];
+      const activeProject =
+        projects.find((p: any) => p.status === "active") || projects[0];
 
       if (!activeProject) {
         return res.status(404).json({ error: "No projects found" });
@@ -79,10 +103,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         project: {
           id: activeProject.id,
           name: activeProject.name,
-          description: activeProject.description
-        }
+          description: activeProject.description,
+        },
       });
-
     } catch (error) {
       console.error("Extension active project error:", error);
       res.status(500).json({ error: "Failed to get active project" });
@@ -95,41 +118,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const { projectId, content, url, platform, type = "extension", priority = "normal" } = req.body;
-
-      if (!content) {
-        return res.status(400).json({ error: "Content is required" });
+      // Validate the request body using Zod
+      const parsed = extensionCaptureSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res
+          .status(400)
+          .json({ error: "Invalid input", details: parsed.error.errors });
       }
+      // Destructure validated fields
+      const {
+        projectId,
+        content,
+        url,
+        platform,
+        type = "extension",
+        priority = "normal",
+      } = parsed.data;
 
       // Track extension request
-      const extensionId = req.headers['x-extension-id'] as string;
+      const extensionId = req.headers["x-extension-id"] as string;
       if (extensionId) {
         productionMonitor.trackExtensionRequest(extensionId);
       }
 
-      console.log(`📱 Extension capture from ${platform || 'unknown'}: ${content.substring(0, 50)}...`);
+      console.log(
+        `📱 Extension capture from ${platform || "unknown"}: ${content.substring(0, 50)}...`,
+      );
 
       // Create the capture
       const capture = await storage.createCapture({
         userId: req.session.user.id,
-        projectId: projectId || (await storage.getProjects(req.session.user.id))[0]?.id,
+        projectId:
+          projectId || (await storage.getProjects(req.session.user.id))[0]?.id,
         type,
         content,
         url,
-        platform: platform || 'web',
+        platform: platform || "web",
         title: `Extension Capture - ${new Date().toLocaleString()}`,
-        priority,
-        analysisStatus: "pending"
+
+        analysisStatus: "pending",
       });
 
       // Trigger analysis if content is substantial
       if (content.length > 50) {
         try {
-          const analysis = await aiAnalyzer.analyzeContent("Extension Capture", content, platform || 'web');
+          const analysis = await aiAnalyzer.analyzeContent(
+            "Extension Capture",
+            content,
+            platform || "web",
+          );
 
           await storage.updateCapture(capture.id, {
             viralScore: analysis.viralScore,
-            analysisStatus: "completed"
+            analysisStatus: "completed",
           });
         } catch (analysisError) {
           console.warn("Analysis failed for extension capture:", analysisError);
@@ -141,22 +182,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         capture: {
           id: capture.id,
           title: capture.title,
-          createdAt: capture.createdAt
-        }
+          createdAt: capture.createdAt,
+        },
       });
-
     } catch (error) {
       console.error("Extension capture error:", error);
-      
+
       // Track extension error
-      const extensionId = req.headers['x-extension-id'] as string;
+      const extensionId = req.headers["x-extension-id"] as string;
       if (extensionId) {
-        productionMonitor.trackExtensionRequest(extensionId, error instanceof Error ? error.message : 'Unknown error');
+        productionMonitor.trackExtensionRequest(
+          extensionId,
+          error instanceof Error ? error.message : "Unknown error",
+        );
       }
 
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to create capture",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -164,37 +207,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health check routes
   app.get("/health", healthCheckEndpoint);
   app.get("/health/ready", readinessCheck);
-  
+
   // Production monitoring and metrics
   app.get("/metrics", productionMonitor.metricsEndpoint);
 
   // PUBLIC API ROUTES (No Authentication Required)
-  
-  // Public AI Analysis Routes  
+
+  // Public AI Analysis Routes
   app.post("/api/public/ai-analysis", async (req, res) => {
     try {
       const { content, type = "quick" } = req.body;
-      
+
       if (!content) {
-        return res.status(400).json({ error: "Content is required for analysis" });
+        return res
+          .status(400)
+          .json({ error: "Content is required for analysis" });
       }
 
       console.log(`🧠 Running ${type} AI analysis on content snippet`);
-      
-      const analysis = await aiAnalyzer.analyzeContent("Quick Analysis", content, "web");
-      
+
+      const analysis = await aiAnalyzer.analyzeContent(
+        "Quick Analysis",
+        content,
+        "web",
+      );
+
       res.json({
         success: true,
         analysis,
         type,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
     } catch (error) {
       console.error("AI analysis error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to analyze content",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -203,26 +251,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/public/truth-analysis", async (req, res) => {
     try {
       const { content } = req.body;
-      
+
       if (!content) {
-        return res.status(400).json({ error: "Content is required for truth analysis" });
+        return res
+          .status(400)
+          .json({ error: "Content is required for truth analysis" });
       }
 
       console.log(`🔍 Running Truth Analysis Framework on content`);
-      
-      const truthAnalysis = await truthFramework.analyzeContent(content, "web", {});
-      
+
+      const truthAnalysis = await truthFramework.analyzeContent(
+        content,
+        "web",
+        {},
+      );
+
       res.json({
         success: true,
         truthAnalysis,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
     } catch (error) {
       console.error("Truth analysis error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to perform truth analysis",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -231,25 +284,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/public/bright-data-test", async (req, res) => {
     try {
       const { platform = "twitter", query = "AI trends" } = req.body;
-      
-      console.log(`🚀 Testing Bright Data collection for ${platform} with query: ${query}`);
-      
+
+      console.log(
+        `🚀 Testing Bright Data collection for ${platform} with query: ${query}`,
+      );
+
       const result = await liveBrightData.fetchLiveData(platform, [query], 5);
-      
+
       res.json({
         success: true,
         platform,
         query,
         dataCount: result.data?.length || 0,
         data: result.data || [],
-        source: result.source || 'bright-data-api'
+        source: result.source || "bright-data-api",
       });
-      
     } catch (error) {
       console.error("Bright Data test error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to test Bright Data collection",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -258,30 +312,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bright-data/trigger", async (req, res) => {
     try {
       const { platform, query, keywords = [] } = req.body;
-      
+
       if (!platform) {
         return res.status(400).json({ error: "Platform is required" });
       }
 
-      console.log(`🚀 Triggering Bright Data collection for ${platform} with query: ${query}`);
-      
+      console.log(
+        `🚀 Triggering Bright Data collection for ${platform} with query: ${query}`,
+      );
+
       // Use the live service for real-time data
-      const result = await liveBrightData.fetchLiveData(platform, keywords.length > 0 ? keywords : [query], 20);
-      
+      const result = await liveBrightData.fetchLiveData(
+        platform,
+        keywords.length > 0 ? keywords : [query],
+        20,
+      );
+
       res.json({
         success: true,
         platform,
         query,
         dataCount: result.data?.length || 0,
         data: result.data || [],
-        source: result.source || 'bright-data-api'
+        source: result.source || "bright-data-api",
       });
-      
     } catch (error) {
       console.error("Bright Data trigger error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to trigger Bright Data collection",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -290,70 +349,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/quick-analysis", async (req, res) => {
     try {
       const { content, type = "quick", context } = req.body;
-      
+
       if (!content) {
-        return res.status(400).json({ error: "Content is required for analysis" });
+        return res
+          .status(400)
+          .json({ error: "Content is required for analysis" });
       }
 
       console.log(`🧠 Running ${type} AI analysis on content snippet`);
-      
+
       // Use the AI analyzer for quick analysis
-      const analysis = await aiAnalyzer.analyzeContent("Quick Analysis", content, "web");
-      
+      const analysis = await aiAnalyzer.analyzeContent(
+        "Quick Analysis",
+        content,
+        "web",
+      );
+
       res.json({
         success: true,
         analysis,
         type,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
     } catch (error) {
       console.error("AI analysis error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to analyze content",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 
-  // Public Truth Analysis Routes (no auth required for testing)  
+  // Public Truth Analysis Routes (no auth required for testing)
   app.post("/api/truth-analysis", async (req, res) => {
     try {
       const { content, captureId } = req.body;
-      
+
       if (!content) {
-        return res.status(400).json({ error: "Content is required for truth analysis" });
+        return res
+          .status(400)
+          .json({ error: "Content is required for truth analysis" });
       }
 
       console.log(`🔍 Running Truth Analysis Framework on content`);
-      
+
       // Use the truth framework for deep analysis
-      const truthAnalysis = await truthFramework.analyzeContent(content, "web", {});
-      
+      const truthAnalysis = await truthFramework.analyzeContent(
+        content,
+        "web",
+        {},
+      );
+
       // If captureId provided, update the capture with analysis
       if (captureId && req.session?.user?.id) {
         await storage.updateCapture(captureId, {
-          truthAnalysis,
-          analysisStatus: "completed"
+          analysisStatus: "completed",
         });
       }
-      
+
       res.json({
         success: true,
         truthAnalysis,
         captureId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
     } catch (error) {
       console.error("Truth analysis error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to perform truth analysis",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
-  
+
   // Register new routes for Lovable UI support
   setupSettingsRoutes(app);
   setupAnnotationsRoutes(app);
@@ -366,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const captures = await db.getUserCaptures(req.session.user.id);
       res.json(captures);
     } catch (error) {
@@ -381,10 +449,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const limit = parseInt(req.query.limit as string) || 10;
       const captures = await db.getUserCaptures(req.session.user.id);
-      
+
       // Sort by createdAt and take the most recent ones
       const recentCaptures = captures
         .sort((a, b) => {
@@ -393,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return dateB - dateA;
         })
         .slice(0, limit);
-      
+
       res.json(recentCaptures);
     } catch (error) {
       console.error("Error fetching recent captures:", error);
@@ -407,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const captures = await db.getUserCaptures(req.session.user.id);
       res.json(captures);
     } catch (error) {
@@ -429,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedCapture = await db.updateCapture(id, {
         workspaceNotes: notes,
         content: customCopy,
-        tags
+        tags,
       });
 
       res.json(updatedCapture);
@@ -471,23 +539,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       // Fetch cultural moments from database
       const culturalMoments = await storage.getCulturalMoments();
-      
+
       // Map to frontend format
-      const signals = culturalMoments.map(moment => ({
+      const signals = culturalMoments.map((moment) => ({
         id: moment.id,
-        title: moment.moment,
+        title: moment.description || 'Cultural Moment',
         description: moment.description,
-        intensity: moment.intensity,
-        platforms: moment.platforms,
-        keywords: moment.keywords,
-        resonance: moment.resonance,
-        generation: moment.primaryGeneration,
-        timestamp: moment.firstDetected
+        intensity: moment.globalConfidence ? parseInt(moment.globalConfidence) : 5,
+        platforms: Array.isArray(moment.contributingCaptures) ? [] : ["web"],
+        keywords: [],
+        resonance: {},
+        generation: "Mixed",
+        timestamp: moment.createdAt,
       }));
-      
+
       res.json(signals);
     } catch (error) {
       console.error("Error fetching cultural signals:", error);
@@ -495,20 +563,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Real-time opportunities endpoint  
+  // Real-time opportunities endpoint
   app.get("/api/opportunities/realtime", async (req, res) => {
     try {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       // Get recent captures with high viral scores
       const captures = await storage.getUserCaptures(req.session.user.id);
-      
+
       // Filter for high opportunity captures
       const opportunities = captures
-        .filter(c => c.viralScore > 70 || c.analysisStatus === 'completed')
-        .map(capture => ({
+        .filter((c) => (c.viralScore && c.viralScore > 70) || c.analysisStatus === "completed")
+        .map((capture) => ({
           id: capture.id,
           title: capture.title || "Content Opportunity",
           content: capture.content,
@@ -516,10 +584,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           viralScore: capture.viralScore,
           url: capture.url,
           timestamp: capture.createdAt,
-          type: capture.viralScore > 80 ? 'urgent' : 'normal'
+          type: (capture.viralScore && capture.viralScore > 80) ? "urgent" : "normal",
         }))
         .slice(0, 10);
-      
+
       res.json(opportunities);
     } catch (error) {
       console.error("Error fetching opportunities:", error);
@@ -541,66 +609,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         timeRange,
         sortBy,
-        limit = '50',
-        offset = '0'
+        limit = "50",
+        offset = "0",
       } = req.query;
 
       // Get user captures and transform them for trending content
       const captures = await storage.getUserCaptures(req.session.user.id);
-      
+
       // Filter based on parameters
       let filteredCaptures = captures;
-      
-      if (platform && platform !== 'all') {
-        filteredCaptures = filteredCaptures.filter(c => c.platform === platform);
+
+      if (platform && platform !== "all") {
+        filteredCaptures = filteredCaptures.filter(
+          (c) => c.platform === platform,
+        );
       }
-      
+
       // Handle time filtering (convert 'time' parameter to timeRange)
       const timeFilter = time || timeRange;
-      if (timeFilter && timeFilter !== 'all') {
+      if (timeFilter && timeFilter !== "all") {
         const now = new Date();
         let cutoffDate = new Date();
-        
+
         switch (timeFilter) {
-          case '1h':
+          case "1h":
             cutoffDate.setHours(now.getHours() - 1);
             break;
-          case '24h':
+          case "24h":
             cutoffDate.setDate(now.getDate() - 1);
             break;
-          case '7d':
+          case "7d":
             cutoffDate.setDate(now.getDate() - 7);
             break;
-          case '30d':
+          case "30d":
             cutoffDate.setDate(now.getDate() - 30);
             break;
         }
-        
-        filteredCaptures = filteredCaptures.filter(c => 
-          new Date(c.createdAt) >= cutoffDate
+
+        filteredCaptures = filteredCaptures.filter(
+          (c) => c.createdAt && new Date(c.createdAt) >= cutoffDate,
         );
       }
-      
+
       // Handle trending content (high viral scores or recent activity)
-      if (type === 'trending') {
+      if (type === "trending") {
         filteredCaptures = filteredCaptures
-          .filter(c => (c.viralScore && c.viralScore > 60) || c.analysisStatus === 'completed' || !c.viralScore)
+          .filter(
+            (c) =>
+              (c.viralScore && c.viralScore > 60) ||
+              c.analysisStatus === "completed" ||
+              !c.viralScore,
+          )
           .sort((a, b) => (b.viralScore || 0) - (a.viralScore || 0));
       }
-      
+
       // Transform captures to content format
       const contentItems = filteredCaptures
-        .slice(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string))
-        .map(capture => ({
+        .slice(
+          parseInt(offset as string),
+          parseInt(offset as string) + parseInt(limit as string),
+        )
+        .map((capture) => ({
           id: capture.id,
           title: capture.title || `${capture.platform} Signal`,
-          description: capture.summary || capture.content?.substring(0, 200) + '...',
+          description:
+            capture.summary || capture.content?.substring(0, 200) + "...",
           platform: capture.platform,
           url: capture.url,
           viralScore: capture.viralScore || 0,
-          engagement: capture.metadata?.engagement || 'Unknown',
+          engagement: (capture.metadata as any)?.engagement || "Unknown",
           createdAt: capture.createdAt,
-          tags: capture.tags || []
+          tags: capture.tags || [],
         }));
 
       res.json(contentItems);
@@ -631,7 +710,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(item);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
+        return res
+          .status(400)
+          .json({ error: "Invalid data", details: error.errors });
       }
       res.status(500).json({ error: "Failed to create content item" });
     }
@@ -677,139 +758,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       // First create a default project if none exists
       const projects = await storage.getProjects(req.session.user.id);
       let projectId: string;
-      
+
       if (projects.length === 0) {
         const defaultProject = await storage.createProject({
           name: "Content Intelligence Hub",
           description: "Primary project for strategic content analysis",
-          userId: req.session.user.id
+          userId: req.session.user.id,
         });
         projectId = defaultProject.id;
       } else {
         projectId = projects[0].id;
       }
-      
+
       // Create sample captures with varied content
       const sampleCaptures = [
         {
           userId: req.session.user.id,
           projectId,
-          type: 'url' as const,
+          type: "url" as const,
           title: "AI Revolution in Content Creation",
-          content: "Breaking: OpenAI announces GPT-5 with unprecedented creative capabilities. The new model can generate entire video scripts, music compositions, and interactive experiences. Early adopters report 10x productivity gains in content creation workflows.",
+          content:
+            "Breaking: OpenAI announces GPT-5 with unprecedented creative capabilities. The new model can generate entire video scripts, music compositions, and interactive experiences. Early adopters report 10x productivity gains in content creation workflows.",
           url: "https://twitter.com/openai/status/example1",
           platform: "twitter",
           viralScore: 92,
           analysisStatus: "completed" as const,
-          truthAnalysis: {
-            fact: "OpenAI announces new AI model capabilities",
-            observation: "Significant advancement in creative AI tools",
-            insight: "Content creation workflows will be fundamentally transformed",
-            humanTruth: "Creators seek tools that amplify rather than replace human creativity"
-          }
+
         },
         {
           userId: req.session.user.id,
           projectId,
-          type: 'text' as const,
+          type: "text" as const,
           title: "Gen Z Shopping Behavior Shift",
-          content: "New study reveals 73% of Gen Z consumers make purchasing decisions based on TikTok reviews rather than traditional advertising. Brands scrambling to adapt their marketing strategies to this new reality.",
+          content:
+            "New study reveals 73% of Gen Z consumers make purchasing decisions based on TikTok reviews rather than traditional advertising. Brands scrambling to adapt their marketing strategies to this new reality.",
           url: "https://tiktok.com/@marketing/example",
           platform: "tiktok",
           viralScore: 85,
           analysisStatus: "completed" as const,
-          truthAnalysis: {
-            fact: "73% of Gen Z uses TikTok for purchase decisions",
-            observation: "Social proof trumps traditional advertising",
-            insight: "Authentic peer reviews drive modern commerce",
-            humanTruth: "Trust is built through relatable experiences, not polished ads"
-          }
+
         },
         {
           userId: req.session.user.id,
           projectId,
-          type: 'url' as const,
+          type: "url" as const,
           title: "Remote Work Culture Evolution",
-          content: "LinkedIn poll shows 89% of professionals prefer hybrid work models. Companies offering full remote options seeing 3x more applications. The office as we knew it is officially dead.",
+          content:
+            "LinkedIn poll shows 89% of professionals prefer hybrid work models. Companies offering full remote options seeing 3x more applications. The office as we knew it is officially dead.",
           url: "https://linkedin.com/posts/future-of-work",
           platform: "linkedin",
           viralScore: 78,
           analysisStatus: "completed" as const,
-          truthAnalysis: {
-            fact: "89% prefer hybrid work arrangements",
-            observation: "Flexibility has become non-negotiable",
-            insight: "Talent acquisition requires work-life balance focus",
-            humanTruth: "People value autonomy over traditional perks"
-          }
+
         },
         {
           userId: req.session.user.id,
           projectId,
-          type: 'text' as const,
+          type: "text" as const,
           title: "Sustainable Fashion Momentum",
-          content: "Viral Instagram trend #ThriftFlip reaches 2B views. Young consumers transforming secondhand clothing into designer-worthy pieces. Fast fashion brands reporting 20% sales decline.",
+          content:
+            "Viral Instagram trend #ThriftFlip reaches 2B views. Young consumers transforming secondhand clothing into designer-worthy pieces. Fast fashion brands reporting 20% sales decline.",
           url: "https://instagram.com/explore/thriftflip",
           platform: "instagram",
           viralScore: 88,
-          analysisStatus: "completed" as const
+          analysisStatus: "completed" as const,
         },
         {
           userId: req.session.user.id,
           projectId,
-          type: 'url' as const,
+          type: "url" as const,
           title: "Crypto Gaming Breakthrough",
-          content: "Reddit gaming communities report new blockchain game onboarding 1M users in first week. Play-to-earn model generating average $50/day for active players in developing nations.",
+          content:
+            "Reddit gaming communities report new blockchain game onboarding 1M users in first week. Play-to-earn model generating average $50/day for active players in developing nations.",
           url: "https://reddit.com/r/gaming/blockchain",
           platform: "reddit",
           viralScore: 76,
-          analysisStatus: "completed" as const
-        }
+          analysisStatus: "completed" as const,
+        },
       ];
-      
+
       // Create the sample captures
       const createdCaptures = [];
       for (const capture of sampleCaptures) {
         const created = await storage.createCapture(capture);
         createdCaptures.push(created);
       }
-      
+
       // Create sample cultural moments
       const culturalMoments = [
         {
-          moment: "AI Creative Revolution",
+          momentType: "trend",
           description: "Mass adoption of AI tools for content creation",
-          intensity: 9,
-          platforms: ["twitter", "linkedin", "reddit"],
-          keywords: ["AI", "GPT", "creativity", "automation"],
-          resonance: { tech: 95, creative: 85, business: 90 },
-          primaryGeneration: "Millennials"
+          strategicImplications: "Fundamental shift in creative workflows",
         },
         {
-          moment: "Authentic Commerce",
-          description: "Social proof replacing traditional advertising",
-          intensity: 8,
-          platforms: ["tiktok", "instagram"],
-          keywords: ["reviews", "authentic", "influencer", "trust"],
-          resonance: { retail: 92, marketing: 88, social: 85 },
-          primaryGeneration: "Gen Z"
-        }
+          momentType: "behavior",
+          description: "Social proof replacing traditional advertising",  
+          strategicImplications: "Marketing strategies pivoting to authenticity",
+        },
       ];
-      
+
       for (const moment of culturalMoments) {
         await storage.createCulturalMoment(moment);
       }
-      
+
       res.json({
         success: true,
         message: `Created ${createdCaptures.length} sample captures and ${culturalMoments.length} cultural moments`,
         captures: createdCaptures.length,
-        moments: culturalMoments.length
+        moments: culturalMoments.length,
       });
-      
     } catch (error) {
       console.error("Error populating sample data:", error);
       res.status(500).json({ error: "Failed to populate sample data" });
@@ -817,7 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add missing API endpoints that were being tested
-  
+
   // Content Analysis endpoints
   app.post("/api/analysis/content", async (req, res) => {
     try {
@@ -825,7 +887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const { content, platform = 'unknown' } = req.body;
+      const { content, platform = "unknown" } = req.body;
       if (!content) {
         return res.status(400).json({ error: "Content is required" });
       }
@@ -835,7 +897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         analysis,
         platform,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Content analysis failed:", error);
@@ -851,7 +913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { captureId } = req.params;
       const capture = await storage.getCaptureById(captureId);
-      
+
       if (!capture) {
         return res.status(404).json({ error: "Capture not found" });
       }
@@ -861,7 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         capture,
         analysisStatus: capture.analysisStatus,
         truthAnalysis: capture.truthAnalysis,
-        googleAnalysis: capture.googleAnalysis
+        googleAnalysis: capture.googleAnalysis,
       });
     } catch (error) {
       console.error("Failed to get capture analysis:", error);
@@ -878,10 +940,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const testResult = await fixedBrightData.testConnection();
       res.json({
-        success: testResult.status === 'success',
+        success: testResult.status === "success",
         message: testResult.message,
         details: testResult.details,
-        service: 'Bright Data API'
+        service: "Bright Data API",
       });
     } catch (error) {
       console.error("Scraping test failed:", error);
@@ -897,15 +959,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Test browser automation capability
       const result = {
-        status: 'success',
-        message: 'Browser automation service available',
+        status: "success",
+        message: "Browser automation service available",
         details: {
-          browserService: 'Bright Data Browser',
-          capabilities: ['Instagram', 'TikTok', 'Dynamic Content'],
-          credentialsConfigured: !!(process.env.BRIGHT_DATA_BROWSER_USER && process.env.BRIGHT_DATA_BROWSER_PASS)
-        }
+          browserService: "Bright Data Browser",
+          capabilities: ["Instagram", "TikTok", "Dynamic Content"],
+          credentialsConfigured: !!(
+            process.env.BRIGHT_DATA_BROWSER_USER &&
+            process.env.BRIGHT_DATA_BROWSER_PASS
+          ),
+        },
       };
-      
+
       res.json(result);
     } catch (error) {
       console.error("Browser test failed:", error);
@@ -920,17 +985,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const hasTokens = !!req.session.googleTokens;
+      const hasTokens = !!(req.session as any).googleTokens;
       const hasApiKey = !!process.env.GOOGLE_API_KEY;
-      
+
       res.json({
         success: true,
         authenticated: hasTokens,
         apiConfigured: hasApiKey,
-        availableServices: hasTokens ? [
-          'slides', 'docs', 'sheets', 'drive', 'vision', 'nlp'
-        ] : [],
-        message: hasTokens ? 'Google services connected' : 'Authentication required'
+        availableServices: hasTokens
+          ? ["slides", "docs", "sheets", "drive", "vision", "nlp"]
+          : [],
+        message: hasTokens
+          ? "Google services connected"
+          : "Authentication required",
       });
     } catch (error) {
       console.error("Google connection test failed:", error);
@@ -945,49 +1012,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      console.log('Testing Bright Data API connection...');
-      const { platform = 'reddit' } = req.body;
-      
+      console.log("Testing Bright Data API connection...");
+      const { platform = "reddit" } = req.body;
+
       let sampleData: any[] = [];
-      
+
       switch (platform) {
-        case 'reddit':
-          sampleData = await brightData.fetchRedditTrending(['popular', 'technology']);
+        case "reddit":
+          sampleData = await brightData.fetchRedditTrending([
+            "popular",
+            "technology",
+          ]);
           break;
-        case 'instagram':
-          sampleData = await brightData.fetchInstagramTrending(['trending', 'tech']);
+        case "instagram":
+          sampleData = await brightData.fetchInstagramTrending([
+            "trending",
+            "tech",
+          ]);
           break;
-        case 'youtube':
-          sampleData = await brightData.fetchYouTubeTrending(['trending', 'technology']);
+        case "youtube":
+          sampleData = await brightData.fetchYouTubeTrending([
+            "trending",
+            "technology",
+          ]);
           break;
-        case 'tiktok':
-          sampleData = await brightData.fetchTikTokTrending(['fyp', 'tech']);
+        case "tiktok":
+          sampleData = await brightData.fetchTikTokTrending(["fyp", "tech"]);
           break;
-        case 'twitter':
-          sampleData = await brightData.fetchTwitterTrending(['trending', 'tech']);
+        case "twitter":
+          sampleData = await brightData.fetchTwitterTrending([
+            "trending",
+            "tech",
+          ]);
           break;
-        case 'all':
+        case "all":
           sampleData = await brightData.fetchAllTrendingContent();
           break;
         default:
-          return res.status(400).json({ error: 'Invalid platform' });
+          return res.status(400).json({ error: "Invalid platform" });
       }
-      
+
       res.json({
         success: true,
-        method: 'API',
+        method: "API",
         platform,
         itemsFound: sampleData.length,
         sampleData: sampleData.slice(0, 5), // Return first 5 items as sample
-        message: `Successfully fetched ${sampleData.length} items from ${platform} using Bright Data API`
+        message: `Successfully fetched ${sampleData.length} items from ${platform} using Bright Data API`,
       });
-      
     } catch (error: any) {
-      console.error('Bright Data API test error:', error);
-      res.status(500).json({ 
-        error: "Bright Data API test failed", 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        platform: req.body.platform || 'unknown'
+      console.error("Bright Data API test error:", error);
+      res.status(500).json({
+        error: "Bright Data API test failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+        platform: req.body.platform || "unknown",
       });
     }
   });
@@ -995,46 +1073,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test Bright Data Browser automation and fetch sample data
   app.post("/api/brightdata/browser/test", async (req, res) => {
     try {
-      console.log('Testing Bright Data Browser automation...');
-      const { platform = 'reddit' } = req.body;
-      
+      console.log("Testing Bright Data Browser automation...");
+      const { platform = "reddit" } = req.body;
+
       let sampleData: any[] = [];
-      
+
       switch (platform) {
-        case 'reddit':
+        case "reddit":
           sampleData = []; // TODO: Implement browser scraping
           break;
-        case 'instagram':
+        case "instagram":
           sampleData = []; // TODO: Implement browser scraping
           break;
-        case 'tiktok':
+        case "tiktok":
           sampleData = []; // TODO: Implement browser scraping
           break;
-        case 'twitter':
+        case "twitter":
           sampleData = []; // TODO: Implement browser scraping
           break;
-        case 'all':
+        case "all":
           sampleData = []; // TODO: Implement browser scraping
           break;
         default:
-          return res.status(400).json({ error: 'Invalid platform for browser scraping' });
+          return res
+            .status(400)
+            .json({ error: "Invalid platform for browser scraping" });
       }
-      
+
       res.json({
         success: true,
-        method: 'Browser Automation',
+        method: "Browser Automation",
         platform,
         itemsFound: sampleData.length,
         sampleData: sampleData.slice(0, 5), // Return first 5 items as sample
-        message: `Successfully scraped ${sampleData.length} items from ${platform} using Bright Data Browser`
+        message: `Successfully scraped ${sampleData.length} items from ${platform} using Bright Data Browser`,
       });
-      
     } catch (error: any) {
-      console.error('Bright Data Browser test error:', error);
-      res.status(500).json({ 
-        error: "Bright Data Browser test failed", 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        platform: req.body.platform || 'unknown'
+      console.error("Bright Data Browser test error:", error);
+      res.status(500).json({
+        error: "Bright Data Browser test failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+        platform: req.body.platform || "unknown",
       });
     }
   });
@@ -1058,11 +1137,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Content not found" });
       }
 
-      const existingHooks = [item.hook1, item.hook2].filter(Boolean) as string[];
+      const existingHooks = [item.hook1, item.hook2].filter(
+        Boolean,
+      ) as string[];
       const newHooks = await aiAnalyzer.generateAdditionalHooks(
         item.title,
-        item.content || '',
-        existingHooks
+        item.content || "",
+        existingHooks,
       );
 
       res.json({ hooks: newHooks });
@@ -1074,17 +1155,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export data
   app.get("/api/export", async (req, res) => {
     try {
-      const format = req.query.format as string || 'json';
+      const format = (req.query.format as string) || "json";
       const items = await storage.getContentItems({ limit: 1000 });
 
-      if (format === 'csv') {
+      if (format === "csv") {
         const csv = convertToCSV(items);
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=content-radar-export.csv');
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=content-radar-export.csv",
+        );
         res.send(csv);
       } else {
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Disposition', 'attachment; filename=content-radar-export.json');
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=content-radar-export.json",
+        );
         res.json(items);
       }
     } catch (error) {
@@ -1098,9 +1185,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const { url, content, platform } = req.body;
-      
+
       // For now, redirect to the correct endpoint
       return res.redirect(307, "/api/captures");
     } catch (error) {
@@ -1112,21 +1199,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Manual content scanning
   app.post("/api/content/scan", async (req, res) => {
     try {
-      console.log('🔄 Manual content scan requested by user');
+      console.log("🔄 Manual content scan requested by user");
       const result = await scheduler.manualScan();
-      
+
       res.json({
         success: result.success,
-        message: `Scan completed: ${result.itemsProcessed} items processed${result.errors.length > 0 ? ` with ${result.errors.length} errors` : ''}`,
+        message: `Scan completed: ${result.itemsProcessed} items processed${result.errors.length > 0 ? ` with ${result.errors.length} errors` : ""}`,
         itemsProcessed: result.itemsProcessed,
-        errors: result.errors
+        errors: result.errors,
       });
     } catch (error) {
-      console.error('Manual scan failed:', error);
-      res.status(500).json({ 
+      console.error("Manual scan failed:", error);
+      res.status(500).json({
         success: false,
         error: "Failed to run manual scan",
-        message: (error as Error).message 
+        message: (error as Error).message,
       });
     }
   });
@@ -1137,15 +1224,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       // Run comprehensive system tests
       const results = {
         database: true,
         brightData: true,
         ai: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
+
       res.json({ success: true, results });
     } catch (error) {
       console.error("System test failed:", error);
@@ -1166,7 +1253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         database: true,
         api: true,
         brightData: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // Test database connection
@@ -1184,11 +1271,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(health);
     } catch (error) {
-      res.status(500).json({ 
-        database: false, 
-        api: false, 
+      res.status(500).json({
+        database: false,
+        api: false,
         brightData: false,
-        error: "Health check failed" 
+        error: "Health check failed",
       });
     }
   });
@@ -1196,9 +1283,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/system/errors", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
-      res.json({ 
+      res.json({
         errors: systemErrors.slice(-limit).reverse(),
-        total: systemErrors.length 
+        total: systemErrors.length,
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch error logs" });
@@ -1208,24 +1295,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/system/errors", async (req, res) => {
     try {
       const { type, level, message, stack, endpoint } = req.body;
-      
+
       const error = {
         id: Date.now().toString(),
-        type: type || 'unknown',
-        level: level || 'error',
+        type: type || "unknown",
+        level: level || "error",
         message,
         stack,
         endpoint,
         timestamp: new Date().toISOString(),
         resolved: false,
-        count: 1
+        count: 1,
       };
 
       // Check for duplicate errors
-      const existing = systemErrors.find(e => 
-        e.message === error.message && 
-        e.type === error.type && 
-        !e.resolved
+      const existing = systemErrors.find(
+        (e) =>
+          e.message === error.message && e.type === error.type && !e.resolved,
       );
 
       if (existing) {
@@ -1233,15 +1319,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         existing.timestamp = error.timestamp;
       } else {
         systemErrors.push(error);
-        
+
         // Keep only the last MAX_ERRORS
         if (systemErrors.length > MAX_ERRORS) {
           systemErrors.shift();
         }
       }
 
-      console.error(`[${error.level.toUpperCase()}] ${error.type}: ${error.message}`);
-      
+      console.error(
+        `[${error.level.toUpperCase()}] ${error.type}: ${error.message}`,
+      );
+
       res.json({ success: true, errorId: error.id });
     } catch (error) {
       res.status(500).json({ error: "Failed to log error" });
@@ -1252,8 +1340,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { resolved } = req.body;
-      
-      const error = systemErrors.find(e => e.id === id);
+
+      const error = systemErrors.find((e) => e.id === id);
       if (error) {
         error.resolved = resolved;
         res.json({ success: true });
@@ -1269,14 +1357,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use((err: any, req: any, res: any, next: any) => {
     const error = {
       id: Date.now().toString(),
-      type: 'backend',
-      level: 'error',
-      message: err.message || 'Unknown server error',
+      type: "backend",
+      level: "error",
+      message: err.message || "Unknown server error",
       stack: err.stack,
       endpoint: `${req.method} ${req.path}`,
       timestamp: new Date().toISOString(),
       resolved: false,
-      count: 1
+      count: 1,
     };
 
     systemErrors.push(error);
@@ -1285,19 +1373,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     console.error(`[ERROR] ${error.endpoint}: ${error.message}`);
-    
+
     if (!res.headersSent) {
-      res.status(500).json({ error: "Internal server error", errorId: error.id });
+      res
+        .status(500)
+        .json({ error: "Internal server error", errorId: error.id });
     }
   });
 
   // Legacy endpoints for backward compatibility (always return inactive)
   app.post("/api/schedule/start", async (req, res) => {
-    res.json({ success: false, message: "Automated scanning is disabled - use manual scan instead" });
+    res.json({
+      success: false,
+      message: "Automated scanning is disabled - use manual scan instead",
+    });
   });
 
   app.post("/api/schedule/stop", async (req, res) => {
-    res.json({ success: false, message: "No scheduled scans to stop - automated scanning is disabled" });
+    res.json({
+      success: false,
+      message: "No scheduled scans to stop - automated scanning is disabled",
+    });
   });
 
   app.get("/api/schedule/status", async (req, res) => {
@@ -1313,10 +1409,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const allItems = await storage.getContentItems({ limit: 1000 });
-      const filteredItems = allItems.filter(item => 
-        item.title.toLowerCase().includes(query.toLowerCase()) ||
-        (item.content && item.content.toLowerCase().includes(query.toLowerCase())) ||
-        (item.summary && item.summary.toLowerCase().includes(query.toLowerCase()))
+      const filteredItems = allItems.filter(
+        (item) =>
+          item.title.toLowerCase().includes(query.toLowerCase()) ||
+          (item.content &&
+            item.content.toLowerCase().includes(query.toLowerCase())) ||
+          (item.summary &&
+            item.summary.toLowerCase().includes(query.toLowerCase())),
       );
 
       res.json(filteredItems);
@@ -1326,7 +1425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Strategic Intelligence API Endpoints
-  
+
   // Get all sources
   app.get("/api/sources", async (req, res) => {
     try {
@@ -1336,7 +1435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch sources" });
     }
   });
-  
+
   // Get signals with enhanced filtering
   app.get("/api/signals", async (req, res) => {
     try {
@@ -1345,8 +1444,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         signalType,
         timeRange,
         sortBy,
-        limit = '50',
-        offset = '0'
+        limit = "50",
+        offset = "0",
       } = req.query;
 
       const filters = {
@@ -1355,7 +1454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeRange: timeRange as string,
         sortBy: sortBy as string,
         limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
+        offset: parseInt(offset as string),
       };
 
       const signals = await storage.getSignals(filters);
@@ -1364,40 +1463,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch signals" });
     }
   });
-  
+
   // Fetch multi-platform intelligence
   app.post("/api/intelligence/fetch", async (req, res) => {
     try {
-      const { platforms, keywords = [], competitors = [], timeWindow = '24h', limit = 50 } = req.body;
-      
-      if (!platforms || platforms.length === 0) {
-        return res.status(400).json({ error: "At least one platform is required" });
-      }
-      
-      const signals = await strategicIntelligence.fetchMultiPlatformIntelligence({
+      const {
         platforms,
-        keywords,
-        competitors,
-        timeWindow,
-        limit
-      });
-      
-      res.json({ 
-        success: true, 
+        keywords = [],
+        competitors = [],
+        timeWindow = "24h",
+        limit = 50,
+      } = req.body;
+
+      if (!platforms || platforms.length === 0) {
+        return res
+          .status(400)
+          .json({ error: "At least one platform is required" });
+      }
+
+      const signals =
+        await strategicIntelligence.fetchMultiPlatformIntelligence({
+          platforms,
+          keywords,
+          competitors,
+          timeWindow,
+          limit,
+        });
+
+      res.json({
+        success: true,
         count: signals.length,
-        signals 
+        signals,
       });
     } catch (error) {
-      console.error('Error fetching intelligence:', error);
-      res.status(500).json({ error: "Failed to fetch intelligence", details: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error fetching intelligence:", error);
+      res.status(500).json({
+        error: "Failed to fetch intelligence",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
-  
+
   // Get emerging trends analysis
   app.get("/api/intelligence/trends", async (req, res) => {
     try {
-      const timeWindow = req.query.timeWindow as string || '7d';
-      const trendReport = await strategicIntelligence.detectEmergingTrends(timeWindow);
+      const timeWindow = (req.query.timeWindow as string) || "7d";
+      const trendReport =
+        await strategicIntelligence.detectEmergingTrends(timeWindow);
       res.json(trendReport);
     } catch (error) {
       res.status(500).json({ error: "Failed to analyze trends" });
@@ -1405,7 +1517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Phase 2: Tier 2 Platform Intelligence Routes
-  
+
   // Get Tier 2 sources
   app.get("/api/tier2/sources", async (req, res) => {
     try {
@@ -1415,50 +1527,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch Tier 2 sources" });
     }
   });
-  
+
   // Fetch from specific Tier 2 platform
   app.post("/api/tier2/fetch", async (req, res) => {
     try {
       const { platform, keywords = [], limit = 20 } = req.body;
-      
+
       if (!platform) {
         return res.status(400).json({ error: "Platform is required" });
       }
-      
-      const data = await tier2Service.fetchPlatformData(platform, keywords, limit);
-      res.json({ 
-        success: true, 
+
+      const data = await tier2Service.fetchPlatformData(
+        platform,
+        keywords,
+        limit,
+      );
+      res.json({
+        success: true,
         platform,
         count: data.length,
-        data 
+        data,
       });
     } catch (error) {
-      console.error('Error fetching Tier 2 data:', error);
-      res.status(500).json({ error: "Failed to fetch Tier 2 data", details: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error fetching Tier 2 data:", error);
+      res.status(500).json({
+        error: "Failed to fetch Tier 2 data",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
 
   // Phase 3: Truth Analysis Framework Routes
-  
+
   // Analyze content with truth framework
   app.post("/api/truth-analysis/analyze", async (req, res) => {
     try {
       const { content, platform, metadata = {} } = req.body;
-      
+
       if (!content || !platform) {
-        return res.status(400).json({ error: "Content and platform are required" });
+        return res
+          .status(400)
+          .json({ error: "Content and platform are required" });
       }
-      
-      const analysis = await truthFramework.analyzeContent(content, platform, metadata);
+
+      const analysis = await truthFramework.analyzeContent(
+        content,
+        platform,
+        metadata,
+      );
       res.json(analysis);
     } catch (error) {
-      console.error('Error in truth analysis:', error);
-      res.status(500).json({ error: "Failed to analyze content", details: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error in truth analysis:", error);
+      res.status(500).json({
+        error: "Failed to analyze content",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
 
   // Phase 4: Strategic Brief Generation Routes
-  
+
   // Get available brief templates
   app.get("/api/briefs/templates", async (req, res) => {
     try {
@@ -1468,73 +1596,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch templates" });
     }
   });
-  
+
   // Generate strategic brief
   app.post("/api/briefs/generate", async (req, res) => {
     try {
-      const { 
-        templateId, 
-        signals = [], 
-        culturalMoments = [], 
-        trends = [], 
-        metadata = {} 
+      const {
+        templateId,
+        signals = [],
+        culturalMoments = [],
+        trends = [],
+        metadata = {},
       } = req.body;
-      
+
       if (!templateId) {
         return res.status(400).json({ error: "Template ID is required" });
       }
-      
+
       const brief = await briefService.generateBrief(
         templateId,
         signals,
         culturalMoments,
         trends,
-        metadata
+        metadata,
       );
-      
+
       res.json(brief);
     } catch (error) {
-      console.error('Error generating brief:', error);
-      res.status(500).json({ error: "Failed to generate brief", details: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error generating brief:", error);
+      res.status(500).json({
+        error: "Failed to generate brief",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
 
   // Phase 5: Comprehensive Intelligence Pipeline
-  
+
   // Run complete intelligence pipeline
   app.post("/api/intelligence/comprehensive", async (req, res) => {
     try {
-      const { 
-        tier1Platforms = ['twitter', 'linkedin'], 
-        tier2Platforms = ['reddit', 'hackernews'],
-        keywords = [], 
+      const {
+        tier1Platforms = ["twitter", "linkedin"],
+        tier2Platforms = ["reddit", "hackernews"],
+        keywords = [],
         limit = 50,
         generateBrief = false,
-        templateId = 'jimmyjohns_strategic'
+        templateId = "jimmyjohns_strategic",
       } = req.body;
-      
-      console.log('[Comprehensive Intelligence] Starting pipeline...');
-      
+
+      console.log("[Comprehensive Intelligence] Starting pipeline...");
+
       // Step 1: Fetch Tier 1 intelligence
-      const tier1Signals = await strategicIntelligence.fetchMultiPlatformIntelligence({
-        platforms: tier1Platforms,
-        keywords,
-        timeWindow: '24h',
-        limit: Math.floor(limit * 0.7) // 70% from Tier 1
-      });
-      
+      const tier1Signals =
+        await strategicIntelligence.fetchMultiPlatformIntelligence({
+          platforms: tier1Platforms,
+          keywords,
+          timeWindow: "24h",
+          limit: Math.floor(limit * 0.7), // 70% from Tier 1
+        });
+
       // Step 2: Fetch Tier 2 intelligence
       const tier2Data = [];
       for (const platform of tier2Platforms) {
-        const data = await tier2Service.fetchPlatformData(platform, keywords, Math.floor(limit * 0.3 / tier2Platforms.length));
+        const data = await tier2Service.fetchPlatformData(
+          platform,
+          keywords,
+          Math.floor((limit * 0.3) / tier2Platforms.length),
+        );
         tier2Data.push(...data);
       }
-      
+
       // Step 3: Analyze trends and cultural moments
       const allSignals = [...tier1Signals, ...tier2Data];
-      const trends = await strategicIntelligence.detectEmergingTrends('7d');
-      const culturalMoments = await strategicIntelligence.correlateCulturalMoments(allSignals);
-      
+      const trends = await strategicIntelligence.detectEmergingTrends("7d");
+      const culturalMoments =
+        await strategicIntelligence.correlateCulturalMoments(allSignals);
+
       // Step 4: Generate brief if requested
       let brief = null;
       if (generateBrief && allSignals.length > 0) {
@@ -1547,77 +1684,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
             project: `Intelligence Report ${new Date().toLocaleDateString()}`,
             platforms: [...tier1Platforms, ...tier2Platforms],
             keywords,
-            timeRange: '24h'
-          }
+            timeRange: "24h",
+          },
         );
       }
-      
-      console.log(`[Comprehensive Intelligence] Collected ${allSignals.length} total signals`);
-      
+
+      console.log(
+        `[Comprehensive Intelligence] Collected ${allSignals.length} total signals`,
+      );
+
       res.json({
         success: true,
         tier1Signals: tier1Signals.length,
         tier2Signals: tier2Data.length,
         totalSignals: allSignals.length,
         trends: trends.trends?.length || 0,
-        culturalMoments: Array.isArray(culturalMoments) ? culturalMoments.length : 0,
+        culturalMoments: Array.isArray(culturalMoments)
+          ? culturalMoments.length
+          : 0,
         brief: brief ? brief.id : null,
         data: {
           signals: allSignals,
           trends,
           culturalMoments,
-          brief
-        }
+          brief,
+        },
       });
-      
     } catch (error) {
-      console.error('Error in comprehensive intelligence:', error);
-      res.status(500).json({ error: "Failed to run comprehensive intelligence", details: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error in comprehensive intelligence:", error);
+      res.status(500).json({
+        error: "Failed to run comprehensive intelligence",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
 
   // Phase 6: Chrome Extension Integration Routes
-  
+
   // Process content captured from Chrome extension
   app.post("/api/chrome-extension/capture", async (req, res) => {
     try {
       const contentData = req.body;
-      
+
       // Validate content data
-      const validation = chromeExtensionService.validateContentData(contentData);
+      const validation =
+        chromeExtensionService.validateContentData(contentData);
       if (!validation.valid) {
-        return res.status(400).json({ error: "Invalid content data", details: validation.errors });
+        return res
+          .status(400)
+          .json({ error: "Invalid content data", details: validation.errors });
       }
-      
-      const analysis = await chromeExtensionService.processCapturedContent(contentData);
+
+      const analysis =
+        await chromeExtensionService.processCapturedContent(contentData);
       res.json(analysis);
     } catch (error) {
-      console.error('Error processing extension capture:', error);
-      res.status(500).json({ error: "Failed to process captured content", details: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error processing extension capture:", error);
+      res.status(500).json({
+        error: "Failed to process captured content",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
-  
+
   // Batch process multiple captured contents
   app.post("/api/chrome-extension/batch", async (req, res) => {
     try {
       const { contents } = req.body;
-      
+
       if (!Array.isArray(contents)) {
         return res.status(400).json({ error: "Contents array is required" });
       }
-      
-      const analyses = await chromeExtensionService.processBatchContent(contents);
+
+      const analyses =
+        await chromeExtensionService.processBatchContent(contents);
       res.json({
         success: true,
         processed: analyses.length,
-        analyses
+        analyses,
       });
     } catch (error) {
-      console.error('Error processing extension batch:', error);
-      res.status(500).json({ error: "Failed to process batch content", details: error instanceof Error ? error.message : 'Unknown error' });
+      console.error("Error processing extension batch:", error);
+      res.status(500).json({
+        error: "Failed to process batch content",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
-  
+
   // Get extension stats and capabilities
   app.get("/api/chrome-extension/stats", async (req, res) => {
     try {
@@ -1629,14 +1783,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Phase 7: Strategic Intelligence Features Routes
-  
+
   // Client Profile Management
   app.get("/api/client-profiles", async (req, res) => {
     try {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const profiles = await storage.getClientProfiles(req.session.user.id);
       res.json(profiles);
     } catch (error) {
@@ -1650,12 +1804,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const profile = await storage.getClientProfileById(req.params.id);
       if (!profile) {
         return res.status(404).json({ error: "Client profile not found" });
       }
-      
+
       res.json(profile);
     } catch (error) {
       console.error("Error fetching client profile:", error);
@@ -1668,12 +1822,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const profile = await storage.createClientProfile({
         ...req.body,
-        userId: req.session.user.id
+        userId: req.session.user.id,
       });
-      
+
       res.json(profile);
     } catch (error) {
       console.error("Error creating client profile:", error);
@@ -1686,8 +1840,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
-      const profile = await storage.updateClientProfile(req.params.id, req.body);
+
+      const profile = await storage.updateClientProfile(
+        req.params.id,
+        req.body,
+      );
       res.json(profile);
     } catch (error) {
       console.error("Error updating client profile:", error);
@@ -1700,7 +1857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       await storage.deleteClientProfile(req.params.id);
       res.json({ success: true });
     } catch (error) {
@@ -1715,12 +1872,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const { projectId } = req.query;
       if (!projectId) {
         return res.status(400).json({ error: "Project ID is required" });
       }
-      
+
       const briefs = await storage.getDsdBriefs(projectId as string);
       res.json(briefs);
     } catch (error) {
@@ -1734,12 +1891,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const brief = await storage.getDsdBriefById(req.params.id);
       if (!brief) {
         return res.status(404).json({ error: "DSD brief not found" });
       }
-      
+
       res.json(brief);
     } catch (error) {
       console.error("Error fetching DSD brief:", error);
@@ -1752,7 +1909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const brief = await storage.createDsdBrief(req.body);
       res.json(brief);
     } catch (error) {
@@ -1766,7 +1923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const brief = await storage.updateDsdBrief(req.params.id, req.body);
       res.json(brief);
     } catch (error) {
@@ -1780,7 +1937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       await storage.deleteDsdBrief(req.params.id);
       res.json({ success: true });
     } catch (error) {
@@ -1793,12 +1950,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/collective-patterns", async (req, res) => {
     try {
       const { patternType, minConfidence } = req.query;
-      
+
       const patterns = await storage.getCollectivePatterns({
         patternType: patternType as string,
-        minConfidence: minConfidence ? parseFloat(minConfidence as string) : undefined
+        minConfidence: minConfidence
+          ? parseFloat(minConfidence as string)
+          : undefined,
       });
-      
+
       res.json(patterns);
     } catch (error) {
       console.error("Error fetching collective patterns:", error);
@@ -1811,7 +1970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const pattern = await storage.createCollectivePattern(req.body);
       res.json(pattern);
     } catch (error) {
@@ -1824,12 +1983,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cultural-moments", async (req, res) => {
     try {
       const { status, limit } = req.query;
-      
+
       const moments = await storage.getCulturalMoments({
         status: status as string,
-        limit: limit ? parseInt(limit as string) : undefined
+        limit: limit ? parseInt(limit as string) : undefined,
       });
-      
+
       res.json(moments);
     } catch (error) {
       console.error("Error fetching cultural moments:", error);
@@ -1842,7 +2001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const moment = await storage.createCulturalMoment(req.body);
       res.json(moment);
     } catch (error) {
@@ -1856,8 +2015,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
-      const moment = await storage.updateCulturalMoment(req.params.id, req.body);
+
+      const moment = await storage.updateCulturalMoment(
+        req.params.id,
+        req.body,
+      );
       res.json(moment);
     } catch (error) {
       console.error("Error updating cultural moment:", error);
@@ -1874,36 +2036,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { query, platforms, tags, dateRange } = req.body;
       const captures = await storage.getUserCaptures(req.session.user.id);
-      
+
       let filteredCaptures = captures;
-      
+
       // Filter by search query
       if (query) {
-        filteredCaptures = filteredCaptures.filter((capture: any) => 
-          capture.title?.toLowerCase().includes(query.toLowerCase()) ||
-          capture.content?.toLowerCase().includes(query.toLowerCase()) ||
-          capture.summary?.toLowerCase().includes(query.toLowerCase())
+        filteredCaptures = filteredCaptures.filter(
+          (capture: any) =>
+            capture.title?.toLowerCase().includes(query.toLowerCase()) ||
+            capture.content?.toLowerCase().includes(query.toLowerCase()) ||
+            capture.summary?.toLowerCase().includes(query.toLowerCase()),
         );
       }
-      
+
       // Filter by platforms
-      if (platforms && platforms.length > 0 && !platforms.includes('all')) {
-        filteredCaptures = filteredCaptures.filter((capture: any) => 
-          platforms.includes(capture.platform)
+      if (platforms && platforms.length > 0 && !platforms.includes("all")) {
+        filteredCaptures = filteredCaptures.filter((capture: any) =>
+          platforms.includes(capture.platform),
         );
       }
-      
+
       // Filter by tags
       if (tags && tags.length > 0) {
-        filteredCaptures = filteredCaptures.filter((capture: any) => 
-          tags.some((tag: string) => capture.tags?.includes(tag))
+        filteredCaptures = filteredCaptures.filter((capture: any) =>
+          tags.some((tag: string) => capture.tags?.includes(tag)),
         );
       }
-      
+
       res.json({
         results: filteredCaptures,
         total: filteredCaptures.length,
-        query: { query, platforms, tags, dateRange }
+        query: { query, platforms, tags, dateRange },
       });
     } catch (error) {
       console.error("Error searching captures:", error);
@@ -1919,14 +2082,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const captures = await storage.getUserCaptures(req.session.user.id);
-      
+
       // Generate trend data from captures
       const platformTrends = captures.reduce((acc: any, capture: any) => {
-        const platform = capture.platform || 'unknown';
+        const platform = capture.platform || "unknown";
         acc[platform] = (acc[platform] || 0) + 1;
         return acc;
       }, {});
-      
+
       const weeklyTrends = [];
       const now = new Date();
       for (let i = 6; i >= 0; i--) {
@@ -1936,19 +2099,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return captureDate.toDateString() === date.toDateString();
         });
         weeklyTrends.push({
-          date: date.toISOString().split('T')[0],
+          date: date.toISOString().split("T")[0],
           captures: dayCaptures.length,
-          avgViralScore: dayCaptures.length > 0 ? 
-            dayCaptures.reduce((sum: number, c: any) => sum + (c.viralScore || 0), 0) / dayCaptures.length : 0
+          avgViralScore:
+            dayCaptures.length > 0
+              ? dayCaptures.reduce(
+                  (sum: number, c: any) => sum + (c.viralScore || 0),
+                  0,
+                ) / dayCaptures.length
+              : 0,
         });
       }
-      
+
       res.json({
         platformTrends,
         weeklyTrends,
         totalCaptures: captures.length,
-        avgViralScore: captures.length > 0 ? 
-          captures.reduce((sum: number, c: any) => sum + (c.viralScore || 0), 0) / captures.length : 0
+        avgViralScore:
+          captures.length > 0
+            ? captures.reduce(
+                (sum: number, c: any) => sum + (c.viralScore || 0),
+                0,
+              ) / captures.length
+            : 0,
       });
     } catch (error) {
       console.error("Error fetching content trends:", error);
@@ -1963,15 +2136,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const captures = await storage.getUserCaptures(req.session.user.id);
-      
+
       // Generate viral pattern analysis
-      const viralCaptures = captures.filter((c: any) => (c.viralScore || 0) > 70);
+      const viralCaptures = captures.filter(
+        (c: any) => (c.viralScore || 0) > 70,
+      );
       const patterns = {
         highViralContent: viralCaptures.length,
-        avgViralScore: viralCaptures.length > 0 ? 
-          viralCaptures.reduce((sum: number, c: any) => sum + (c.viralScore || 0), 0) / viralCaptures.length : 0,
+        avgViralScore:
+          viralCaptures.length > 0
+            ? viralCaptures.reduce(
+                (sum: number, c: any) => sum + (c.viralScore || 0),
+                0,
+              ) / viralCaptures.length
+            : 0,
         topPlatforms: viralCaptures.reduce((acc: any, c: any) => {
-          const platform = c.platform || 'unknown';
+          const platform = c.platform || "unknown";
           acc[platform] = (acc[platform] || 0) + 1;
           return acc;
         }, {}),
@@ -1983,10 +2163,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }, {}),
         timePatterns: viralCaptures.map((c: any) => ({
           hour: new Date(c.createdAt).getHours(),
-          viralScore: c.viralScore || 0
-        }))
+          viralScore: c.viralScore || 0,
+        })),
       };
-      
+
       res.json(patterns);
     } catch (error) {
       console.error("Error fetching viral patterns:", error);
@@ -2002,30 +2182,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { content, type, platform } = req.body;
-      
+
       // Enhanced AI analysis using real content
       const analysis = {
-        summary: `Strategic analysis of ${type || 'content'}: ${content?.substring(0, 100)}...`,
-        sentiment: Math.random() > 0.6 ? 'positive' : Math.random() > 0.3 ? 'neutral' : 'negative',
+        summary: `Strategic analysis of ${type || "content"}: ${content?.substring(0, 100)}...`,
+        sentiment:
+          Math.random() > 0.6
+            ? "positive"
+            : Math.random() > 0.3
+              ? "neutral"
+              : "negative",
         viralScore: Math.floor(Math.random() * 40) + 60, // 60-100 range
         strategicValue: Math.floor(Math.random() * 5) + 6, // 6-10 range
         keyInsights: [
           "Strong engagement potential detected",
           "Aligns with current trending topics",
-          "Recommended for strategic amplification"
+          "Recommended for strategic amplification",
         ],
         recommendations: [
-          `Optimize for ${platform || 'social media'} platform`,
+          `Optimize for ${platform || "social media"} platform`,
           "Consider cross-platform distribution",
-          "Monitor performance metrics closely"
+          "Monitor performance metrics closely",
         ],
         targetAudience: {
           primary: "Digital natives",
           secondary: "Content creators",
-          engagement: "High"
-        }
+          engagement: "High",
+        },
       };
-      
+
       res.json(analysis);
     } catch (error) {
       console.error("Error in AI analysis:", error);
@@ -2040,33 +2225,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { content, platform, targetAudience, tone } = req.body;
-      
+
       const hooks = [
-        `🔥 You won't believe what ${targetAudience || 'people'} are saying about this...`,
-        `STOP scrolling! This ${platform || 'content'} insight will change everything`,
-        `The secret that ${targetAudience || 'everyone'} doesn't want you to know`,
+        `🔥 You won't believe what ${targetAudience || "people"} are saying about this...`,
+        `STOP scrolling! This ${platform || "content"} insight will change everything`,
+        `The secret that ${targetAudience || "everyone"} doesn't want you to know`,
         `Why ${content?.substring(0, 30)}... is trending everywhere`,
         `This simple trick is breaking the internet right now`,
-        `${targetAudience || 'People'} are going crazy over this new discovery`,
-        `Warning: This ${platform || 'content'} hack is too powerful`,
-        `The ${tone || 'authentic'} truth about what's happening`,
+        `${targetAudience || "People"} are going crazy over this new discovery`,
+        `Warning: This ${platform || "content"} hack is too powerful`,
+        `The ${tone || "authentic"} truth about what's happening`,
         `Everyone is talking about this, but here's what they missed`,
-        `This changes everything we thought we knew about ${platform || 'content'}`
+        `This changes everything we thought we knew about ${platform || "content"}`,
       ];
-      
+
       res.json({
         hooks: hooks.slice(0, 5), // Return top 5 hooks
         metadata: {
-          platform: platform || 'general',
-          targetAudience: targetAudience || 'general',
-          tone: tone || 'engaging',
-          optimizedFor: 'maximum engagement'
+          platform: platform || "general",
+          targetAudience: targetAudience || "general",
+          tone: tone || "engaging",
+          optimizedFor: "maximum engagement",
         },
         performance: {
           expectedCTR: `${Math.floor(Math.random() * 5) + 3}%`,
           viralPotential: Math.floor(Math.random() * 30) + 70,
-          audienceMatch: Math.floor(Math.random() * 20) + 80
-        }
+          audienceMatch: Math.floor(Math.random() * 20) + 80,
+        },
       });
     } catch (error) {
       console.error("Error generating hooks:", error);
@@ -2078,8 +2263,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/hypothesis-validations", async (req, res) => {
     try {
       const { captureId } = req.query;
-      
-      const validations = await storage.getHypothesisValidations(captureId as string);
+
+      const validations = await storage.getHypothesisValidations(
+        captureId as string,
+      );
       res.json(validations);
     } catch (error) {
       console.error("Error fetching hypothesis validations:", error);
@@ -2092,22 +2279,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       // If originalCaptureId is not provided, use the first available capture
       if (!req.body.originalCaptureId) {
         const captures = await storage.getUserCaptures(req.session.user.id);
         if (captures.length > 0) {
           req.body.originalCaptureId = captures[0].id;
         } else {
-          return res.status(400).json({ error: "No captures available to create hypothesis from" });
+          return res
+            .status(400)
+            .json({ error: "No captures available to create hypothesis from" });
         }
       }
-      
+
       const validation = await storage.createHypothesisValidation({
         ...req.body,
-        validatingUserId: req.session.user.id
+        validatingUserId: req.session.user.id,
       });
-      
+
       res.json(validation);
     } catch (error) {
       console.error("Error creating hypothesis validation:", error);
@@ -2120,8 +2309,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
-      const validation = await storage.updateHypothesisValidation(req.params.id, req.body);
+
+      const validation = await storage.updateHypothesisValidation(
+        req.params.id,
+        req.body,
+      );
       res.json(validation);
     } catch (error) {
       console.error("Error updating hypothesis validation:", error);
@@ -2130,44 +2322,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Phase 8: System Health and Status Routes
-  
+
   // Get comprehensive system status
   app.get("/api/system/status", async (req, res) => {
     try {
       const status = {
         timestamp: new Date().toISOString(),
         services: {
-          strategicIntelligence: 'operational',
-          truthAnalysis: 'operational',
-          tier2Platforms: 'operational',
-          briefGeneration: 'operational',
-          chromeExtension: 'operational'
+          strategicIntelligence: "operational",
+          truthAnalysis: "operational",
+          tier2Platforms: "operational",
+          briefGeneration: "operational",
+          chromeExtension: "operational",
         },
         platforms: {
           tier1: {
-            twitter: 'configured',
-            linkedin: 'configured',
-            instagram: 'configured',
-            tiktok: 'configured',
-            medium: 'configured'
+            twitter: "configured",
+            linkedin: "configured",
+            instagram: "configured",
+            tiktok: "configured",
+            medium: "configured",
           },
-          tier2: tier2Service.getTier2Sources().reduce((acc, source) => {
-            acc[source.name] = source.isActive ? 'active' : 'inactive';
-            return acc;
-          }, {} as Record<string, string>)
+          tier2: tier2Service.getTier2Sources().reduce(
+            (acc, source) => {
+              acc[source.name] = source.isActive ? "active" : "inactive";
+              return acc;
+            },
+            {} as Record<string, string>,
+          ),
         },
         briefTemplates: briefService.getTemplates().length,
-        version: '2.0.0',
+        version: "2.0.0",
         buildInfo: {
-          phase1: 'complete',
-          phase2: 'complete',
-          phase3: 'complete',
-          phase4: 'complete',
-          phase5: 'complete',
-          phase6: 'complete'
-        }
+          phase1: "complete",
+          phase2: "complete",
+          phase3: "complete",
+          phase4: "complete",
+          phase5: "complete",
+          phase6: "complete",
+        },
       };
-      
+
       res.json(status);
     } catch (error) {
       res.status(500).json({ error: "Failed to get system status" });
@@ -2175,21 +2370,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bright Data API Configuration and Testing Routes
-  
+
   // Test Bright Data API connection
   app.get("/api/bright-data/test", async (req, res) => {
     try {
       const testResult = await fixedBrightData.testConnection();
       res.json(testResult);
     } catch (error) {
-      res.status(500).json({ 
-        status: 'error', 
-        message: 'Failed to test Bright Data connection',
-        details: error instanceof Error ? error.message : 'Unknown error' 
+      res.status(500).json({
+        status: "error",
+        message: "Failed to test Bright Data connection",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
-  
+
   // Get platform configuration status
   app.get("/api/bright-data/status", async (req, res) => {
     try {
@@ -2199,7 +2394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get platform status" });
     }
   });
-  
+
   // Get configuration instructions
   app.get("/api/bright-data/instructions", async (req, res) => {
     try {
@@ -2209,19 +2404,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get instructions" });
     }
   });
-  
+
   // Update dataset ID for a platform
   app.post("/api/bright-data/config", async (req, res) => {
     try {
       const { platform, datasetId } = req.body;
-      
+
       if (!platform || !datasetId) {
-        return res.status(400).json({ error: "Platform and datasetId are required" });
+        return res
+          .status(400)
+          .json({ error: "Platform and datasetId are required" });
       }
-      
+
       const success = fixedBrightData.updateDatasetId(platform, datasetId);
       if (success) {
-        res.json({ success: true, message: `Dataset ID updated for ${platform}` });
+        res.json({
+          success: true,
+          message: `Dataset ID updated for ${platform}`,
+        });
       } else {
         res.status(400).json({ error: `Platform ${platform} not supported` });
       }
@@ -2229,30 +2429,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update configuration" });
     }
   });
-  
+
   // Fetch data using fixed Bright Data service
   app.post("/api/bright-data/fetch", async (req, res) => {
     try {
       const { platform, keywords = [], limit = 20 } = req.body;
-      
+
       if (!platform) {
         return res.status(400).json({ error: "Platform is required" });
       }
-      
-      const data = await fixedBrightData.fetchPlatformData(platform, keywords, limit);
+
+      const data = await fixedBrightData.fetchPlatformData(
+        platform,
+        keywords,
+        limit,
+      );
       res.json({
         success: true,
         platform,
         count: data.length,
         data,
-        method: data[0]?.metadata?.source || 'unknown'
+        method: data[0]?.metadata?.source || "unknown",
       });
     } catch (error) {
-      console.error('Error fetching via fixed Bright Data:', error);
-      res.status(500).json({ 
-        error: "Failed to fetch data", 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        platform: req.body.platform 
+      console.error("Error fetching via fixed Bright Data:", error);
+      res.status(500).json({
+        error: "Failed to fetch data",
+        details: error instanceof Error ? error.message : "Unknown error",
+        platform: req.body.platform,
       });
     }
   });
@@ -2261,22 +2465,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bright-data/live", async (req, res) => {
     try {
       const { platform, keywords = [], limit = 20 } = req.body;
-      
+
       if (!platform) {
         return res.status(400).json({ error: "Platform is required" });
       }
-      
-      console.log(`[Live API] Fetching live data from ${platform} with browser automation`);
-      
-      const result = await liveBrightData.fetchLiveData(platform, keywords, limit);
+
+      console.log(
+        `[Live API] Fetching live data from ${platform} with browser automation`,
+      );
+
+      const result = await liveBrightData.fetchLiveData(
+        platform,
+        keywords,
+        limit,
+      );
       res.json(result);
-      
     } catch (error) {
-      console.error('Error fetching live data:', error);
-      res.status(500).json({ 
-        error: "Failed to fetch live data", 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        platform: req.body.platform 
+      console.error("Error fetching live data:", error);
+      res.status(500).json({
+        error: "Failed to fetch live data",
+        details: error instanceof Error ? error.message : "Unknown error",
+        platform: req.body.platform,
       });
     }
   });
@@ -2294,26 +2503,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { AuthService, registerSchema } = await import("./services/authService");
+      const { AuthService, registerSchema } = await import(
+        "./services/authService"
+      );
       const authService = new AuthService(db);
       const validatedData = registerSchema.parse(req.body);
       const user = await authService.register(validatedData);
-      
+
       // Set session
-      req.session.user = { id: user.id, email: user.email, username: user.username || "" };
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        username: user.username || "",
+      };
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
           return res.status(500).json({ error: "Failed to save session" });
         }
-        res.status(201).json({ 
-          success: true, 
-          user: { id: user.id, email: user.email, username: user.username || "" } 
+        res.status(201).json({
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username || "",
+          },
         });
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
+        return res
+          .status(400)
+          .json({ error: "Invalid data", details: error.errors });
       }
       if (error instanceof Error) {
         console.error("Registration error:", error);
@@ -2325,26 +2546,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { AuthService, loginSchema } = await import("./services/authService");
+      const { AuthService, loginSchema } = await import(
+        "./services/authService"
+      );
       const authService = new AuthService(db);
       const validatedData = loginSchema.parse(req.body);
       const user = await authService.login(validatedData);
-      
+
       // Set session
-      req.session.user = { id: user.id, email: user.email, username: user.username || "" };
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        username: user.username || "",
+      };
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
           return res.status(500).json({ error: "Failed to save session" });
         }
-        res.json({ 
-          success: true, 
-          user: { id: user.id, email: user.email, username: user.username || "" } 
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username || "",
+          },
         });
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
+        return res
+          .status(400)
+          .json({ error: "Invalid data", details: error.errors });
       }
       if (error instanceof Error) {
         console.error("Login error:", error);
@@ -2369,17 +2602,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.user?.id) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      
+
       const { AuthService } = await import("./services/authService");
       const authService = new AuthService(db);
       const user = await authService.getUserById(req.session.user.id);
-      
+
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
-      res.json({ 
-        user: { id: user.id, email: user.email, username: user.username } 
+
+      res.json({
+        user: { id: user.id, email: user.email, username: user.username },
       });
     } catch (error) {
       console.error("Get user error:", error);
@@ -2388,21 +2621,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auto-scanning disabled by default - users must manually start it
-  console.log('📋 Scheduler initialized (auto-scan disabled by default)');
+  console.log("📋 Scheduler initialized (auto-scan disabled by default)");
+
+  // Add error handler at the end
+  const { errorHandler } = await import("./middleware/errorHandler");
+  app.use(errorHandler);
 
   const httpServer = createServer(app);
   return httpServer;
 }
 
 function convertToCSV(items: any[]): string {
-  if (items.length === 0) return '';
-  
-  const headers = Object.keys(items[0]).join(',');
-  const rows = items.map(item => 
-    Object.values(item).map(value => 
-      typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
-    ).join(',')
+  if (items.length === 0) return "";
+
+  const headers = Object.keys(items[0]).join(",");
+  const rows = items.map((item) =>
+    Object.values(item)
+      .map((value) =>
+        typeof value === "string" ? `"${value.replace(/"/g, '""')}"` : value,
+      )
+      .join(","),
   );
-  
-  return [headers, ...rows].join('\n');
+
+  return [headers, ...rows].join("\n");
 }
