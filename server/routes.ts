@@ -15,7 +15,8 @@ import { ChromeExtensionService } from "./services/chromeExtensionService";
 import { FixedBrightDataService } from "./services/fixedBrightDataService";
 import { LiveBrightDataService } from "./services/liveBrightDataService";
 import { insertContentRadarSchema } from "@shared/supabase-schema";
-import { z } from "zod";
+import { requireAuth, AuthedRequest } from "./middleware/auth";
+import { validateBody, zod as z } from "./middleware/validate";
 
 import { registerProjectRoutes } from "./routes/projects";
 import { registerBriefRoutes } from "./routes/briefs";
@@ -32,15 +33,7 @@ const liveBrightData = new LiveBrightDataService();
 const aiAnalyzer = new AIAnalyzer();
 const truthFramework = new TruthAnalysisFramework();
 
-// Zod schema for validating Chrome extension capture requests
-const extensionCaptureSchema = z.object({
-  projectId: z.string().uuid().optional(),
-  content: z.string().min(1, "Content is required"),
-  url: z.string().url().optional(),
-  platform: z.string().optional(),
-  type: z.string().optional(),
-  priority: z.string().optional(),
-});
+// Note: Extension capture schema moved inline with route handler
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const brightData = new BrightDataService();
@@ -112,62 +105,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/extension/capture", async (req, res) => {
-    try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+const extensionCaptureSchema = z.object({
+  projectId: z.string().uuid().optional(),
+  content: z.string().min(1),
+  url: z.string().url().optional(),
+  platform: z.string().optional(),
+  type: z.string().optional().default("extension"),
+  priority: z.enum(["low", "normal", "high"]).optional().default("normal"),
+});
 
-      // Validate the request body using Zod
-      const parsed = extensionCaptureSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res
-          .status(400)
-          .json({ error: "Invalid input", details: parsed.error.errors });
-      }
-      // Destructure validated fields
-      const {
-        projectId,
-        content,
-        url,
-        platform,
-        type = "extension",
-        priority = "normal",
-      } = parsed.data;
+app.post(
+  "/api/extension/capture",
+  requireAuth,
+  validateBody(extensionCaptureSchema),
+  async (req: AuthedRequest, res) => {
+    try {
+      const { projectId, content, url, platform, type, priority } = req.body as z.infer<typeof extensionCaptureSchema>;
 
       // Track extension request
-      const extensionId = req.headers["x-extension-id"] as string;
+      const extensionId = req.headers["x-extension-id"] as string | undefined;
       if (extensionId) {
         productionMonitor.trackExtensionRequest(extensionId);
       }
 
-      console.log(
-        `📱 Extension capture from ${platform || "unknown"}: ${content.substring(0, 50)}...`,
-      );
+      console.log(`📱 Extension capture from ${platform || "unknown"}: ${content.substring(0, 50)}...`);
 
-      // Create the capture
+      // Create the capture (fallback to first project if projectId missing)
+      const userId = req.user!.id;
+      const fallbackProjectId = (await storage.getProjects(userId))[0]?.id;
       const capture = await storage.createCapture({
-        userId: req.session.user.id,
-        projectId:
-          projectId || (await storage.getProjects(req.session.user.id))[0]?.id,
-        type,
+        userId,
+        projectId: projectId || fallbackProjectId,
+        type: type || "extension",
         content,
         url,
         platform: platform || "web",
         title: `Extension Capture - ${new Date().toLocaleString()}`,
-
+        priority,
         analysisStatus: "pending",
       });
 
       // Trigger analysis if content is substantial
       if (content.length > 50) {
         try {
-          const analysis = await aiAnalyzer.analyzeContent(
-            "Extension Capture",
-            content,
-            platform || "web",
-          );
-
+          const analysis = await aiAnalyzer.analyzeContent("Extension Capture", content, platform || "web");
           await storage.updateCapture(capture.id, {
             viralScore: analysis.viralScore,
             analysisStatus: "completed",
@@ -189,11 +170,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Extension capture error:", error);
 
       // Track extension error
-      const extensionId = req.headers["x-extension-id"] as string;
+      const extensionId = req.headers["x-extension-id"] as string | undefined;
       if (extensionId) {
         productionMonitor.trackExtensionRequest(
           extensionId,
-          error instanceof Error ? error.message : "Unknown error",
+          error instanceof Error ? error.message : "Unknown error"
         );
       }
 
@@ -202,7 +183,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }
-  });
+  }
+);
 
   // Health check routes
   app.get("/health", healthCheckEndpoint);
@@ -429,13 +411,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupSearchRoutes(app);
 
   // Get all user captures (fixes routing issue)
-  app.get("/api/captures", async (req, res) => {
+  app.get("/api/captures", requireAuth, async (req: AuthedRequest, res) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const captures = await db.getUserCaptures(req.session.user.id);
+      const userId = req.user!.id;
+      const captures = await db.getUserCaptures(userId);
       res.json(captures);
     } catch (error) {
       console.error("Error fetching user captures:", error);
