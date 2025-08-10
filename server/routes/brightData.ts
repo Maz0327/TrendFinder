@@ -4,6 +4,7 @@ import { z } from "zod";
 import { validateBody, ValidatedRequest } from "../middleware/validate";
 import { FixedBrightDataService } from "../services/fixedBrightDataService";
 import { LiveBrightDataService } from "../services/liveBrightDataService";
+import { heavyLimiter } from "../middleware/rateLimit";
 
 export const brightDataRouter = Router();
 const fixedBrightData = new FixedBrightDataService();
@@ -15,7 +16,7 @@ const brightFetchSchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(20),
 });
 
-brightDataRouter.post("/bright-data/fetch", requireAuth, validateBody(brightFetchSchema), async (req: ValidatedRequest<z.infer<typeof brightFetchSchema>>, res: Response) => {
+brightDataRouter.post("/bright-data/fetch", heavyLimiter, requireAuth, validateBody(brightFetchSchema), async (req: ValidatedRequest<z.infer<typeof brightFetchSchema>>, res: Response) => {
   try {
     const { platform, keywords, limit } = req.validated!.body!;
     const data = await fixedBrightData.fetchPlatformData(platform, keywords, limit);
@@ -42,7 +43,7 @@ const brightLiveSchema = z.object({
   limit: z.number().int().min(1).max(50).optional().default(20),
 });
 
-brightDataRouter.post("/bright-data/live", requireAuth, validateBody(brightLiveSchema), async (req: ValidatedRequest<z.infer<typeof brightLiveSchema>>, res: Response) => {
+brightDataRouter.post("/bright-data/live", heavyLimiter, requireAuth, validateBody(brightLiveSchema), async (req: ValidatedRequest<z.infer<typeof brightLiveSchema>>, res: Response) => {
   try {
     const { platform, keywords, limit } = req.validated!.body!;
     const result = await liveBrightData.fetchLiveData(platform, keywords, limit);

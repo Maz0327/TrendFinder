@@ -1,6 +1,7 @@
 // Final Working Storage Implementation - Using DATABASE_URL
 import { Client } from 'pg';
 import bcrypt from 'bcryptjs';
+import { v4 as uuid } from "uuid";
 import type { 
   User, Project, Capture, ContentRadar, Brief,
   InsertUser, InsertProject, InsertCapture, InsertBrief, InsertContentRadar,
@@ -122,6 +123,14 @@ export interface IStorage {
   // Search and Filtering
   searchCaptures(query: string, filters?: any): Promise<Capture[]>;
   getPendingCaptures(): Promise<Capture[]>;
+  
+  // Job Management
+  createJob(input: { type: string; payload: any; userId?: string }): Promise<any>;
+  getJobById(id: string): Promise<any | null>;
+  takeNextQueuedJob(): Promise<any | null>;
+  completeJob(id: string, result: any): Promise<void>;
+  failJob(id: string, error: string): Promise<void>;
+  retryJob(id: string, error: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2419,6 +2428,129 @@ export class DatabaseStorage implements IStorage {
       console.error("❌ Error searching captures:", error);
       return [];
     }
+  }
+
+  // Job Management Methods
+  async createJob(input: { type: string; payload: any; userId?: string }) {
+    const { type, payload, userId } = input;
+    const id = uuid();
+    
+    const result = await this.client.query(`
+      INSERT INTO jobs (id, type, payload, status, user_id)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [id, type, JSON.stringify(payload), "queued", userId || null]);
+    
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      type: row.type,
+      payload: row.payload,
+      status: row.status,
+      result: row.result,
+      error: row.error,
+      attempts: row.attempts,
+      max_attempts: row.max_attempts,
+      created_at: row.created_at,
+      started_at: row.started_at,
+      finished_at: row.finished_at,
+      user_id: row.user_id
+    };
+  }
+
+  async getJobById(id: string) {
+    const result = await this.client.query('SELECT * FROM jobs WHERE id = $1 LIMIT 1', [id]);
+    if (result.rows.length === 0) return null;
+    
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      type: row.type,
+      payload: row.payload,
+      status: row.status,
+      result: row.result,
+      error: row.error,
+      attempts: row.attempts,
+      max_attempts: row.max_attempts,
+      created_at: row.created_at,
+      started_at: row.started_at,
+      finished_at: row.finished_at,
+      user_id: row.user_id
+    };
+  }
+
+  /**
+   * Atomically take the oldest queued job and mark running.
+   * NOTE: Supabase's JS client doesn't expose row-level locks; we emulate atomics with RPC-like update.
+   */
+  async takeNextQueuedJob() {
+    // 1) Find the oldest queued job
+    const findResult = await this.client.query(
+      'SELECT * FROM jobs WHERE status = $1 ORDER BY created_at ASC LIMIT 1',
+      ['queued']
+    );
+    
+    const job = findResult.rows[0];
+    if (!job) return null;
+
+    // 2) Try to update to running if still queued
+    const updateResult = await this.client.query(`
+      UPDATE jobs 
+      SET status = $1, started_at = NOW(), attempts = COALESCE(attempts, 0) + 1
+      WHERE id = $2 AND status = $3
+      RETURNING *
+    `, ['running', job.id, 'queued']);
+
+    if (updateResult.rows.length === 0) {
+      // Someone else took it, or conflict – just return null and worker loop will try again
+      return null;
+    }
+    
+    const row = updateResult.rows[0];
+    return {
+      id: row.id,
+      type: row.type,
+      payload: row.payload,
+      status: row.status,
+      result: row.result,
+      error: row.error,
+      attempts: row.attempts,
+      max_attempts: row.max_attempts,
+      created_at: row.created_at,
+      started_at: row.started_at,
+      finished_at: row.finished_at,
+      user_id: row.user_id
+    };
+  }
+
+  async completeJob(id: string, result: any) {
+    await this.client.query(
+      'UPDATE jobs SET status = $1, finished_at = NOW(), result = $2 WHERE id = $3',
+      ['done', JSON.stringify(result), id]
+    );
+  }
+
+  async failJob(id: string, errMsg: string) {
+    await this.client.query(
+      'UPDATE jobs SET status = $1, finished_at = NOW(), error = $2 WHERE id = $3',
+      ['failed', errMsg, id]
+    );
+  }
+
+  async retryJob(id: string, errMsg: string) {
+    // Move back to queued if attempts < max_attempts
+    const result = await this.client.query('SELECT * FROM jobs WHERE id = $1 LIMIT 1', [id]);
+    if (result.rows.length === 0) throw new Error("Job not found");
+    
+    const job = result.rows[0];
+    if ((job.attempts || 0) >= (job.max_attempts || 3)) {
+      return this.failJob(id, errMsg || "max attempts reached");
+    }
+    
+    await this.client.query(
+      'UPDATE jobs SET status = $1, error = $2 WHERE id = $3',
+      ['queued', errMsg || null, id]
+    );
   }
 }
 

@@ -3,6 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { z } from "zod";
 import { validateBody, ValidatedRequest } from "../middleware/validate";
 import { AIAnalyzer } from "../services/aiAnalyzer";
+import { heavyLimiter } from "../middleware/rateLimit";
 
 export const aiRouter = Router();
 const aiAnalyzer = new AIAnalyzer();
@@ -13,7 +14,7 @@ const aiAnalyzeSchema = z.object({
   platform: z.string().optional(),
 });
 
-aiRouter.post("/ai/analyze", requireAuth, validateBody(aiAnalyzeSchema), async (req: ValidatedRequest<z.infer<typeof aiAnalyzeSchema>>, res: Response) => {
+aiRouter.post("/ai/analyze", heavyLimiter, requireAuth, validateBody(aiAnalyzeSchema), async (req: ValidatedRequest<z.infer<typeof aiAnalyzeSchema>>, res: Response) => {
   try {
     const { content, type, platform } = req.validated!.body!;
     const analysis = {

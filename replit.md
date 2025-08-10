@@ -98,6 +98,13 @@ Preferred communication style: Simple, everyday language.
   - **Request ID Tracking**: UUID-based request tracking across entire application
   - **Rate Limiting**: Applied to computation-heavy endpoints (60 req/min)
   - **Centralized Config**: Foundation helper for environment and feature management
+- **Phase 3: Improve Scalability & Reliability (COMPLETE)**: Durable job queuing system with DB persistence
+  - **Jobs Table**: Supabase table for persistent job queue with proper indexing
+  - **DB-backed Queue**: dbQueue.ts with enqueue/get/takeNext/succeed/fail/retry operations
+  - **Storage Integration**: Extended DatabaseStorage with 6 job management methods
+  - **Worker System**: DB worker processing jobs every 1500ms with proper error handling
+  - **Jobs Router**: API endpoints for job enqueuing (/api/jobs/enqueue/*) and status checking
+  - **Rate Limiting**: Separate buckets (publicLimiter: 60/min, heavyLimiter: 20/min) for scalability
 - **JWT Authentication Implementation**: Successfully migrated core routes to JWT-based authentication  
 - **Supabase Migration**: Updated to new project (uytiwodjtulpjvgjtsod.supabase.co) with full connectivity
 

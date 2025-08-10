@@ -21,7 +21,8 @@ import { validateBody, ValidatedRequest } from "./middleware/validate";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import { sanitizeInput } from "./utils/sanitize";
-import { startWorker } from "./jobs/worker";
+import { startDbWorker } from "./jobs/worker";
+import jobsRouter from "./routes/jobs";
 import { enqueue, getJob } from "./jobs/inMemoryQueue";
 
 import { capturesRouter } from "./routes/captures";
@@ -98,9 +99,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { sanitizeInput } = await import("./middleware/sanitization");
   app.use(sanitizeInput);
 
-  // Start job worker
-  const { startWorker } = await import("./jobs/worker");
-  startWorker();
+  // Start durable DB-backed worker
+  startDbWorker();
 
   // Mount modular routers
   app.use("/api", capturesRouter);
@@ -109,6 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", brightDataRouter);
   app.use("/api", intelligenceRouter);
   app.use("/api", contentRouter);
+  app.use("/api", jobsRouter);
 
   // example log on startup
   logger.info("Mounted captures and extension routers");
