@@ -16,7 +16,7 @@ export function useAuth() {
   });
 
   return {
-    user: userData?.user || (user ? {
+    user: (userData as any)?.user || (user ? {
       id: user.id,
       email: user.email || '',
       username: user.user_metadata?.username || user.email?.split('@')[0] || '',

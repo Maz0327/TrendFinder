@@ -27,6 +27,7 @@ import {
   ShakeOnError 
 } from "@/components/ui/micro-interactions";
 import { PulseDotsLoader } from "@/components/ui/loading-states";
+import { QuickAccess } from "@/components/QuickAccess";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -255,6 +256,11 @@ export default function AuthLogin() {
             </Link>
           </CardFooter>
         </Card>
+
+        {/* Quick Access for Debugging */}
+        <div className="mt-6">
+          <QuickAccess />
+        </div>
 
         {/* Floating background elements */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">

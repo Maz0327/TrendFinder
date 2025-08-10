@@ -1,0 +1,26 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useLocation } from 'wouter';
+
+export function QuickAccess() {
+  const [, setLocation] = useLocation();
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>Quick Access - Debug Supabase Setup</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4">
+          Having trouble accessing the home page? Use this direct link to check your Supabase configuration.
+        </p>
+        <Button 
+          onClick={() => setLocation('/system-status')}
+          className="w-full"
+        >
+          Go to System Status & Supabase Debug
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}

@@ -63,7 +63,7 @@ function Router() {
       <Route path="/insights" component={() => <ProtectedRoute><LovableInsights /></ProtectedRoute>} />
       <Route path="/data-sources" component={() => <ProtectedRoute><DataSources /></ProtectedRoute>} />
       <Route path="/settings" component={() => <ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      <Route path="/system-status" component={() => <ProtectedRoute><SystemStatus /></ProtectedRoute>} />
+      <Route path="/system-status" component={SystemStatus} />
       
       {/* Strategic Intelligence Routes - Enhanced */}
       <Route path="/client-profiles" component={() => <ProtectedRoute><ClientProfiles /></ProtectedRoute>} />
