@@ -18,6 +18,9 @@ import { insertContentRadarSchema } from "@shared/supabase-schema";
 import { requireAuth, AuthedRequest } from "./middleware/auth";
 import { validateBody, zod as z } from "./middleware/validate";
 import rateLimit from "express-rate-limit";
+import { sanitizeInput } from "./utils/sanitize";
+import { startWorker } from "./jobs/worker";
+import { enqueue, getJob } from "./jobs/inMemoryQueue";
 
 import { registerProjectRoutes } from "./routes/projects";
 import { registerBriefRoutes } from "./routes/briefs";
@@ -126,6 +129,7 @@ app.post(
   async (req: AuthedRequest, res) => {
     try {
       const { projectId, content, url, platform, type } = req.body;
+      const safeContent = sanitizeInput(content);
 
       // Track extension request
       const extensionId = req.headers["x-extension-id"] as string | undefined;
@@ -142,7 +146,7 @@ app.post(
         userId,
         projectId: projectId || fallbackProjectId,
         type: type || "extension",
-        content,
+        content: safeContent,
         url,
         platform: platform || "web",
         title: `Extension Capture - ${new Date().toLocaleString()}`,
@@ -152,7 +156,7 @@ app.post(
       // Trigger analysis if content is substantial
       if (content.length > 50) {
         try {
-          const analysis = await aiAnalyzer.analyzeContent("Extension Capture", content, platform || "web");
+          const analysis = await aiAnalyzer.analyzeContent("Extension Capture", safeContent, platform || "web");
           await storage.updateCapture(capture.id, {
             viralScore: analysis.viralScore,
             analysisStatus: "completed",
@@ -331,40 +335,51 @@ app.post(
     }
   });
 
-  // Public AI Analysis Routes (no auth required for testing)
-  app.post("/api/ai/quick-analysis", async (req, res) => {
-    try {
-      const { content, type = "quick", context } = req.body;
+app.post("/api/ai/quick-analysis", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { content, type = "quick", context, platform = "web" } = req.body;
 
-      if (!content) {
-        return res
-          .status(400)
-          .json({ error: "Content is required for analysis" });
-      }
-
-      console.log(`🧠 Running ${type} AI analysis on content snippet`);
-
-      // Use the AI analyzer for quick analysis
-      const analysis = await aiAnalyzer.analyzeContent(
-        "Quick Analysis",
-        content,
-        "web",
-      );
-
-      res.json({
-        success: true,
-        analysis,
-        type,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error("AI analysis error:", error);
-      res.status(500).json({
-        error: "Failed to analyze content",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+    if (!content) {
+      return res.status(400).json({ error: "Content is required for analysis" });
     }
+
+    const job = enqueue("ai.analyze", {
+      title: "Quick Analysis",
+      content,
+      platform,
+    });
+
+    return res.json({
+      success: true,
+      jobId: job.id,
+      message: "Analysis job enqueued",
+      type,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("AI analysis enqueue error:", error);
+    res.status(500).json({
+      error: "Failed to enqueue analysis",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
+  const job = getJob(req.params.id);
+  if (!job) {
+    return res.status(404).json({ error: "Job not found" });
+  }
+  res.json({
+    id: job.id,
+    type: job.type,
+    status: job.status,
+    result: job.result ?? null,
+    error: job.error ?? null,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
   });
+});
 
   // Public Truth Analysis Routes (no auth required for testing)
   app.post("/api/truth-analysis", async (req, res) => {
@@ -460,44 +475,58 @@ app.post(
     }
   });
 
-  // Update capture notes, custom copy, and tags
-  app.patch("/api/captures/:id", async (req, res) => {
-    try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+app.patch("/api/captures/:id", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { id } = req.params;
 
-      const { id } = req.params;
-      const { notes, customCopy, tags } = req.body;
+    // basic shape validation to avoid arbitrary writes
+    const updates = (req.body ?? {}) as {
+      notes?: string;
+      customCopy?: string;
+      tags?: string[];
+    };
 
-      const updatedCapture = await db.updateCapture(id, {
-        workspaceNotes: notes,
-        content: customCopy,
-        tags,
-      });
-
-      res.json(updatedCapture);
-    } catch (error) {
-      console.error("Error updating capture:", error);
-      res.status(500).json({ error: "Failed to update capture" });
+    // ensure user owns capture
+    const capture = await storage.getCaptureById(id);
+    if (!capture) {
+      return res.status(404).json({ error: "Capture not found" });
     }
-  });
-
-  // Delete capture
-  app.delete("/api/captures/:id", async (req, res) => {
-    try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const { id } = req.params;
-      await storage.deleteCapture(id);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting capture:", error);
-      res.status(500).json({ error: "Failed to delete capture" });
+    if (capture.userId !== req.user!.id) {
+      return res.status(403).json({ error: "Forbidden" });
     }
-  });
+
+    const updatedCapture = await storage.updateCapture(id, {
+      workspaceNotes: updates.notes,
+      content: typeof updates.customCopy === "string" ? sanitizeInput(updates.customCopy) : undefined,
+      tags: Array.isArray(updates.tags) ? updates.tags : undefined,
+    });
+
+    res.json(updatedCapture);
+  } catch (error) {
+    console.error("Error updating capture:", error);
+    res.status(500).json({ error: "Failed to update capture" });
+  }
+});
+
+app.delete("/api/captures/:id", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    const capture = await storage.getCaptureById(id);
+    if (!capture) {
+      return res.status(404).json({ error: "Capture not found" });
+    }
+    if (capture.userId !== req.user!.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    await storage.deleteCapture(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting capture:", error);
+    res.status(500).json({ error: "Failed to delete capture" });
+  }
+});
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {

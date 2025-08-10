@@ -1,29 +1,23 @@
-import { storage } from "../storage";
-import { markJobStatus } from "./queue";
+import { takeNextQueued, markDone, markFailed } from "./inMemoryQueue";
 import { AIAnalyzer } from "../services/aiAnalyzer";
 
 const ai = new AIAnalyzer();
 
-export async function startWorker() {
-  console.log("🔄 Job worker started");
+export function startWorker() {
   setInterval(async () => {
-    // For now, skip job processing since storage methods don't exist yet
-    // const job = await storage.takeNextQueuedJob();
-    const job = null;
+    const job = takeNextQueued();
     if (!job) return;
-    try {
-      await markJobStatus(job.id, "processing");
-      let result: any = null;
 
+    try {
       if (job.type === "ai.analyze") {
         const { title, content, platform } = job.payload;
-        result = await ai.analyzeContent(title, content, platform);
+        const result = await ai.analyzeContent(title, content, platform);
+        markDone(job.id, result);
+      } else {
+        markFailed(job.id, `Unknown job type: ${job.type}`);
       }
-      // add other job types here...
-
-      await markJobStatus(job.id, "done", result);
-    } catch (err) {
-      await markJobStatus(job.id, "failed", { message: (err as Error).message });
+    } catch (err: any) {
+      markFailed(job.id, err?.message || "Job failed");
     }
-  }, 2000);
+  }, 1000);
 }
