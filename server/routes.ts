@@ -31,6 +31,8 @@ import { requestId } from "./middleware/requestId";
 import { httpLogger } from "./middleware/httpLogger";
 import aiRouter from "./routes/ai";
 import brightDataRouter from "./routes/brightData";
+import intelligenceRouter from "./routes/intelligence";
+import contentRouter from "./routes/content";
 import { registerProjectRoutes } from "./routes/projects";
 import { registerBriefRoutes } from "./routes/briefs";
 import googleExportsRouter from "./routes/google-exports";
@@ -105,6 +107,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", extensionRouter);
   app.use("/api", aiRouter);
   app.use("/api", brightDataRouter);
+  app.use("/api", intelligenceRouter);
+  app.use("/api", contentRouter);
 
   // example log on startup
   logger.info("Mounted captures and extension routers");
@@ -1289,43 +1293,7 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     }
   });
 
-  // Fetch multi-platform intelligence
-  const intelFetchSchema = z.object({
-    platforms: z.array(z.string()).min(1),
-    keywords: z.array(z.string()).optional().default([]),
-    competitors: z.array(z.string()).optional().default([]),
-    timeWindow: z.string().optional().default("24h"),
-    limit: z.number().int().min(1).max(200).optional().default(50),
-  });
 
-  app.post("/api/intelligence/fetch", requireAuth, validateBody(intelFetchSchema), async (req: ValidatedRequest<z.infer<typeof intelFetchSchema>>, res) => {
-    try {
-      const { platforms, keywords, competitors, timeWindow, limit } = req.validated!.body!;
-      const signals = await strategicIntelligence.fetchMultiPlatformIntelligence({
-        platforms,
-        keywords,
-        competitors,
-        timeWindow,
-        limit,
-      });
-      res.json({ success: true, count: signals.length, signals });
-    } catch (error) {
-      console.error("Error fetching intelligence:", error);
-      res.status(500).json({ error: "Failed to fetch intelligence", details: error instanceof Error ? error.message : "Unknown error" });
-    }
-  });
-
-  // Get emerging trends analysis
-  app.get("/api/intelligence/trends", async (req, res) => {
-    try {
-      const timeWindow = (req.query.timeWindow as string) || "7d";
-      const trendReport =
-        await strategicIntelligence.detectEmergingTrends(timeWindow);
-      res.json(trendReport);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to analyze trends" });
-    }
-  });
 
   // Phase 2: Tier 2 Platform Intelligence Routes
 
