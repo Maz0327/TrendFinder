@@ -684,7 +684,7 @@ export default function MyCaptures() {
                       <span className="font-semibold">Strategic Value</span>
                     </div>
                     <div className="text-2xl font-bold text-blue-600">
-                      {analysisCapture.truthAnalysis.strategicValue}/10
+                      {analysisCapture.truthAnalysis.culturalResonance}/10
                     </div>
                   </CardContent>
                 </Card>
@@ -695,7 +695,7 @@ export default function MyCaptures() {
                       <span className="font-semibold">Viral Potential</span>
                     </div>
                     <div className="text-2xl font-bold text-green-600">
-                      {analysisCapture.truthAnalysis.viralPotential}/10
+                      {analysisCapture.truthAnalysis.viralScore}/10
                     </div>
                   </CardContent>
                 </Card>
@@ -896,7 +896,7 @@ export default function MyCaptures() {
                 <EnhancedAnalysisPanel
                   captureId={analysisCapture?.id || ""}
                   captureType={analysisCapture?.type || "text"}
-                  hasImageData={!!analysisCapture?.imageData}
+                  hasImageData={false}
                   existingAnalysis={analysisCapture}
                   onAnalysisComplete={(analysis) => {
                     // Refresh captures after analysis

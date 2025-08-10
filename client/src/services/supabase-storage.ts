@@ -214,7 +214,11 @@ export class SupabaseStorageService {
 
       if (error) throw error;
 
-      return data || [];
+      return (data || []).map((f: any) => ({
+      name: f.name,
+      size: (f.metadata && f.metadata.size) ? Number(f.metadata.size) : 0,
+      created_at: f.created_at,
+    }));
     } catch (error) {
       console.error('Error listing files:', error);
       return [];

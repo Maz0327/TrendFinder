@@ -73,7 +73,7 @@ router.post('/export', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const brief = await storage.getBriefById(briefId);
+    const brief = await storage.getDsdBriefById(briefId as string);
     if (!brief) {
       return res.status(404).json({ error: 'Brief not found' });
     }

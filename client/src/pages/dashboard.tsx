@@ -11,7 +11,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 import { Card } from "@/components/ui/card";
-import { api } from "@/lib/api";
+import { api } from "@/lib/queryClient";
 import type { ContentRadarItem, ContentFilters as FilterType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";

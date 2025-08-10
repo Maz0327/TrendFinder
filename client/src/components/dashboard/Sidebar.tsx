@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { FileDown, FileText, Settings, RefreshCw, Zap } from "lucide-react";
-import { api } from "@/lib/api";
+import { api } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ContentFilters } from "@/types";
 

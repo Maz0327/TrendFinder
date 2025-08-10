@@ -11,7 +11,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Brain, Sparkles, Target, Users, Loader2, Copy, CheckCircle2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { api } from "@/lib/queryClient";
 
 interface TruthAnalysis {
   fact: any;

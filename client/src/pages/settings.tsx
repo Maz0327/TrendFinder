@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Settings, Key, Database, Puzzle, Save, TestTube, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { api } from "@/lib/queryClient";
 
 interface PlatformConfig {
   platform: string;
