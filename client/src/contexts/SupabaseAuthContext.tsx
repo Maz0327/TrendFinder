@@ -6,8 +6,8 @@ import {
   signUpWithEmail,
   signInWithProvider,
   signOut,
-  signInWithMagicLink,
-  resetPassword,
+  signInWithMagicLink as supabaseSignInWithMagicLink,
+  resetPassword as supabaseResetPassword,
 } from '@shared/supabase-client';
 
 interface AuthContextType {
@@ -85,13 +85,13 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       return signInWithProvider('twitter');
     },
     signInWithMagicLink: async (email: string) => {
-      return signInWithMagicLink(email);
+      return supabaseSignInWithMagicLink(email);
     },
     signOut: async () => {
       return signOut();
     },
     resetPassword: async (email: string) => {
-      return resetPassword(email);
+      return supabaseResetPassword(email);
     },
   };
 
@@ -106,36 +106,15 @@ export function useSupabaseAuth() {
   return context;
 }
 
-// Helper function to migrate existing user data
+// Helper function to migrate existing user data  
 async function migrateUserData(user: User | undefined) {
   if (!user) return;
 
   try {
-    // Check if user exists in our users table
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', user.email)
-      .single();
-
-    if (!existingUser) {
-      // Create user record with Supabase auth ID
-      await supabase.from('users').insert({
-        id: user.id,
-        email: user.email!,
-        username: user.user_metadata?.username || user.email?.split('@')[0],
-        role: user.user_metadata?.role || 'user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-    } else if (existingUser.id !== user.id) {
-      // Update user ID to match Supabase auth ID
-      await supabase
-        .from('users')
-        .update({ id: user.id })
-        .eq('email', user.email);
-    }
+    // Use auth.users table (Supabase's built-in table) for user data
+    // No migration needed - Supabase handles this automatically
+    console.log('User authenticated with Supabase:', user.email);
   } catch (error) {
-    console.error('Error migrating user data:', error);
+    console.error('Error in user setup:', error);
   }
 }

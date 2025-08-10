@@ -26,9 +26,6 @@ import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupSearchRoutes } from "./routes/search";
 import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
 import { productionMonitor } from "./monitoring/productionMonitor";
-import { LiveBrightDataService } from "./services/liveBrightDataService";
-import { AIAnalyzer } from "./services/aiAnalyzer";
-import { TruthAnalysisFramework } from "./services/truthAnalysisFramework";
 
 // Initialize AI services
 const liveBrightData = new LiveBrightDataService();
@@ -36,7 +33,7 @@ const aiAnalyzer = new AIAnalyzer();
 const truthFramework = new TruthAnalysisFramework();
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  const aiAnalyzer = new AIAnalyzer();
+  
   const brightData = new BrightDataService();
   const brightDataBrowser = new BrightDataBrowserService();
   const enhancedBrightData = new EnhancedBrightDataService();
@@ -46,12 +43,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("✅ Connected to database with public schema");
   
   const strategicIntelligence = new StrategicIntelligenceService(db);
-  const truthFramework = new TruthAnalysisFramework();
+  
   const tier2Service = new Tier2PlatformService();
   const briefService = new BriefGenerationService();
   const chromeExtensionService = new ChromeExtensionService();
   const fixedBrightData = new FixedBrightDataService();
-  const liveBrightData = new LiveBrightDataService();
+  
   
   // Initialize Tier 1 sources on startup
   // Strategic Intelligence Service ready
