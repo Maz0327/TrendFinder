@@ -23,6 +23,9 @@ import { sanitizeInput } from "./utils/sanitize";
 import { startWorker } from "./jobs/worker";
 import { enqueue, getJob } from "./jobs/inMemoryQueue";
 
+import { capturesRouter } from "./routes/captures";
+import { extensionRouter } from "./routes/extension";
+import { logger } from "./logger";
 import { registerProjectRoutes } from "./routes/projects";
 import { registerBriefRoutes } from "./routes/briefs";
 import googleExportsRouter from "./routes/google-exports";
@@ -89,119 +92,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { startWorker } = await import("./jobs/worker");
   startWorker();
 
+  // Mount modular routers
+  app.use("/api", capturesRouter);
+  app.use("/api", extensionRouter);
+
+  // example log on startup
+  logger.info("Mounted captures and extension routers");
+
   // Mount all API sub-routers under /api
   const { buildApiRouter } = await import("./routes/index");
   app.use("/api", buildApiRouter());
 
-  // Chrome Extension Routes
-  app.get("/api/extension/active-project", async (req, res) => {
-    try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
 
-      const projects = await storage.getProjects(req.session.user.id);
-      const activeProject =
-        projects.find((p: any) => p.status === "active") || projects[0];
 
-      if (!activeProject) {
-        return res.status(404).json({ error: "No projects found" });
-      }
 
-      res.json({
-        success: true,
-        project: {
-          id: activeProject.id,
-          name: activeProject.name,
-          description: activeProject.description,
-        },
-      });
-    } catch (error) {
-      console.error("Extension active project error:", error);
-      res.status(500).json({ error: "Failed to get active project" });
-    }
-  });
 
-const extensionCaptureSchema = z.object({
-  projectId: z.string().uuid().optional(),
-  content: z.string().min(1),
-  url: z.string().url().optional(),
-  platform: z.string().optional(),
-  type: z.string().optional().default("extension"),
-  priority: z.enum(["low", "normal", "high"]).optional().default("normal"),
-});
 
-app.post(
-  "/api/extension/capture",
-  requireAuth,
-  validateBody(extensionCaptureSchema),
-  async (req: AuthedRequest, res) => {
-    try {
-      const { projectId, content, url, platform, type } = req.body;
-      const safeContent = sanitizeInput(content);
-
-      // Track extension request
-      const extensionId = req.headers["x-extension-id"] as string | undefined;
-      if (extensionId) {
-        productionMonitor.trackExtensionRequest(extensionId);
-      }
-
-      console.log(`📱 Extension capture from ${platform || "unknown"}: ${content.substring(0, 50)}...`);
-
-      // Create the capture (fallback to first project if projectId missing)
-      const userId = req.user!.id;
-      const fallbackProjectId = (await storage.getProjects(userId))[0]?.id;
-      const capture = await storage.createCapture({
-        userId,
-        projectId: projectId || fallbackProjectId,
-        type: type || "extension",
-        content: safeContent,
-        url,
-        platform: platform || "web",
-        title: `Extension Capture - ${new Date().toLocaleString()}`,
-        analysisStatus: "pending",
-      });
-
-      // Trigger analysis if content is substantial
-      if (content.length > 50) {
-        try {
-          const analysis = await aiAnalyzer.analyzeContent("Extension Capture", safeContent, platform || "web");
-          await storage.updateCapture(capture.id, {
-            viralScore: analysis.viralScore,
-            analysisStatus: "completed",
-          });
-        } catch (analysisError) {
-          console.warn("Analysis failed for extension capture:", analysisError);
-        }
-      }
-
-      res.json({
-        success: true,
-        capture: {
-          id: capture.id,
-          title: capture.title,
-          createdAt: capture.createdAt,
-        },
-      });
-    } catch (error) {
-      console.error("Extension capture error:", error);
-
-      // Track extension error
-      const extensionId = req.headers["x-extension-id"] as string | undefined;
-      if (extensionId) {
-        productionMonitor.trackExtensionRequest(
-          extensionId,
-          error instanceof Error ? error.message : "Unknown error"
-        );
-      }
-
-      res.status(500).json({
-        error: "Failed to create capture",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  }
-);
 
   // Health check routes
   app.get("/health", healthCheckEndpoint);
@@ -437,105 +343,6 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
   setupAnnotationsRoutes(app);
   setupAnalyticsRoutes(app);
   setupSearchRoutes(app);
-
-  // Get all user captures (fixes routing issue)
-  app.get("/api/captures", requireAuth, async (req: AuthedRequest, res) => {
-    try {
-      const userId = req.user!.id;
-      const captures = await db.getUserCaptures(userId);
-      res.json(captures);
-    } catch (error) {
-      console.error("Error fetching user captures:", error);
-      res.status(500).json({ error: "Failed to fetch captures" });
-    }
-  });
-
-  // Get recent captures for dashboard (Lovable UI)
-  app.get("/api/captures/recent", requireAuth, async (req: AuthedRequest, res) => {
-    try {
-      const userId = req.user!.id;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const captures = await db.getUserCaptures(userId);
-
-      const recentCaptures = captures
-        .sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA;
-        })
-        .slice(0, limit);
-
-      res.json(recentCaptures);
-    } catch (error) {
-      console.error("Error fetching recent captures:", error);
-      res.status(500).json({ error: "Failed to fetch recent captures" });
-    }
-  });
-
-  // Get all captures for the user (for My Captures page)
-  app.get("/api/captures/all", requireAuth, async (req: AuthedRequest, res) => {
-    try {
-      const userId = req.user!.id;
-      const captures = await db.getUserCaptures(userId);
-      res.json(captures);
-    } catch (error) {
-      console.error("Error fetching user captures:", error);
-      res.status(500).json({ error: "Failed to fetch captures" });
-    }
-  });
-
-app.patch("/api/captures/:id", requireAuth, async (req: AuthedRequest, res) => {
-  try {
-    const { id } = req.params;
-
-    // basic shape validation to avoid arbitrary writes
-    const updates = (req.body ?? {}) as {
-      notes?: string;
-      customCopy?: string;
-      tags?: string[];
-    };
-
-    // ensure user owns capture
-    const capture = await storage.getCaptureById(id);
-    if (!capture) {
-      return res.status(404).json({ error: "Capture not found" });
-    }
-    if (capture.userId !== req.user!.id) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    const updatedCapture = await storage.updateCapture(id, {
-      workspaceNotes: updates.notes,
-      content: typeof updates.customCopy === "string" ? sanitizeInput(updates.customCopy) : undefined,
-      tags: Array.isArray(updates.tags) ? updates.tags : undefined,
-    });
-
-    res.json(updatedCapture);
-  } catch (error) {
-    console.error("Error updating capture:", error);
-    res.status(500).json({ error: "Failed to update capture" });
-  }
-});
-
-app.delete("/api/captures/:id", requireAuth, async (req: AuthedRequest, res) => {
-  try {
-    const { id } = req.params;
-
-    const capture = await storage.getCaptureById(id);
-    if (!capture) {
-      return res.status(404).json({ error: "Capture not found" });
-    }
-    if (capture.userId !== req.user!.id) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    await storage.deleteCapture(id);
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting capture:", error);
-    res.status(500).json({ error: "Failed to delete capture" });
-  }
-});
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {
