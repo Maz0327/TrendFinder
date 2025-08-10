@@ -17,7 +17,8 @@ import { FixedBrightDataService } from "./services/fixedBrightDataService";
 import { LiveBrightDataService } from "./services/liveBrightDataService";
 import { insertContentRadarSchema } from "@shared/supabase-schema";
 import { requireAuth, AuthedRequest } from "./middleware/auth";
-import { validateBody, zod as z } from "./middleware/validate";
+import { validateBody, ValidatedRequest } from "./middleware/validate";
+import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import { sanitizeInput } from "./utils/sanitize";
 import { startWorker } from "./jobs/worker";
@@ -1174,31 +1175,25 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     }
   });
 
-  // Enhanced error logging middleware
-  app.use((err: any, req: any, res: any, next: any) => {
-    const error = {
-      id: Date.now().toString(),
-      type: "backend",
-      level: "error",
-      message: err.message || "Unknown server error",
-      stack: err.stack,
+  // Standardized error handler (must be last)
+  app.use((err: any, req: any, res: any, _next: any) => {
+    const status = typeof err.status === "number" ? err.status : 500;
+    const code = err.code || "INTERNAL_ERROR";
+
+    logger.error({
+      msg: err.message || "Unhandled error",
+      code,
+      status,
       endpoint: `${req.method} ${req.path}`,
-      timestamp: new Date().toISOString(),
-      resolved: false,
-      count: 1,
-    };
-
-    systemErrors.push(error);
-    if (systemErrors.length > MAX_ERRORS) {
-      systemErrors.shift();
-    }
-
-    console.error(`[ERROR] ${error.endpoint}: ${error.message}`);
+      stack: process.env.NODE_ENV !== "production" ? err.stack : undefined,
+    });
 
     if (!res.headersSent) {
-      res
-        .status(500)
-        .json({ error: "Internal server error", errorId: error.id });
+      return res.status(status).json({
+        error: err.message || "Internal server error",
+        code,
+        ...(process.env.NODE_ENV !== "production" ? { details: err.stack } : {}),
+      });
     }
   });
 
@@ -1286,42 +1281,28 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
   });
 
   // Fetch multi-platform intelligence
-  app.post("/api/intelligence/fetch", async (req, res) => {
+  const intelFetchSchema = z.object({
+    platforms: z.array(z.string()).min(1),
+    keywords: z.array(z.string()).optional().default([]),
+    competitors: z.array(z.string()).optional().default([]),
+    timeWindow: z.string().optional().default("24h"),
+    limit: z.number().int().min(1).max(200).optional().default(50),
+  });
+
+  app.post("/api/intelligence/fetch", requireAuth, validateBody(intelFetchSchema), async (req: ValidatedRequest<z.infer<typeof intelFetchSchema>>, res) => {
     try {
-      const {
+      const { platforms, keywords, competitors, timeWindow, limit } = req.validated!.body!;
+      const signals = await strategicIntelligence.fetchMultiPlatformIntelligence({
         platforms,
-        keywords = [],
-        competitors = [],
-        timeWindow = "24h",
-        limit = 50,
-      } = req.body;
-
-      if (!platforms || platforms.length === 0) {
-        return res
-          .status(400)
-          .json({ error: "At least one platform is required" });
-      }
-
-      const signals =
-        await strategicIntelligence.fetchMultiPlatformIntelligence({
-          platforms,
-          keywords,
-          competitors,
-          timeWindow,
-          limit,
-        });
-
-      res.json({
-        success: true,
-        count: signals.length,
-        signals,
+        keywords,
+        competitors,
+        timeWindow,
+        limit,
       });
+      res.json({ success: true, count: signals.length, signals });
     } catch (error) {
       console.error("Error fetching intelligence:", error);
-      res.status(500).json({
-        error: "Failed to fetch intelligence",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+      res.status(500).json({ error: "Failed to fetch intelligence", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -1381,28 +1362,20 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
   // Phase 3: Truth Analysis Framework Routes
 
   // Analyze content with truth framework
-  app.post("/api/truth-analysis/analyze", async (req, res) => {
+  const truthAnalyzeSchema = z.object({
+    content: z.string().min(1),
+    platform: z.string().min(1),
+    metadata: z.record(z.any()).optional().default({}),
+  });
+
+  app.post("/api/truth-analysis/analyze", requireAuth, validateBody(truthAnalyzeSchema), async (req: ValidatedRequest<z.infer<typeof truthAnalyzeSchema>>, res) => {
     try {
-      const { content, platform, metadata = {} } = req.body;
-
-      if (!content || !platform) {
-        return res
-          .status(400)
-          .json({ error: "Content and platform are required" });
-      }
-
-      const analysis = await truthFramework.analyzeContent(
-        content,
-        platform,
-        metadata,
-      );
+      const { content, platform, metadata } = req.validated!.body!;
+      const analysis = await truthFramework.analyzeContent(content, platform, metadata);
       res.json(analysis);
     } catch (error) {
       console.error("Error in truth analysis:", error);
-      res.status(500).json({
-        error: "Failed to analyze content",
-        details: error instanceof Error ? error.message : "Unknown error",
-      });
+      res.status(500).json({ error: "Failed to analyze content", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -1849,46 +1822,41 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
   });
 
   // Capture Search API
-  app.post("/api/captures/search", async (req, res) => {
+  const capturesSearchSchema = z.object({
+    query: z.string().optional(),
+    platforms: z.array(z.string()).optional(),
+    tags: z.array(z.string()).optional(),
+    dateRange: z.object({
+      from: z.string().datetime().optional(),
+      to: z.string().datetime().optional(),
+    }).optional(),
+  });
+
+  app.post("/api/captures/search", requireAuth, validateBody(capturesSearchSchema), async (req: ValidatedRequest<z.infer<typeof capturesSearchSchema>>, res) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+      const { query, platforms, tags } = req.validated!.body!;
+      const captures = await storage.getUserCaptures(req.user!.id);
 
-      const { query, platforms, tags, dateRange } = req.body;
-      const captures = await storage.getUserCaptures(req.session.user.id);
+      let filtered = captures;
 
-      let filteredCaptures = captures;
-
-      // Filter by search query
       if (query) {
-        filteredCaptures = filteredCaptures.filter(
-          (capture: any) =>
-            capture.title?.toLowerCase().includes(query.toLowerCase()) ||
-            capture.content?.toLowerCase().includes(query.toLowerCase()) ||
-            capture.summary?.toLowerCase().includes(query.toLowerCase()),
+        const q = query.toLowerCase();
+        filtered = filtered.filter((c: any) =>
+          c.title?.toLowerCase().includes(q) ||
+          c.content?.toLowerCase().includes(q) ||
+          c.summary?.toLowerCase().includes(q)
         );
       }
 
-      // Filter by platforms
       if (platforms && platforms.length > 0 && !platforms.includes("all")) {
-        filteredCaptures = filteredCaptures.filter((capture: any) =>
-          platforms.includes(capture.platform),
-        );
+        filtered = filtered.filter((c: any) => platforms.includes(c.platform));
       }
 
-      // Filter by tags
       if (tags && tags.length > 0) {
-        filteredCaptures = filteredCaptures.filter((capture: any) =>
-          tags.some((tag: string) => capture.tags?.includes(tag)),
-        );
+        filtered = filtered.filter((c: any) => tags.some((t: string) => c.tags?.includes(t)));
       }
 
-      res.json({
-        results: filteredCaptures,
-        total: filteredCaptures.length,
-        query: { query, platforms, tags, dateRange },
-      });
+      res.json({ results: filtered, total: filtered.length, query: req.validated!.body! });
     } catch (error) {
       console.error("Error searching captures:", error);
       res.status(500).json({ error: "Failed to search captures" });
@@ -1996,25 +1964,20 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
   });
 
   // AI Analysis APIs
-  app.post("/api/ai/analyze", async (req, res) => {
+  const aiAnalyzeSchema = z.object({
+    content: z.string().min(1),
+    type: z.string().optional(),
+    platform: z.string().optional(),
+  });
+
+  app.post("/api/ai/analyze", requireAuth, validateBody(aiAnalyzeSchema), async (req: ValidatedRequest<z.infer<typeof aiAnalyzeSchema>>, res) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const { content, type, platform } = req.body;
-
-      // Enhanced AI analysis using real content
+      const { content, type, platform } = req.validated!.body!;
       const analysis = {
-        summary: `Strategic analysis of ${type || "content"}: ${content?.substring(0, 100)}...`,
-        sentiment:
-          Math.random() > 0.6
-            ? "positive"
-            : Math.random() > 0.3
-              ? "neutral"
-              : "negative",
-        viralScore: Math.floor(Math.random() * 40) + 60, // 60-100 range
-        strategicValue: Math.floor(Math.random() * 5) + 6, // 6-10 range
+        summary: `Strategic analysis of ${type || "content"}: ${content.substring(0, 100)}...`,
+        sentiment: Math.random() > 0.6 ? "positive" : Math.random() > 0.3 ? "neutral" : "negative",
+        viralScore: Math.floor(Math.random() * 40) + 60,
+        strategicValue: Math.floor(Math.random() * 5) + 6,
         keyInsights: [
           "Strong engagement potential detected",
           "Aligns with current trending topics",
@@ -2025,13 +1988,8 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
           "Consider cross-platform distribution",
           "Monitor performance metrics closely",
         ],
-        targetAudience: {
-          primary: "Digital natives",
-          secondary: "Content creators",
-          engagement: "High",
-        },
+        targetAudience: { primary: "Digital natives", secondary: "Content creators", engagement: "High" },
       };
-
       res.json(analysis);
     } catch (error) {
       console.error("Error in AI analysis:", error);
@@ -2039,19 +1997,21 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
     }
   });
 
-  app.post("/api/ai/hook-generator", async (req, res) => {
+  const hookGenSchema = z.object({
+    content: z.string().min(1),
+    platform: z.string().optional(),
+    targetAudience: z.string().optional(),
+    tone: z.string().optional(),
+  });
+
+  app.post("/api/ai/hook-generator", requireAuth, validateBody(hookGenSchema), async (req: ValidatedRequest<z.infer<typeof hookGenSchema>>, res) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const { content, platform, targetAudience, tone } = req.body;
-
+      const { content, platform, targetAudience, tone } = req.validated!.body!;
       const hooks = [
         `🔥 You won't believe what ${targetAudience || "people"} are saying about this...`,
         `STOP scrolling! This ${platform || "content"} insight will change everything`,
         `The secret that ${targetAudience || "everyone"} doesn't want you to know`,
-        `Why ${content?.substring(0, 30)}... is trending everywhere`,
+        `Why ${content.substring(0, 30)}... is trending everywhere`,
         `This simple trick is breaking the internet right now`,
         `${targetAudience || "People"} are going crazy over this new discovery`,
         `Warning: This ${platform || "content"} hack is too powerful`,
@@ -2059,9 +2019,8 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
         `Everyone is talking about this, but here's what they missed`,
         `This changes everything we thought we knew about ${platform || "content"}`,
       ];
-
       res.json({
-        hooks: hooks.slice(0, 5), // Return top 5 hooks
+        hooks: hooks.slice(0, 5),
         metadata: {
           platform: platform || "general",
           targetAudience: targetAudience || "general",
@@ -2252,62 +2211,38 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
   });
 
   // Fetch data using fixed Bright Data service
-  app.post("/api/bright-data/fetch", async (req, res) => {
+  const brightFetchSchema = z.object({
+    platform: z.string().min(1),
+    keywords: z.array(z.string()).optional().default([]),
+    limit: z.number().int().min(1).max(100).optional().default(20),
+  });
+
+  app.post("/api/bright-data/fetch", requireAuth, validateBody(brightFetchSchema), async (req: ValidatedRequest<z.infer<typeof brightFetchSchema>>, res) => {
     try {
-      const { platform, keywords = [], limit = 20 } = req.body;
-
-      if (!platform) {
-        return res.status(400).json({ error: "Platform is required" });
-      }
-
-      const data = await fixedBrightData.fetchPlatformData(
-        platform,
-        keywords,
-        limit,
-      );
-      res.json({
-        success: true,
-        platform,
-        count: data.length,
-        data,
-        method: data[0]?.metadata?.source || "unknown",
-      });
+      const { platform, keywords, limit } = req.validated!.body!;
+      const data = await fixedBrightData.fetchPlatformData(platform, keywords, limit);
+      res.json({ success: true, platform, count: data.length, data, method: data[0]?.metadata?.source || "unknown" });
     } catch (error) {
       console.error("Error fetching via fixed Bright Data:", error);
-      res.status(500).json({
-        error: "Failed to fetch data",
-        details: error instanceof Error ? error.message : "Unknown error",
-        platform: req.body.platform,
-      });
+      res.status(500).json({ error: "Failed to fetch data", details: error instanceof Error ? error.message : "Unknown error", platform: (req.validated?.body as any)?.platform });
     }
   });
 
   // Fetch LIVE data using enhanced Bright Data service with browser automation
-  app.post("/api/bright-data/live", async (req, res) => {
+  const brightLiveSchema = z.object({
+    platform: z.string().min(1),
+    keywords: z.array(z.string()).optional().default([]),
+    limit: z.number().int().min(1).max(50).optional().default(20),
+  });
+
+  app.post("/api/bright-data/live", requireAuth, validateBody(brightLiveSchema), async (req: ValidatedRequest<z.infer<typeof brightLiveSchema>>, res) => {
     try {
-      const { platform, keywords = [], limit = 20 } = req.body;
-
-      if (!platform) {
-        return res.status(400).json({ error: "Platform is required" });
-      }
-
-      console.log(
-        `[Live API] Fetching live data from ${platform} with browser automation`,
-      );
-
-      const result = await liveBrightData.fetchLiveData(
-        platform,
-        keywords,
-        limit,
-      );
+      const { platform, keywords, limit } = req.validated!.body!;
+      const result = await liveBrightData.fetchLiveData(platform, keywords, limit);
       res.json(result);
     } catch (error) {
       console.error("Error fetching live data:", error);
-      res.status(500).json({
-        error: "Failed to fetch live data",
-        details: error instanceof Error ? error.message : "Unknown error",
-        platform: req.body.platform,
-      });
+      res.status(500).json({ error: "Failed to fetch live data", details: error instanceof Error ? error.message : "Unknown error", platform: (req.validated?.body as any)?.platform });
     }
   });
 
@@ -2444,9 +2379,7 @@ app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
   // Auto-scanning disabled by default - users must manually start it
   console.log("📋 Scheduler initialized (auto-scan disabled by default)");
 
-  // Add error handler at the end
-  const { errorHandler } = await import("./middleware/errorHandler");
-  app.use(errorHandler);
+
 
   const httpServer = createServer(app);
   return httpServer;

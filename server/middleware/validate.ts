@@ -1,26 +1,31 @@
 import { z, ZodSchema } from "zod";
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 
 export function validateBody<T>(schema: ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid input", details: parsed.error.errors });
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: "Invalid body", details: result.error.errors });
     }
-    req.body = parsed.data;
+    // @ts-expect-error augment for downstream handlers
+    req.validated = { ...(req as any).validated, body: result.data };
     next();
   };
 }
 
 export function validateQuery<T>(schema: ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const parsed = schema.safeParse(req.query);
-    if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid query", details: parsed.error.errors });
+    const result = schema.safeParse(req.query);
+    if (!result.success) {
+      return res.status(400).json({ error: "Invalid query", details: result.error.errors });
     }
-    req.query = parsed.data as any;
+    // @ts-expect-error augment for downstream handlers
+    req.validated = { ...(req as any).validated, query: result.data };
     next();
   };
 }
 
-export const zod = z;
+// Optional: types you can use in handlers
+export type ValidatedRequest<TBody = unknown, TQuery = unknown> = Request & {
+  validated?: { body?: TBody; query?: TQuery };
+};
