@@ -88,9 +88,23 @@ Preferred communication style: Simple, everyday language.
 - Auto-generated REST APIs from database schema
 - TypeScript type safety with generated types
 
+### Recent Changes (August 2025)
+- **JWT Authentication Implementation**: Successfully migrated core capture routes to JWT-based authentication
+  - Protected routes: GET /api/captures, /api/captures/recent, /api/captures/all, POST /api/extension/capture
+  - Added middleware layers: requireAuth, validateBody with Zod validation
+  - Created front-end API wrapper for automatic JWT token attachment
+- **Rate Limiting**: Implemented Express rate limiting (60 req/min) for public and heavy API routes
+- **Supabase Migration**: Updated to new project (uytiwodjtulpjvgjtsod.supabase.co) with full connectivity
+
 ### Required Environment Variables
 ```
-VITE_SUPABASE_URL=<your_supabase_url>
-VITE_SUPABASE_ANON_KEY=<your_supabase_anon_key>
-SUPABASE_SERVICE_ROLE_KEY=<your_service_role_key>
+VITE_SUPABASE_URL=https://uytiwodjtulpjvgjtsod.supabase.co
+VITE_SUPABASE_ANON_KEY=<configured>
+SUPABASE_SERVICE_ROLE_KEY=<configured>
 ```
+
+### Authentication Architecture
+- **Hybrid System**: JWT authentication for API routes with session-based fallback
+- **Protected Routes**: All capture endpoints now require valid Supabase JWT tokens
+- **Frontend Integration**: Automatic token attachment via apiFetch wrapper in client/src/lib/api.ts
+- **Rate Limiting**: Applied to /api/public/*, /api/bright-data/*, /api/ai/* endpoints
