@@ -39,6 +39,7 @@ import LovableInsights from "@/pages/lovable-insights";
 import DataSources from "@/pages/data-sources";
 import MobileNavBar from "@/components/layout/MobileNavBar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { TourProvider } from "@/components/onboarding/OnboardingTour";
 import { ProgressiveDisclosureProvider } from "@/components/onboarding/ProgressiveDisclosure";
@@ -98,18 +99,20 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TourProvider>
-          <ProgressiveDisclosureProvider>
-            <SampleContentProvider>
-              <TooltipProvider>
-                <Toaster />
-                <AppContent />
-              </TooltipProvider>
-            </SampleContentProvider>
-          </ProgressiveDisclosureProvider>
-        </TourProvider>
-      </AuthProvider>
+      <SupabaseAuthProvider>
+        <AuthProvider>
+          <TourProvider>
+            <ProgressiveDisclosureProvider>
+              <SampleContentProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <AppContent />
+                </TooltipProvider>
+              </SampleContentProvider>
+            </ProgressiveDisclosureProvider>
+          </TourProvider>
+        </AuthProvider>
+      </SupabaseAuthProvider>
     </QueryClientProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import PageLayout from "@/components/layout/PageLayout";
+import { SupabaseTestComponent } from "@/components/SupabaseTestComponent";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -167,6 +168,9 @@ export default function SystemStatus() {
       description="Monitor system health, track errors, and manage platform issues"
     >
       <div className="space-y-6">
+        {/* Supabase Integration Test */}
+        <SupabaseTestComponent />
+
         {/* System Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
