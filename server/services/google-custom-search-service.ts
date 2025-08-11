@@ -28,16 +28,16 @@ export class GoogleCustomSearchService {
 
       // Add platform-specific site search
       if (options.platform) {
-        const siteMap = {
-          'reddit': 'site:reddit.com',
-          'twitter': 'site:twitter.com OR site:x.com',
-          'tiktok': 'site:tiktok.com',
-          'instagram': 'site:instagram.com',
-          'youtube': 'site:youtube.com',
-          'linkedin': 'site:linkedin.com'
+        const siteMap: Record<string, string> = {
+          reddit: 'site:reddit.com',
+          twitter: 'site:twitter.com OR site:x.com',
+          tiktok: 'site:tiktok.com',
+          instagram: 'site:instagram.com',
+          youtube: 'site:youtube.com',
+          linkedin: 'site:linkedin.com'
         };
         
-        if (siteMap[options.platform]) {
+        if (options.platform && siteMap[options.platform]) {
           searchParams.q += ` ${siteMap[options.platform]}`;
         }
       }
@@ -225,9 +225,9 @@ export class GoogleCustomSearchService {
     const intelligence = {
       brand: brandName,
       competitorMentions: new Map(),
-      campaignInsights: [],
-      strategicGaps: [],
-      opportunityAreas: []
+      campaignInsights: [] as any[],
+      strategicGaps: [] as any[],
+      opportunityAreas: [] as any[]
     };
 
     results.forEach(result => {

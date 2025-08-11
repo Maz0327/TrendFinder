@@ -39,7 +39,7 @@ export default function AnalysisCenter() {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   // Truth analysis mutation
-  const { mutateAsync: analyze } = useMutation({
+  const analyzeTruth = useMutation({
     mutationFn: (payload: AnalyzePayload) =>
       api.post<TruthAnalysis>('/api/truth-analysis/analyze', payload),
     onSuccess: (data) => setAnalysisResult(data),
@@ -61,7 +61,7 @@ export default function AnalysisCenter() {
       });
       return;
     }
-    analyze({
+    analyzeTruth.mutate({
       content,
       platform,
       metadata: {

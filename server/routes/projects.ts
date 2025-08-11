@@ -179,7 +179,7 @@ export function registerProjectRoutes(app: Express) {
       truthAnalysisService.analyzeCaptureContent({
         id: capture.id,
         title: capture.title,
-        content: capture.content,
+        content: capture.content ?? '',
         platform: capture.platform,
         metadata: capture.metadata
       }).then(async (analysis) => {

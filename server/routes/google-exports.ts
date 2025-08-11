@@ -83,7 +83,7 @@ router.post('/export', requireAuth, async (req, res) => {
 
     const briefData = {
       title: title || brief.title || project.name,
-      content: (brief as any).content || { define: [], shift: [], deliver: [] },
+      content: (brief as any).content ?? { define: [], shift: [], deliver: [] },
       captures: captures || []
     };
 
@@ -100,22 +100,22 @@ router.post('/export', requireAuth, async (req, res) => {
     // Export to Google Slides
     if (exportTypes.includes('slides')) {
       const slidesService = await createGoogleSlidesService(req.session.googleTokens);
-      const slidesResult = await slidesService.createPresentationFromBrief(briefData as any);
-      results.slides = slidesResult;
+      const slidesRaw = await slidesService.createPresentationFromBrief(briefData as any);
+      results.slides = { id: String(slidesRaw.presentationId), title: slidesRaw.title };
     }
 
     // Export to Google Docs
     if (exportTypes.includes('docs')) {
       const docsService = await createGoogleDocsService(req.session.googleTokens);
-      const docsResult = await docsService.createDetailedBriefDocument(briefData as any);
-      results.docs = docsResult;
+      const docsRaw = await docsService.createDetailedBriefDocument(briefData as any);
+      results.docs = { id: String(docsRaw.documentId), title: docsRaw.title };
     }
 
     // Export to Google Sheets
     if (exportTypes.includes('sheets')) {
       const sheetsService = await createGoogleSheetsService(req.session.googleTokens);
-      const sheetsResult = await sheetsService.createAnalysisSpreadsheet(briefData as any);
-      results.sheets = sheetsResult;
+      const sheetsRaw = await sheetsService.createAnalysisSpreadsheet(briefData as any);
+      results.sheets = { id: String(sheetsRaw.spreadsheetId), title: sheetsRaw.title };
     }
 
     // Organize assets in Drive folder if created

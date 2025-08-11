@@ -110,14 +110,33 @@ export class CaptureAnalysisService {
   private async updateCaptureWithAnalysis(captureId: string, analysisResult: CaptureAnalysisResult): Promise<void> {
     try {
       const updates: Partial<Capture> = {
-        truthAnalysis: analysisResult.truthAnalysis,
+        truthAnalysis: {
+          fact: {
+            claims: analysisResult.truthAnalysis.fact?.claims || [],
+            sources: analysisResult.truthAnalysis.fact?.sources || [],
+            verificationStatus: analysisResult.truthAnalysis.fact?.verificationStatus || 'unknown',
+            confidence: analysisResult.truthAnalysis.fact?.confidence || 0,
+          },
+          observation: {
+            behaviorPatterns: analysisResult.truthAnalysis.observation?.behaviorPatterns || [],
+            audienceSignals: analysisResult.truthAnalysis.observation?.audienceSignals || {},
+            contextualFactors: analysisResult.truthAnalysis.observation?.contextualFactors || [],
+          },
+          insight: analysisResult.truthAnalysis.insight || { summary: '', implications: [], recommendations: [] },
+          humanTruth: analysisResult.truthAnalysis.humanTruth || { statement: '', rationale: '' },
+        },
         status: 'analyzed',
         updatedAt: new Date()
       };
 
-      // Add visual analysis if available
+      // Add visual analysis if available (stringify for DB storage)
       if (analysisResult.visualAnalysis) {
-        updates.visualAnalysis = analysisResult.visualAnalysis;
+        updates.visualAnalysis = JSON.stringify(analysisResult.visualAnalysis);
+      }
+
+      // Cast metadata for storage signature
+      if (updates.metadata !== undefined) {
+        updates.metadata = updates.metadata as unknown as any;
       }
 
       // Update auto-generated tags from analysis

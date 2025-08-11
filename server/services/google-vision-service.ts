@@ -97,17 +97,12 @@ export class GoogleVisionService {
 
     // Safety analysis
     if (response.safeSearchAnnotation) {
-      analysis.safetyAnalysis = {
-        adult: response.safeSearchAnnotation.adult,
-        violence: response.safeSearchAnnotation.violence,
-        racy: response.safeSearchAnnotation.racy,
-        medical: response.safeSearchAnnotation.medical,
-        spoof: response.safeSearchAnnotation.spoof
-      };
+      const { adult, violence, racy, medical, spoof } = response.safeSearchAnnotation;
+      (analysis as any).safetyAnalysis = { adult, violence, racy, medical, spoof };
     }
 
     // Generate strategic insights
-    analysis.strategicInsights = this.generateStrategicInsights(analysis);
+    (analysis as any).strategicInsights = this.generateStrategicInsights(analysis);
 
     return analysis;
   }

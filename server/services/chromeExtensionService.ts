@@ -96,7 +96,8 @@ export class ChromeExtensionService {
 
     } catch (error) {
       console.error('[Chrome Extension] Error processing content:', error);
-      throw new Error(`Failed to process captured content: ${error.message}`);
+      const msg = (error as Error)?.message ?? String(error);
+      throw new Error(`Failed to process captured content: ${msg}`);
     }
   }
 
@@ -155,26 +156,26 @@ export class ChromeExtensionService {
     score += truthAnalysis.confidence * 0.4;
     
     // Platform multiplier
-    const platformMultipliers = {
-      'twitter': 1.2,
-      'tiktok': 1.3,
-      'instagram': 1.1,
-      'linkedin': 0.9,
-      'youtube': 1.0,
-      'reddit': 1.1,
-      'web': 0.8
+    const platformMultipliers: Record<string, number> = {
+      twitter: 1.2,
+      tiktok: 1.3,
+      instagram: 1.1,
+      linkedin: 0.9,
+      youtube: 1.0,
+      reddit: 1.1,
+      web: 0.8
     };
     score *= platformMultipliers[content.platform] || 1.0;
     
     // Content type multiplier
-    const contentMultipliers = {
-      'video': 1.3,
-      'image': 1.2,
-      'post': 1.1,
-      'article': 0.9,
-      'other': 1.0
+    const contentMultipliers: Record<string, number> = {
+      video: 1.3,
+      image: 1.2,
+      post: 1.1,
+      article: 0.9,
+      other: 1.0
     };
-    score *= contentMultipliers[content.metadata.contentType] || 1.0;
+    score *= contentMultipliers[content.metadata?.contentType] || 1.0;
     
     // Engagement boost
     if (content.metadata.engagement && content.metadata.engagement > 1000) {

@@ -142,12 +142,12 @@ export class BrightDataBrowserService {
         postElements.forEach((post, index) => {
           if (index < 10) {
             const titleElement = post.querySelector('img[alt]') || post.querySelector('[aria-label]');
-            const linkElement = post.querySelector('a[href*="/p/"]');
+            const linkElement = post.querySelector('a[href*="/p/"]') as HTMLAnchorElement | null;
             const engagementElement = post.querySelector('[aria-label*="like"], [aria-label*="view"]');
             
             if (titleElement && linkElement) {
               const title = titleElement.getAttribute('alt') || titleElement.getAttribute('aria-label') || `Instagram Post ${index + 1}`;
-              const url = linkElement.href;
+              const url = linkElement?.href ?? linkElement?.getAttribute('href') ?? '';
               const engagement = engagementElement ? 
                 parseInt(engagementElement.textContent?.replace(/[^\d]/g, '') || '0') : 
                 Math.floor(Math.random() * 50000) + 1000;
@@ -187,17 +187,17 @@ export class BrightDataBrowserService {
       
       const videos = await page.evaluate(() => {
         const videoElements = document.querySelectorAll('[data-e2e="video-card"], [data-e2e="recommend-list-item"]');
-        const extractedVideos = [];
+        const extractedVideos: any[] = [];
         
         videoElements.forEach((video, index) => {
           if (index < 8) {
             const titleElement = video.querySelector('[data-e2e="video-desc"]') || video.querySelector('.video-meta-caption');
-            const linkElement = video.querySelector('a');
+            const linkElement = video.querySelector('a') as HTMLAnchorElement | null;
             const engagementElement = video.querySelector('[data-e2e="video-views"]') || video.querySelector('.video-count');
             
             if (titleElement && linkElement) {
               const title = titleElement.textContent?.trim() || `TikTok Video ${index + 1}`;
-              const url = linkElement.href;
+              const url = linkElement?.href ?? linkElement?.getAttribute('href') ?? '';
               const engagement = engagementElement ? 
                 parseInt(engagementElement.textContent?.replace(/[^\d]/g, '') || '0') : 
                 Math.floor(Math.random() * 500000) + 10000;
