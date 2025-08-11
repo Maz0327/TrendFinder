@@ -40,7 +40,7 @@ export default function StatsOverview({ stats, variant = 'dashboard' }: StatsOve
         },
         {
           title: "Truth Analyzed",
-          value: stats.truthAnalyzed || 0,
+          value: stats?.truthAnalyzed ?? 0,
           change: "+25%",
           changeLabel: "depth insights",
           icon: Brain,
@@ -58,7 +58,7 @@ export default function StatsOverview({ stats, variant = 'dashboard' }: StatsOve
         },
         {
           title: "Hypotheses",
-          value: stats.hypothesesTracked || 0,
+          value: stats?.hypothesesTracked ?? 0,
           change: "85%",
           changeLabel: "accuracy rate",
           icon: Target,

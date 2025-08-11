@@ -89,7 +89,7 @@ export default function IntelligenceHub() {
   const handleFetchIntelligence = () => {
     const keywordArray = keywords.split(',').map(k => k.trim()).filter(k => k);
     
-    fetchIntelligence.mutate({
+    collectIntelligence.mutate({
       tier1Platforms: selectedPlatforms.filter(p => ['twitter', 'linkedin', 'instagram', 'tiktok', 'medium'].includes(p)),
       tier2Platforms: selectedPlatforms.filter(p => !['twitter', 'linkedin', 'instagram', 'tiktok', 'medium'].includes(p)),
       keywords: keywordArray,
@@ -215,10 +215,10 @@ export default function IntelligenceHub() {
 
                 <Button
                   onClick={handleFetchIntelligence}
-                  disabled={fetchIntelligence.isPending || selectedPlatforms.length === 0}
+                  disabled={collectIntelligence.isPending || selectedPlatforms.length === 0}
                   className="w-full"
                 >
-                  {fetchIntelligence.isPending ? (
+                  {collectIntelligence.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Collecting Intelligence...

@@ -1,9 +1,19 @@
 export type DashboardStats = {
-  totalTrends: number;
-  viralPotential: number;
-  activeSources: number;
-  avgScore: number;
-  // add any shared, agreed fields only here
+  // core
+  totalTrends?: number;
+  viralPotential?: number;
+  activeSources?: number;
+  avgScore?: number;
+
+  // extra used across pages
+  truthAnalyzed?: number;
+  hypothesesTracked?: number;
+
+  // fields used in lovable-api mapping
+  totalCaptures?: number;
+  avgViralScore?: number;
+  engagementRate?: number;
+  responseTime?: string;
 };
 
 export type IntelligenceSummary = {
@@ -11,13 +21,4 @@ export type IntelligenceSummary = {
   tier1Signals: number;
   tier2Signals: number;
   trends: number;
-};
-
-export type BrightDataStatus = {
-  connected: boolean;
-  platforms?: Record<string, any>;
-};
-
-export type Instructions = {
-  steps?: string[];
 };

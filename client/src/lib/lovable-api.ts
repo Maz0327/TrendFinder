@@ -76,10 +76,10 @@ export async function fetchMetrics(): Promise<MetricData> {
   try {
     const response = await api.get<DashboardStats>('/api/stats');
     return {
-      activeSignals: response.totalCaptures || 0,
-      avgViralScore: response.avgViralScore || 0,
-      engagementRate: response.engagementRate || 0,
-      responseTime: response.responseTime || "N/A"
+      activeSignals: response.totalCaptures ?? 0,
+      avgViralScore: response.avgViralScore ?? 0,
+      engagementRate: response.engagementRate ?? 0,
+      responseTime: response.responseTime ?? "N/A"
     };
   } catch (error) {
     console.error("Error fetching metrics:", error);

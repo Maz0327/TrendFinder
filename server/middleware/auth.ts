@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 
 export interface AuthedUser {
   id: string;
-  email?: string;  // optional to match creation
+  email: string;   // must be string to satisfy the extended Request type
   role?: string;
   metadata?: any;
 }
@@ -25,7 +25,7 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
   try {
     const payload = jwt.verify(token, SUPABASE_JWT_SECRET) as any;
     // Supabase JWT typically provides sub (user id), email
-    req.user = { id: payload.sub, email: payload.email };
+    req.user = { id: payload.sub, email: payload.email || '' };
     next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid token" });
