@@ -1,4 +1,4 @@
-// Database types for Supabase - Generated from reconciled schema 2025-08-11
+// Database types for Supabase - Updated to match actual reconciled schema 2025-08-11
 
 export type Json =
   | string
