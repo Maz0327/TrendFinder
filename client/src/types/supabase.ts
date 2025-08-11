@@ -1,5 +1,4 @@
-// Database types for Supabase - auto-generated types would go here
-// For now, we'll define the essential types based on your schema
+// Database types for Supabase - Generated from reconciled schema 2025-08-11
 
 export type Json =
   | string
@@ -17,6 +16,7 @@ export interface Database {
           id: string
           email: string
           username: string | null
+          password: string
           role: string | null
           onboarding_completed: boolean | null
           tour_completed: boolean | null
@@ -29,6 +29,7 @@ export interface Database {
           id?: string
           email: string
           username?: string | null
+          password: string
           role?: string | null
           onboarding_completed?: boolean | null
           tour_completed?: boolean | null
@@ -41,6 +42,7 @@ export interface Database {
           id?: string
           email?: string
           username?: string | null
+          password?: string
           role?: string | null
           onboarding_completed?: boolean | null
           tour_completed?: boolean | null
@@ -49,6 +51,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       captures: {
         Row: {
@@ -102,6 +105,15 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "captures_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       cultural_moments: {
         Row: {
@@ -137,6 +149,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       dsd_briefs: {
         Row: {
@@ -175,6 +188,15 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "dsd_briefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
@@ -186,5 +208,25 @@ export interface Database {
     Enums: {
       [_ in never]: never
     }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
+
+// Convenience type exports
+export type User = Database['public']['Tables']['users']['Row']
+export type UserInsert = Database['public']['Tables']['users']['Insert']
+export type UserUpdate = Database['public']['Tables']['users']['Update']
+
+export type Capture = Database['public']['Tables']['captures']['Row']
+export type CaptureInsert = Database['public']['Tables']['captures']['Insert']
+export type CaptureUpdate = Database['public']['Tables']['captures']['Update']
+
+export type CulturalMoment = Database['public']['Tables']['cultural_moments']['Row']
+export type CulturalMomentInsert = Database['public']['Tables']['cultural_moments']['Insert']
+export type CulturalMomentUpdate = Database['public']['Tables']['cultural_moments']['Update']
+
+export type DsdBrief = Database['public']['Tables']['dsd_briefs']['Row']
+export type DsdBriefInsert = Database['public']['Tables']['dsd_briefs']['Insert']
+export type DsdBriefUpdate = Database['public']['Tables']['dsd_briefs']['Update']
