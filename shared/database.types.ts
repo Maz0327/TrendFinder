@@ -176,6 +176,64 @@ export interface Database {
           updated_at?: string
         }
       }
+      projects: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_feeds: {
+        Row: {
+          id: string
+          user_id: string
+          project_id: string | null
+          feed_url: string
+          title: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          project_id?: string | null
+          feed_url: string
+          title?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          project_id?: string | null
+          feed_url?: string
+          title?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
