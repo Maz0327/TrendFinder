@@ -26,19 +26,19 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function TrendCard({ trend, onClick }: TrendCardProps) {
-  const viralScore = parseFloat(trend.viralScore || '0');
-  const timeAgo = trend.createdAt ? getTimeAgo(new Date(trend.createdAt)) : 'Unknown';
+  const viralScore = parseFloat(trend.viral_score?.toString() || '0');
+  const timeAgo = trend.created_at ? getTimeAgo(new Date(trend.created_at)) : 'Unknown';
   
   return (
     <Card className="hover-lift cursor-pointer transition-all duration-200 group" onClick={onClick}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-2">
-            <Badge className={categoryColors[trend.category] || categoryColors.general}>
-              {trend.category.replace('-', ' ')}
+            <Badge className={categoryColors[trend.platform || 'general'] || categoryColors.general}>
+              {(trend.platform || 'general').replace('-', ' ')}
             </Badge>
             <div className="flex items-center space-x-1">
-              <i className={platformIcons[trend.platform] || "fas fa-globe text-gray-500"}></i>
+              <i className={platformIcons[trend.platform || 'general'] || "fas fa-globe text-gray-500"}></i>
               <span className="text-xs text-gray-500 capitalize">{trend.platform}</span>
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function TrendCard({ trend, onClick }: TrendCardProps) {
         </h3>
         
         <p className="text-sm text-gray-600 mb-4 line-clamp-3 min-h-[4.5rem]">
-          {trend.summary || trend.content || 'No summary available'}
+          {(trend.ai_analysis as any)?.summary || trend.content || 'No summary available'}
         </p>
         
         <div className="flex items-center justify-between mb-4">

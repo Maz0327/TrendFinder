@@ -1,11 +1,11 @@
 // Supabase client configuration for both frontend and backend
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@shared/database.types';
+import type { Database } from '../client/src/types/supabase';
 
 // Supabase configuration from environment variables
 const supabaseUrl = typeof window !== 'undefined' 
   ? import.meta.env.VITE_SUPABASE_URL || ''
-  : process.env.SUPABASE_URL || '';
+  : process.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = typeof window !== 'undefined'
   ? import.meta.env.VITE_SUPABASE_ANON_KEY || ''
   : process.env.VITE_SUPABASE_ANON_KEY || '';

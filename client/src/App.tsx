@@ -104,18 +104,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SupabaseAuthProvider>
-        <AuthProvider>
-          <TourProvider>
-            <ProgressiveDisclosureProvider>
-              <SampleContentProvider>
-                <TooltipProvider>
-                  <Toaster />
-                  <AppContent />
-                </TooltipProvider>
-              </SampleContentProvider>
-            </ProgressiveDisclosureProvider>
-          </TourProvider>
-        </AuthProvider>
+        <TourProvider>
+          <ProgressiveDisclosureProvider>
+            <SampleContentProvider>
+              <TooltipProvider>
+                <Toaster />
+                <AppContent />
+              </TooltipProvider>
+            </SampleContentProvider>
+          </ProgressiveDisclosureProvider>
+        </TourProvider>
       </SupabaseAuthProvider>
     </QueryClientProvider>
   );
