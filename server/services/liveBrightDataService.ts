@@ -198,7 +198,7 @@ export class LiveBrightDataService {
       }
 
       // Extract post data with multiple strategies
-      const posts = await page.evaluate((limit) => {
+      const posts = await page.evaluate((limit: number) => {
         const results = [];
         
         // Try multiple selectors
@@ -210,7 +210,7 @@ export class LiveBrightDataService {
           '.update-components-text'
         ];
         
-        let foundElements = [];
+        let foundElements: Element[] = [];
         for (const selector of selectors) {
           const elements = document.querySelectorAll(selector);
           if (elements.length > 0) {
@@ -297,7 +297,7 @@ export class LiveBrightDataService {
       await page.waitForSelector('[data-testid="tweet"]', { timeout: 15000 });
 
       // Extract tweet data
-      const tweets = await page.evaluate((limit) => {
+      const tweets = await page.evaluate((limit: number) => {
         const tweetElements = document.querySelectorAll('[data-testid="tweet"]');
         const results = [];
 
@@ -348,7 +348,7 @@ export class LiveBrightDataService {
       await page.waitForSelector('article', { timeout: 15000 });
 
       // Extract post data
-      const posts = await page.evaluate((limit) => {
+      const posts = await page.evaluate((limit: number) => {
         const postElements = document.querySelectorAll('article');
         const results = [];
 
@@ -398,7 +398,7 @@ export class LiveBrightDataService {
       await page.waitForSelector('[data-testid="post-container"]', { timeout: 15000 });
 
       // Extract post data
-      const posts = await page.evaluate((limit) => {
+      const posts = await page.evaluate((limit: number) => {
         const postElements = document.querySelectorAll('[data-testid="post-container"]');
         const results = [];
 
@@ -449,7 +449,7 @@ export class LiveBrightDataService {
       await page.waitForSelector('#video-title', { timeout: 15000 });
 
       // Extract video data
-      const videos = await page.evaluate((limit) => {
+      const videos = await page.evaluate((limit: number) => {
         const videoElements = document.querySelectorAll('#video-title');
         const results = [];
 
@@ -462,7 +462,7 @@ export class LiveBrightDataService {
             platform: 'youtube',
             category: 'video',
             engagement: Math.floor(Math.random() * 10000) + 500,
-            url: video.href || window.location.href,
+            url: (video as unknown as HTMLAnchorElement)?.href || window.location.href,
             metadata: {
               source: 'bright_data_browser_live',
               isLiveData: true,

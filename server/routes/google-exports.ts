@@ -81,10 +81,20 @@ router.post('/export', requireAuth, async (req, res) => {
     // Get captures for the project
     const captures = await storage.getCaptures(projectId);
 
+    // Guard images & map to the DTO
+    const capturesWithImages = (captures ?? [])
+      .filter((c: any) => c?.type === 'image' && !!c?.imageData)
+      .map((c: any) => ({
+        title: c.title ?? 'Untitled',
+        content: c.content ?? '',
+        type: 'image',
+        imageData: c.imageData as string,
+      }));
+
     const briefData = {
       title: title || brief.title || project.name,
       content: (brief as any).content ?? { define: [], shift: [], deliver: [] },
-      captures: captures || []
+      captures: capturesWithImages
     };
 
     const results: any = {};
