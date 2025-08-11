@@ -133,9 +133,9 @@ router.post('/export', requireAuth, async (req, res) => {
       const driveService = await createGoogleDriveService(req.session.googleTokens);
       const organizeAssets: any = {};
       
-      if (results.slides) organizeAssets.slides = results.slides;
-      if (results.docs) organizeAssets.docs = results.docs;
-      if (results.sheets) organizeAssets.sheets = results.sheets;
+      if (results.slides) organizeAssets.slides = { id: results.slides.id, title: results.slides.title };
+      if (results.docs) organizeAssets.docs = { id: results.docs.id, title: results.docs.title };
+      if (results.sheets) organizeAssets.sheets = { id: results.sheets.id, title: results.sheets.title };
 
       await driveService.organizeProjectAssets(projectFolder.folderId, organizeAssets);
     }
@@ -272,9 +272,9 @@ router.post('/export/project/:projectId', requireAuth, async (req, res) => {
 
     // Organize assets in Drive
     await driveService.organizeProjectAssets(projectFolder.folderId, {
-      slides: slidesResult,
-      docs: docsResult,
-      sheets: sheetsResult
+      slides: { id: slidesResult.presentationId, title: slidesResult.title },
+      docs: { id: docsResult.documentId, title: docsResult.title },
+      sheets: { id: sheetsResult.spreadsheetId, title: sheetsResult.title }
     });
 
     // Share with team if specified
@@ -282,8 +282,16 @@ router.post('/export/project/:projectId', requireAuth, async (req, res) => {
       await driveService.shareProjectFolder(projectFolder.folderId, shareWith, 'writer');
     }
 
-    // Upload capture images
-    const capturesWithImages = captures?.filter(c => c.imageData) || [];
+    // Upload capture images - check for imageData in metadata or as direct property
+    const capturesWithImages = captures?.filter(c => 
+      (c as any).imageData || 
+      (c.metadata && typeof c.metadata === 'object' && (c.metadata as any).imageData)
+    ).map(c => ({
+      title: c.title || 'Untitled',
+      content: c.content || '',
+      type: 'image',
+      imageData: (c as any).imageData || (c.metadata as any)?.imageData
+    })) || [];
     let uploadedAssets = null;
     if (capturesWithImages.length > 0) {
       uploadedAssets = await driveService.uploadCaptureAssets(

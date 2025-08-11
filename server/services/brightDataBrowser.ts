@@ -147,7 +147,7 @@ export class BrightDataBrowserService {
             
             if (titleElement && linkElement) {
               const title = titleElement.getAttribute('alt') || titleElement.getAttribute('aria-label') || `Instagram Post ${index + 1}`;
-              const url = linkElement?.href ?? linkElement?.getAttribute('href') ?? '';
+              const url = (linkElement as HTMLAnchorElement)?.href ?? linkElement?.getAttribute('href') ?? '';
               const engagement = engagementElement ? 
                 parseInt(engagementElement.textContent?.replace(/[^\d]/g, '') || '0') : 
                 Math.floor(Math.random() * 50000) + 1000;
@@ -197,7 +197,7 @@ export class BrightDataBrowserService {
             
             if (titleElement && linkElement) {
               const title = titleElement.textContent?.trim() || `TikTok Video ${index + 1}`;
-              const url = linkElement?.href ?? linkElement?.getAttribute('href') ?? '';
+              const url = (linkElement as HTMLAnchorElement)?.href ?? linkElement?.getAttribute('href') ?? '';
               const engagement = engagementElement ? 
                 parseInt(engagementElement.textContent?.replace(/[^\d]/g, '') || '0') : 
                 Math.floor(Math.random() * 500000) + 10000;
@@ -247,7 +247,7 @@ export class BrightDataBrowserService {
             
             if (titleElement) {
               const title = titleElement.textContent?.trim() || `Reddit Post ${index + 1}`;
-              const url = linkElement?.href || `https://reddit.com/post/${index}`;
+              const url = (linkElement as HTMLAnchorElement)?.href || `https://reddit.com/post/${index}`;
               const upvotes = upvoteElement ? 
                 parseInt(upvoteElement.textContent?.replace(/[^\d]/g, '') || '0') : 
                 Math.floor(Math.random() * 25000) + 500;
@@ -287,7 +287,7 @@ export class BrightDataBrowserService {
       
       const tweets = await page.evaluate(() => {
         const tweetElements = document.querySelectorAll('[data-testid="tweet"], article');
-        const extractedTweets = [];
+        const extractedTweets: any[] = [];
         
         tweetElements.forEach((tweet, index) => {
           if (index < 10) {
@@ -297,7 +297,7 @@ export class BrightDataBrowserService {
             
             if (textElement) {
               const title = textElement.textContent?.trim() || `Twitter Post ${index + 1}`;
-              const url = linkElement?.href || `https://twitter.com/status/${Date.now()}`;
+              const url = (linkElement as HTMLAnchorElement)?.href || `https://twitter.com/status/${Date.now()}`;
               const engagement = engagementElement ? 
                 parseInt(engagementElement.textContent?.replace(/[^\d]/g, '') || '0') : 
                 Math.floor(Math.random() * 10000) + 500;

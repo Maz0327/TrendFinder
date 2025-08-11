@@ -216,7 +216,7 @@ export class ChromeExtensionService {
       'linkedin': 60,
       'reddit': 75
     };
-    const platformWeight = platformWeights[content.platform] || 50;
+    const platformWeight = platformWeights[content.platform as keyof typeof platformWeights] || 50;
     relevance = (relevance + platformWeight) / 2;
     
     // Recent content gets boost
