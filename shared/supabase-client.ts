@@ -8,7 +8,7 @@ const supabaseUrl = typeof window !== 'undefined'
   : process.env.SUPABASE_URL || '';
 const supabaseAnonKey = typeof window !== 'undefined'
   ? import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-  : process.env.SUPABASE_ANON_KEY || '';
+  : process.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials not configured. Some features may be unavailable.');

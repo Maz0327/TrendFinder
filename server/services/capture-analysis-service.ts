@@ -1,7 +1,9 @@
 import { openaiAnalysisService, TruthAnalysisResult } from './openai-analysis';
 import { geminiVisualAnalysisService, VisualAnalysisResult } from './gemini-visual-analysis';
 import { storage } from '../storage';
-import type { Capture } from '../../shared/supabase-schema';
+import type { Database } from '../../shared/database.types';
+
+type Capture = Database['public']['Tables']['captures']['Row'];
 
 export interface CaptureAnalysisResult {
   truthAnalysis: TruthAnalysisResult;
@@ -130,46 +132,29 @@ export class CaptureAnalysisService {
       }
 
       const updates: Partial<Capture> = {
-        truthAnalysis: {
-          fact: {
-            claims: [],
-            sources: [],
-            verificationStatus: 'unknown',
-            confidence: 0,
-          },
-          observation: {
-            behaviorPatterns: [],
-            audienceSignals: {},
-            contextualFactors: [],
-          },
-          insight: { strategicImplications: [], opportunityMapping: {}, riskAssessment: {} },
-          humanTruth: { emotionalUndercurrent: {}, culturalContext: {}, psychologicalDrivers: {} },
-        },
-        status: 'analyzed',
-        updatedAt: new Date()
+        ai_analysis: JSON.parse(JSON.stringify({
+          truthAnalysis: analysisResult.truthAnalysis,
+          visualAnalysis: analysisResult.visualAnalysis,
+          processingTime: analysisResult.processingTime,
+          status: analysisResult.status,
+          timestamp: new Date().toISOString()
+        }))
       };
 
-      // Add visual analysis if available (stringify for DB storage)
-      if (analysisResult.visualAnalysis) {
-        updates.visualAnalysis = JSON.stringify(analysisResult.visualAnalysis);
+      // Update auto-generated tags from analysis
+      if (analysisResult.truthAnalysis?.keywords) {
+        const autoTags = [
+          ...analysisResult.truthAnalysis.keywords,
+          analysisResult.truthAnalysis.briefSectionSuggestion,
+          `confidence-${Math.round(analysisResult.truthAnalysis.confidence / 10) * 10}`,
+          `strategic-value-${analysisResult.truthAnalysis.strategicValue}`,
+          `viral-potential-${analysisResult.truthAnalysis.viralPotential}`
+        ].filter(Boolean);
+
+        updates.tags = autoTags;
       }
 
-      // Handle metadata type compatibility - remove to avoid conflicts
-      const { metadata, ...updatesWithoutMetadata } = updates as any;
-      const finalUpdates = updatesWithoutMetadata;
-
-      // Update auto-generated tags from analysis
-      const autoTags = [
-        ...analysisResult.truthAnalysis.keywords,
-        analysisResult.truthAnalysis.briefSectionSuggestion,
-        `confidence-${Math.round(analysisResult.truthAnalysis.confidence / 10) * 10}`,
-        `strategic-value-${analysisResult.truthAnalysis.strategicValue}`,
-        `viral-potential-${analysisResult.truthAnalysis.viralPotential}`
-      ].filter(Boolean);
-
-      updates.tags = autoTags;
-
-      await storage.updateCapture(captureId, finalUpdates);
+      await storage.updateCapture(captureId, updates);
       
       console.log(`📊 Capture ${captureId} updated with analysis results`);
 
