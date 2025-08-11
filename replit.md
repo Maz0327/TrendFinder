@@ -137,6 +137,12 @@ Preferred communication style: Simple, everyday language.
   - **Demo Data**: Successfully populated users, captures, cultural_moments, and dsd_briefs tables
   - **Verification System**: scripts/verify.ts for database count validation
   - **Production Ready**: Seeded database with strategic intelligence demo data including micro-treat trends and budget energy discussions
+- **Schema Migration (August 11, 2025)**: Completed comprehensive schema reconciliation to align with specifications
+  - **Drift Analysis**: Identified major structural inconsistencies across all 4 core tables
+  - **Migration Applied**: Successfully executed supabase/migrations/20250811030000_reconcile.sql
+  - **Schema Compliance**: All tables now match specification (correct columns, types, constraints, triggers)
+  - **Data Preservation**: Migrated existing data during table recreation with CASCADE handling
+  - **TypeScript Types**: Require local regeneration using `npx supabase gen types typescript --project-id uytiwodjtulpjvgjtsod --schema public`
 
 ### Required Environment Variables
 ```
