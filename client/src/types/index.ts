@@ -1,25 +1,21 @@
-// Import generated types from Supabase
-import type { Database } from './supabase';
-
-// Export Supabase-generated types for consistency
-export type User = Database['public']['Tables']['users']['Row'];
-export type UserInsert = Database['public']['Tables']['users']['Insert'];
-export type UserUpdate = Database['public']['Tables']['users']['Update'];
-
-export type Capture = Database['public']['Tables']['captures']['Row'];
-export type CaptureInsert = Database['public']['Tables']['captures']['Insert'];
-export type CaptureUpdate = Database['public']['Tables']['captures']['Update'];
-
-export type CulturalMoment = Database['public']['Tables']['cultural_moments']['Row'];
-export type CulturalMomentInsert = Database['public']['Tables']['cultural_moments']['Insert'];
-export type CulturalMomentUpdate = Database['public']['Tables']['cultural_moments']['Update'];
-
-export type DsdBrief = Database['public']['Tables']['dsd_briefs']['Row'];
-export type DsdBriefInsert = Database['public']['Tables']['dsd_briefs']['Insert'];
-export type DsdBriefUpdate = Database['public']['Tables']['dsd_briefs']['Update'];
-
-// Legacy compatibility types (mapped to Supabase schema)
-export type ContentRadarItem = Capture;
+export interface ContentRadarItem {
+  id: string;
+  title: string;
+  url: string;
+  content?: string;
+  summary?: string;
+  hook1?: string;
+  hook2?: string;
+  category: string;
+  platform: string;
+  viralScore?: string;
+  engagement?: number;
+  growthRate?: string;
+  metadata?: any;
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 export interface DashboardStats {
   totalTrends: number;
