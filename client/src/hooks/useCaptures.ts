@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import type { Database } from "@/types/supabase";
+import type { Database } from "@/types/supabase.generated";
 
 type CaptureRow = Database["public"]["Tables"]["captures"]["Row"];
 type CaptureInsert = Database["public"]["Tables"]["captures"]["Insert"];

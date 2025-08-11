@@ -1,5 +1,5 @@
 import { supabase } from '@shared/supabase-client';
-import type { Database } from '@/types/supabase';
+import type { Database } from "@/types/supabase.generated";
 
 type Capture = Database['public']['Tables']['captures']['Row'];
 type CulturalMoment = Database['public']['Tables']['cultural_moments']['Row'];
