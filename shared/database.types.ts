@@ -17,6 +17,7 @@ export interface Database {
           id: string
           email: string
           username: string | null
+          password: string
           role: string | null
           onboarding_completed: boolean | null
           tour_completed: boolean | null
@@ -29,6 +30,7 @@ export interface Database {
           id?: string
           email: string
           username?: string | null
+          password: string
           role?: string | null
           onboarding_completed?: boolean | null
           tour_completed?: boolean | null
@@ -41,6 +43,7 @@ export interface Database {
           id?: string
           email?: string
           username?: string | null
+          password?: string
           role?: string | null
           onboarding_completed?: boolean | null
           tour_completed?: boolean | null
@@ -182,6 +185,12 @@ export interface Database {
           user_id: string
           name: string
           description: string | null
+          brief_template: string | null
+          status: string | null
+          client: string | null
+          deadline: string | null
+          tags: Json | null
+          settings: Json | null
           created_at: string
           updated_at: string
         }
@@ -190,6 +199,12 @@ export interface Database {
           user_id: string
           name: string
           description?: string | null
+          brief_template?: string | null
+          status?: string | null
+          client?: string | null
+          deadline?: string | null
+          tags?: Json | null
+          settings?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -198,6 +213,12 @@ export interface Database {
           user_id?: string
           name?: string
           description?: string | null
+          brief_template?: string | null
+          status?: string | null
+          client?: string | null
+          deadline?: string | null
+          tags?: Json | null
+          settings?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -232,6 +253,182 @@ export interface Database {
           is_active?: boolean
           created_at?: string
           updated_at?: string
+        }
+      }
+      jobs: {
+        Row: {
+          id: string
+          type: string
+          payload: Json
+          status: string
+          created_at: string
+          updated_at: string
+          result: Json | null
+          error: string | null
+          attempts: number
+          max_attempts: number
+          started_at: string | null
+          finished_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          type: string
+          payload: Json
+          status?: string
+          created_at?: string
+          updated_at?: string
+          result?: Json | null
+          error?: string | null
+          attempts?: number
+          max_attempts?: number
+          started_at?: string | null
+          finished_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          type?: string
+          payload?: Json
+          status?: string
+          created_at?: string
+          updated_at?: string
+          result?: Json | null
+          error?: string | null
+          attempts?: number
+          max_attempts?: number
+          started_at?: string | null
+          finished_at?: string | null
+          user_id?: string | null
+        }
+      }
+      client_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          brand_voice: string | null
+          target_audience: Json
+          channel_preferences: Json
+          no_go_zones: Json
+          competitive_landscape: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          brand_voice?: string | null
+          target_audience?: Json
+          channel_preferences?: Json
+          no_go_zones?: Json
+          competitive_landscape?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          brand_voice?: string | null
+          target_audience?: Json
+          channel_preferences?: Json
+          no_go_zones?: Json
+          competitive_landscape?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      content_radar: {
+        Row: {
+          id: string
+          title: string
+          url: string
+          content: string | null
+          summary: string | null
+          hook1: string | null
+          hook2: string | null
+          category: string
+          platform: string
+          viral_score: number
+          engagement: number
+          growth_rate: number
+          metadata: Json
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          url: string
+          content?: string | null
+          summary?: string | null
+          hook1?: string | null
+          hook2?: string | null
+          category: string
+          platform: string
+          viral_score?: number
+          engagement?: number
+          growth_rate?: number
+          metadata?: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          url?: string
+          content?: string | null
+          summary?: string | null
+          hook1?: string | null
+          hook2?: string | null
+          category?: string
+          platform?: string
+          viral_score?: number
+          engagement?: number
+          growth_rate?: number
+          metadata?: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      analytics_data: {
+        Row: {
+          id: string
+          user_id: string
+          project_id: string | null
+          metric_type: string
+          metric_value: number
+          recorded_at: string
+          timeframe: string
+          dimensions: Json
+          aggregated_data: Json
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          project_id?: string | null
+          metric_type: string
+          metric_value: number
+          recorded_at?: string
+          timeframe?: string
+          dimensions?: Json
+          aggregated_data?: Json
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          project_id?: string | null
+          metric_type?: string
+          metric_value?: number
+          recorded_at?: string
+          timeframe?: string
+          dimensions?: Json
+          aggregated_data?: Json
         }
       }
     }
