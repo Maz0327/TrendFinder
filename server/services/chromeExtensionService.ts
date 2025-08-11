@@ -19,7 +19,9 @@ export interface CapturedContent {
     engagement?: number;
     author?: string;
     tags?: string[];
+    [key: string]: any; // index signature
   };
+  [key: string]: any; // index signature
 }
 
 export interface ExtensionAnalysis {

@@ -3,14 +3,7 @@ import { TrendingUp, Flame, Globe, Star, Brain, Target } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FadeIn, StaggeredFadeIn } from "@/components/ui/fade-in";
 
-interface DashboardStats {
-  totalTrends: number;
-  viralPotential: number;
-  activeSources: number;
-  avgScore: number;
-  truthAnalyzed?: number;
-  hypothesesTracked?: number;
-}
+import type { DashboardStats } from '@/types/dashboard';
 
 interface StatsOverviewProps {
   stats?: DashboardStats;

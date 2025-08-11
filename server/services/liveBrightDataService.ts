@@ -114,8 +114,7 @@ export class LiveBrightDataService {
       console.log(`[Live Bright Data] Connecting to Bright Data Browser API...`);
       
       const browser = await puppeteer.connect({
-        browserWSEndpoint: this.browserEndpoint,
-        ignoreHTTPSErrors: true
+        browserWSEndpoint: this.browserEndpoint
       });
 
       const page = await browser.newPage();

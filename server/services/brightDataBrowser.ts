@@ -78,7 +78,7 @@ export class BrightDataBrowserService {
       });
 
       // Platform-specific scraping
-      let extractedData = [];
+      let extractedData: any[] = [];
       
       if (platform === 'instagram') {
         extractedData = await this.scrapeInstagramWithPuppeteer(page);
@@ -137,7 +137,7 @@ export class BrightDataBrowserService {
       
       const posts = await page.evaluate(() => {
         const postElements = document.querySelectorAll('article, [data-testid="media-card"]');
-        const extractedPosts = [];
+        const extractedPosts: any[] = [];
         
         postElements.forEach((post, index) => {
           if (index < 10) {
@@ -237,7 +237,7 @@ export class BrightDataBrowserService {
       
       const posts = await page.evaluate(() => {
         const postElements = document.querySelectorAll('[data-testid="post-container"], .Post');
-        const extractedPosts = [];
+        const extractedPosts: any[] = [];
         
         postElements.forEach((post, index) => {
           if (index < 12) {

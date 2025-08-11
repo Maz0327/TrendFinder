@@ -244,7 +244,7 @@ export class GoogleBigQueryService {
         `
       };
 
-      const results = {};
+      const results: any = {};
       for (const [key, query] of Object.entries(queries)) {
         const [job] = await this.bigquery.createQueryJob({ query, location: 'US' });
         const [rows] = await job.getQueryResults();

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, RefreshCw, Zap, TrendingUp, Globe, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import type { IntelligenceSummary } from "@/types/dashboard";
 
 interface PlatformStatus {
   platform: string;
@@ -45,11 +46,16 @@ export default function IntelligenceHub() {
   });
 
   // Fetch intelligence mutation
-  const fetchIntelligence = useMutation({
+  const fetchIntelligence = useQuery({
+    queryKey: ['intelligence'],
+    queryFn: () => api.get<IntelligenceSummary>('/api/intelligence/summary'),
+  });
+
+  const collectIntelligence = useMutation({
     mutationFn: async (params: any) => {
-      return api.post<{ totalSignals: number; tier1Signals: number; tier2Signals: number; trends: number }>('/api/intelligence/comprehensive', params);
+      return api.post<IntelligenceSummary>('/api/intelligence/comprehensive', params);
     },
-    onSuccess: (data: { totalSignals: number; tier1Signals: number; tier2Signals: number; trends: number }) => {
+    onSuccess: (data: IntelligenceSummary) => {
       toast({
         title: "Intelligence Collection Complete",
         description: `Collected ${data.totalSignals} signals across ${data.tier1Signals + data.tier2Signals} sources`,

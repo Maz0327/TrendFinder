@@ -4,6 +4,7 @@ export class GoogleCustomSearchService {
   private customsearch: any;
   private apiKey: string;
   private searchEngineId: string;
+  [key: string]: any; // index signature
 
   constructor() {
     this.customsearch = google.customsearch('v1');
@@ -72,7 +73,7 @@ export class GoogleCustomSearchService {
         'social media buzz'
       ];
 
-      const searchPromises = trendQueries.map(async (baseQuery) => {
+      const searchPromises: Promise<any>[] = trendQueries.map(async (baseQuery) => {
         const results = await Promise.all(
           categories.map(category => 
             this.searchTrendingContent(`${baseQuery} ${category}`, {

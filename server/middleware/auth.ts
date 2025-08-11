@@ -3,9 +3,9 @@ import jwt from "jsonwebtoken";
 
 export interface AuthedUser {
   id: string;
-  email: string;
-  metadata?: any;
+  email?: string;  // optional to match creation
   role?: string;
+  metadata?: any;
 }
 
 export interface AuthedRequest extends Request {

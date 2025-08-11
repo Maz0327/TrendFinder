@@ -13,6 +13,15 @@ import { Brain, Sparkles, Target, Users, Loader2, Copy, CheckCircle2 } from "luc
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 
+interface AnalyzePayload {
+  content: string;
+  platform: string;
+  metadata: {
+    timestamp: string;
+    source: string;
+  };
+}
+
 interface TruthAnalysis {
   fact: any;
   observation: any;
@@ -30,24 +39,10 @@ export default function AnalysisCenter() {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   // Truth analysis mutation
-  const analyzeTruth = useMutation({
-    mutationFn: async (params: { content: string; platform: string }) => {
-      return api.post<TruthAnalysis>('/api/truth-analysis/analyze', {
-        content: params.content,
-        platform: params.platform,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          source: 'manual_input'
-        }
-      });
-    },
-    onSuccess: (data: TruthAnalysis) => {
-      setAnalysisResult(data);
-      toast({
-        title: "Analysis Complete",
-        description: "Truth analysis framework has processed your content",
-      });
-    },
+  const { mutateAsync: analyze } = useMutation({
+    mutationFn: (payload: AnalyzePayload) =>
+      api.post<TruthAnalysis>('/api/truth-analysis/analyze', payload),
+    onSuccess: (data) => setAnalysisResult(data),
     onError: (error: any) => {
       toast({
         title: "Analysis Failed",
@@ -66,7 +61,14 @@ export default function AnalysisCenter() {
       });
       return;
     }
-    analyzeTruth.mutate({ content, platform });
+    analyze({
+      content,
+      platform,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        source: 'manual_input'
+      }
+    });
   };
 
   const copyToClipboard = async (text: string, section: string) => {

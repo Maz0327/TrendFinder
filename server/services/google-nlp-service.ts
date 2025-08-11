@@ -56,7 +56,7 @@ export class GoogleNLPService {
       sentiment: this.processSentiment(results.sentiment),
       entities: this.processEntities(results.entities),
       keyPhrases: this.processKeyPhrases(results.syntax),
-      strategicInsights: []
+      strategicInsights: [] as string[]
     };
 
     analysis.strategicInsights = this.generateNLPInsights(analysis);

@@ -44,13 +44,13 @@ export class GoogleVisionService {
 
   private processVisionResults(response: any) {
     const analysis = {
-      brandElements: [],
-      objectsDetected: [],
-      textContent: [],
-      dominantColors: [],
-      faces: [],
+      brandElements: [] as any[],
+      objectsDetected: [] as any[],
+      textContent: [] as string[],
+      dominantColors: [] as any[],
+      faces: [] as any[],
       safetyAnalysis: null,
-      strategicInsights: []
+      strategicInsights: [] as string[]
     };
 
     // Extract brand logos
