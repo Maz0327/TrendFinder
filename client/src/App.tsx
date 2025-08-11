@@ -55,35 +55,50 @@ function ProtectedApp() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8">
-        <h1 className="text-2xl font-bold mb-4">Content Radar - Debug Mode</h1>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
         <Switch>
-          {/* Test route */}
-          <Route path="/test">
-            <div className="p-4 border border-zinc-700 rounded">
-              <h2>Test page working!</h2>
-            </div>
-          </Route>
-          
           {/* Public auth routes */}
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
           
+          {/* Protected routes - simplified without AuthGuard for now */}
+          <Route path="/dashboard">
+            <AppLayout>
+              <Dashboard />
+            </AppLayout>
+          </Route>
+          
+          <Route path="/captures-inbox">
+            <AppLayout>
+              <CapturesInbox />
+            </AppLayout>
+          </Route>
+          
+          <Route path="/feeds">
+            <AppLayout>
+              <FeedsPage />
+            </AppLayout>
+          </Route>
+          
           {/* Default route */}
           <Route path="/">
-            <div className="space-y-4">
-              <p>App is loading correctly. Choose an option:</p>
+            <div className="p-8">
+              <h1 className="text-2xl font-bold mb-4">Content Radar</h1>
+              <p className="mb-4">Strategic Intelligence Platform</p>
               <div className="space-x-4">
                 <a href="/login" className="text-blue-400 underline">Login</a>
                 <a href="/register" className="text-blue-400 underline">Register</a>
-                <a href="/test" className="text-blue-400 underline">Test</a>
+                <a href="/dashboard" className="text-blue-400 underline">Dashboard</a>
               </div>
             </div>
           </Route>
           
-          {/* All other routes - simplified for now */}
+          {/* Fallback */}
           <Route>
-            <div className="p-4 text-red-400">Page not found</div>
+            <div className="p-8 text-center text-zinc-400">
+              <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
+              <a href="/" className="text-blue-400 underline">Go Home</a>
+            </div>
           </Route>
         </Switch>
       </div>

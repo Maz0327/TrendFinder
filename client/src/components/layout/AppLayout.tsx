@@ -1,8 +1,6 @@
 // client/src/components/layout/AppLayout.tsx
 import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ENABLE_NAV_SHELL, ENABLE_PROJECT_SWITCHER } from '@/flags';
-import { ProjectSwitcher } from './ProjectSwitcher';
 
 const NavItem: React.FC<{ to: string; label: string; onClick?: () => void }> = ({ to, label, onClick }) => {
   const [location] = useLocation();
@@ -20,18 +18,9 @@ const NavItem: React.FC<{ to: string; label: string; onClick?: () => void }> = (
 };
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  if (!ENABLE_NAV_SHELL) return <>{children}</>;
+  const [collapsed, setCollapsed] = useState<boolean>(false);
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    const v = localStorage.getItem('sidebar_collapsed');
-    return v === '1';
-  });
-
-  const toggle = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    localStorage.setItem('sidebar_collapsed', next ? '1' : '0');
-  };
+  const toggle = () => setCollapsed(!collapsed);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -69,17 +58,17 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             collapsed ? 'w-[56px]' : 'w-64'
           }`}
         >
-          {!collapsed && ENABLE_PROJECT_SWITCHER && (
+          {!collapsed && (
             <div className="mb-3">
-              <ProjectSwitcher />
+              <div className="rounded-md border border-zinc-700 bg-zinc-950 p-2">
+                <div className="text-xs uppercase tracking-wide text-zinc-400">Strategic Intelligence</div>
+              </div>
             </div>
           )}
 
           <nav className="space-y-1">
             <NavItem to="/dashboard" label="Dashboard" />
             <NavItem to="/captures-inbox" label="Captures Inbox" />
-            <NavItem to="/moments-radar" label="Moments Radar" />
-            <NavItem to="/brief-builder-v2" label="Brief Builder" />
             <NavItem to="/feeds" label="Feeds" />
             <NavItem to="/settings" label="Settings" />
           </nav>
