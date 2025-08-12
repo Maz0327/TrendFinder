@@ -2,6 +2,11 @@ import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { supabase } from '@/lib/supabaseClient';
 
+function getHashParam(name: string) {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  return hash.get(name);
+}
+
 export default function AuthCallback() {
   const [, navigate] = useLocation();
 
@@ -9,20 +14,38 @@ export default function AuthCallback() {
     let timeout: number;
 
     (async () => {
-      // 1) This triggers supabase-js to parse the hash and persist the session
-      const { data, error } = await supabase.auth.getSession();
+      try {
+        // Case A: PKCE / code in query string
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get('code');
 
-      // 2) Clean the hash from the URL (security & aesthetics)
-      if (window.location.hash) {
-        history.replaceState(null, '', window.location.pathname);
-      }
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+          history.replaceState(null, '', url.pathname);
+          if (error) throw error;
+          timeout = window.setTimeout(() => navigate('/', { replace: true }), 50);
+          return;
+        }
 
-      // 3) Navigate the user
-      if (!error && data?.session) {
-        // You can redirect to a stored "returnTo" if you keep one, or default dashboard
+        // Case B: Implicit flow / tokens in hash
+        const access_token = getHashParam('access_token');
+        const refresh_token = getHashParam('refresh_token');
+
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          history.replaceState(null, '', window.location.pathname);
+          if (error) throw error;
+          timeout = window.setTimeout(() => navigate('/', { replace: true }), 50);
+          return;
+        }
+
+        // Fallback: let supabase pick up anything it can
+        await supabase.auth.getSession();
+        if (window.location.hash) {
+          history.replaceState(null, '', window.location.pathname);
+        }
         timeout = window.setTimeout(() => navigate('/', { replace: true }), 50);
-      } else {
-        // If something failed, send back to login
+      } catch {
         timeout = window.setTimeout(() => navigate('/login', { replace: true }), 50);
       }
     })();

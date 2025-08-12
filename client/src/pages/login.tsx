@@ -23,16 +23,18 @@ export default function LoginPage() {
   };
 
   const signInWithGoogle = async () => {
-    const baseUrl =
-      (import.meta as any).env?.VITE_SITE_URL || window.location.origin;
+    const baseUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
 
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${baseUrl}/auth/callback`,
-        // optional but useful if we ever need Drive/Slides scopes in future
-        queryParams: { access_type: 'offline', prompt: 'consent' }
-      }
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+        // flowType: 'pkce', // optional later; this page already supports both
+      },
     });
   };
 
