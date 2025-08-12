@@ -21,6 +21,7 @@ import MomentsRadar from '@/pages/moments-radar';
 import BriefBuilderV2 from '@/pages/brief-builder-v2';
 import FeedsPage from '@/pages/feeds';
 import Settings from '@/pages/settings';
+import Integrations from '@/pages/integrations';
 
 // Keep existing pages accessible
 import SupabaseSmokeTest from '@/pages/SupabaseSmokeTest';
@@ -38,6 +39,7 @@ function ProtectedApp() {
             <Route path="/brief-builder-v2" component={BriefBuilderV2} />
             <Route path="/feeds" component={FeedsPage} />
             <Route path="/settings" component={Settings} />
+            <Route path="/integrations" component={Integrations} />
             
             {/* Keep existing pages accessible */}
             <Route path="/supabase-test" component={SupabaseSmokeTest} />
