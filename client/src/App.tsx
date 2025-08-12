@@ -6,6 +6,10 @@ import { ProjectProvider } from '@/context/ProjectContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 
+// Lovable UI Integration
+import { ProjectProvider as LovableProjectProvider } from '../../content-radar/context/ProjectContext';
+import LovableApp from '../../content-radar/App';
+
 // Auth pages
 import LoginPage from '@/pages/login';
 import RegisterPage from '@/pages/register';
@@ -61,6 +65,13 @@ export default function App() {
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
           
+          {/* Lovable UI routes */}
+          <Route path="/app-v2/:rest*">
+            <LovableProjectProvider>
+              <LovableApp />
+            </LovableProjectProvider>
+          </Route>
+          
           {/* Protected routes - simplified without AuthGuard for now */}
           <Route path="/dashboard">
             <AppLayout>
@@ -89,6 +100,7 @@ export default function App() {
                 <a href="/login" className="text-blue-400 underline">Login</a>
                 <a href="/register" className="text-blue-400 underline">Register</a>
                 <a href="/dashboard" className="text-blue-400 underline">Dashboard</a>
+                <a href="/app-v2/captures-inbox" className="text-blue-400 underline">Lovable UI</a>
               </div>
             </div>
           </Route>
