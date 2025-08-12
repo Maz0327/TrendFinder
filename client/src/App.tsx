@@ -16,6 +16,7 @@ import LoginPage from '@/pages/login';
 import RegisterPage from '@/pages/register';
 import AuthCallback from '@/pages/AuthCallback';
 import HealthCheck from '@/pages/HealthCheck';
+import OAuthBridge from '@/components/auth/OAuthBridge';
 
 // Protected pages
 import Dashboard from '@/pages/dashboard';
@@ -71,6 +72,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <OAuthBridge />
       <div className="min-h-screen bg-zinc-950 text-zinc-100">
         <Switch>
           {/* Public auth routes */}

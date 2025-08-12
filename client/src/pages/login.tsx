@@ -23,13 +23,13 @@ export default function LoginPage() {
   };
 
   const signInWithGoogle = async () => {
-    const { getSiteUrl } = await import('@/lib/siteUrl');
-    const baseUrl = getSiteUrl();
+    const { getAuthRedirectUrl } = await import('@/lib/authRedirect');
+    const redirectTo = getAuthRedirectUrl();
 
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${baseUrl}/auth/callback`,
+        redirectTo,
         queryParams: { access_type: 'offline', prompt: 'consent' }
         // flowType: 'pkce', // optional later
       },
