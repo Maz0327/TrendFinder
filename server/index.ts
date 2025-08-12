@@ -78,13 +78,14 @@ app.use((req, res, next) => {
   } else {
     // Standard CORS for web clients
     const allowedOrigins = [
-      'http://localhost:5000',
-      'http://127.0.0.1:5000',
-      process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
+      'http://localhost:5173', // Frontend dev server
+      'http://127.0.0.1:5173',
+      process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
+      process.env.REPL_SLUG && process.env.REPL_OWNER ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null
     ].filter(Boolean);
     
     if (!origin || allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin || 'http://localhost:5000');
+      res.header('Access-Control-Allow-Origin', origin || 'http://localhost:5173');
     }
   }
   
