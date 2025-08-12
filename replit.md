@@ -7,7 +7,16 @@ This project is a Strategic Intelligence platform utilizing the DSD Signal Drop 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
-**August 12, 2025 - Apple-Inspired UI Polish Applied**
+**August 12, 2025 - Consolidated Supabase Authentication Flow**
+- **Fixed "dueling auth flows" problem**: Eliminated multiple competing Supabase client instances
+- **Single source of truth**: Created centralized AuthContext with one global auth state listener
+- **Streamlined auth routing**: Implemented RequireAuth component with proper hooks usage
+- **Updated OAuth flow**: Fixed Google sign-in redirect URLs and callback handling
+- **Removed duplicate clients**: Consolidated all Supabase imports to single `/integrations/supabase/client.ts` 
+- **Build verified**: All TypeScript compilation passing, authentication working end-to-end
+- **Auth debug component**: Added temporary monitoring for session state verification
+
+**Previous: Apple-Inspired UI Polish Applied**
 - Applied comprehensive Apple-inspired design system with glass effects, pill buttons, and smooth animations
 - Created design tokens file with Apple-style CSS variables supporting light/dark themes
 - Updated UI components (Button, Input) with glass styling and focus states

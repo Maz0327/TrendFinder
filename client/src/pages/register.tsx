@@ -1,6 +1,6 @@
 // client/src/pages/register.tsx
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 import { Link, useLocation } from 'wouter';
 
 export default function RegisterPage() {

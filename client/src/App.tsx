@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Route, Switch } from 'wouter';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { AuthProvider } from '@/context/AuthContext';
 import { ProjectProvider } from '@/context/ProjectContext';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { AuthGuard } from '@/components/auth/AuthGuard';
-import { supabase } from '@/lib/supabaseClient';
+import RequireAuth from '@/components/auth/RequireAuth';
+import AuthDebug from '@/components/auth/AuthDebug';
 
 // Lovable UI Integration
 import { ProjectProvider as LovableProjectProvider } from '../../content-radar/context/ProjectContext';
@@ -16,7 +17,6 @@ import LoginPage from '@/pages/login';
 import RegisterPage from '@/pages/register';
 import AuthCallback from '@/pages/AuthCallback';
 import HealthCheck from '@/pages/HealthCheck';
-import OAuthBridge from '@/components/auth/OAuthBridge';
 
 // Protected pages
 import Dashboard from '@/pages/dashboard';
@@ -30,155 +30,132 @@ import Integrations from '@/pages/integrations';
 // Keep existing pages accessible
 import SupabaseSmokeTest from '@/pages/SupabaseSmokeTest';
 
-function ProtectedApp() {
-  return (
-    <AuthGuard>
-      <ProjectProvider>
-        <AppLayout>
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/captures-inbox" component={CapturesInbox} />
-            <Route path="/moments-radar" component={MomentsRadar} />
-            <Route path="/brief-builder-v2" component={BriefBuilderV2} />
-            <Route path="/feeds" component={FeedsPage} />
-            <Route path="/settings" component={Settings} />
-            <Route path="/integrations" component={Integrations} />
-            
-            {/* Keep existing pages accessible */}
-            <Route path="/supabase-test" component={SupabaseSmokeTest} />
-            
-            {/* 404 fallback */}
-            <Route>
-              <div className="p-8 text-center text-zinc-400">
-                <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
-                <p>The page you're looking for doesn't exist.</p>
-              </div>
-            </Route>
-          </Switch>
-        </AppLayout>
-      </ProjectProvider>
-    </AuthGuard>
-  );
-}
-
-function AuthRouter() {
-  const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
-
-  React.useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data }) => {
-      setIsAuthenticated(!!data.session);
-    });
-
-    // Listen for auth changes
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  // Loading state
-  if (isAuthenticated === null) {
-    return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">
-        <div className="text-zinc-300">Loading...</div>
-      </div>
-    );
-  }
-
-  // Authenticated routes
-  if (isAuthenticated) {
-    return (
-      <Switch>
-        <Route path="/login" component={() => <div>Redirecting...</div>} />
-        <Route path="/register" component={() => <div>Redirecting...</div>} />
-        <Route path="/auth/callback" component={AuthCallback} />
-        <Route path="/health-check" component={HealthCheck} />
-        
-        {/* Lovable UI routes */}
-        <Route path="/app-v2/:rest*">
-          <LovableProjectProvider>
-            <LovableApp />
-          </LovableProjectProvider>
-        </Route>
-        
-        {/* Protected routes */}
-        <Route path="/dashboard">
-          <AppLayout>
-            <Dashboard />
-          </AppLayout>
-        </Route>
-        
-        <Route path="/captures-inbox">
-          <AppLayout>
-            <CapturesInbox />
-          </AppLayout>
-        </Route>
-        
-        <Route path="/feeds">
-          <AppLayout>
-            <FeedsPage />
-          </AppLayout>
-        </Route>
-        
-        {/* Default route - go to dashboard when authenticated */}
-        <Route path="/">
-          <AppLayout>
-            <Dashboard />
-          </AppLayout>
-        </Route>
-        
-        {/* Fallback */}
-        <Route>
-          <div className="p-8 text-center text-zinc-400">
-            <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
-            <a href="/dashboard" className="text-blue-400 underline">Go to Dashboard</a>
-          </div>
-        </Route>
-      </Switch>
-    );
-  }
-
-  // Unauthenticated routes
-  return (
-    <Switch>
-      <Route path="/login" component={LoginPage} />
-      <Route path="/register" component={RegisterPage} />
-      <Route path="/auth/callback" component={AuthCallback} />
-      <Route path="/health-check" component={HealthCheck} />
-      
-      {/* Default route - go to login when not authenticated */}
-      <Route path="/">
-        <div className="p-8">
-          <h1 className="text-2xl font-bold mb-4">Content Radar</h1>
-          <p className="mb-4">Strategic Intelligence Platform</p>
-          <div className="space-x-4">
-            <a href="/login" className="text-blue-400 underline">Login</a>
-            <a href="/register" className="text-blue-400 underline">Register</a>
-          </div>
-        </div>
-      </Route>
-      
-      {/* Fallback - redirect to login */}
-      <Route>
-        <div className="p-8 text-center text-zinc-400">
-          <h1 className="text-2xl font-bold mb-4">Please Sign In</h1>
-          <a href="/login" className="text-blue-400 underline">Go to Login</a>
-        </div>
-      </Route>
-    </Switch>
-  );
-}
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <OAuthBridge />
-      <div className="min-h-screen bg-zinc-950 text-zinc-100">
-        <AuthRouter />
-      </div>
+      <AuthProvider>
+        <div className="min-h-screen bg-zinc-950 text-zinc-100">
+          <Switch>
+            {/* Public auth routes */}
+            <Route path="/login" component={LoginPage} />
+            <Route path="/register" component={RegisterPage} />
+            <Route path="/auth/callback" component={AuthCallback} />
+            <Route path="/health-check" component={HealthCheck} />
+            
+            {/* Lovable UI routes - also require auth */}
+            <Route path="/app-v2/:rest*">
+              <RequireAuth>
+                <LovableProjectProvider>
+                  <LovableApp />
+                </LovableProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            {/* Protected routes */}
+            <Route path="/dashboard">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            <Route path="/captures-inbox">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <CapturesInbox />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            <Route path="/moments-radar">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <MomentsRadar />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            <Route path="/brief-builder-v2">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <BriefBuilderV2 />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            <Route path="/feeds">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <FeedsPage />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            <Route path="/settings">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <Settings />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            <Route path="/integrations">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <Integrations />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            <Route path="/supabase-test">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <SupabaseSmokeTest />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            {/* Default route - go to dashboard when authenticated, login when not */}
+            <Route path="/">
+              <RequireAuth>
+                <ProjectProvider>
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                </ProjectProvider>
+              </RequireAuth>
+            </Route>
+            
+            {/* Fallback */}
+            <Route>
+              <div className="p-8 text-center text-zinc-400">
+                <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
+                <a href="/" className="text-blue-400 underline">Go Home</a>
+              </div>
+            </Route>
+          </Switch>
+          
+          {/* Temporary debug component */}
+          <AuthDebug />
+        </div>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

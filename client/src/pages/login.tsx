@@ -1,6 +1,6 @@
 // client/src/pages/login.tsx
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 import { Link, useLocation } from 'wouter';
 
 export default function LoginPage() {
@@ -23,15 +23,17 @@ export default function LoginPage() {
   };
 
   const signInWithGoogle = async () => {
-    const { getAuthRedirectUrl } = await import('@/lib/authRedirect');
-    const redirectTo = getAuthRedirectUrl();
+    const siteUrl = import.meta.env.VITE_SITE_URL?.replace(/\/$/, '') || window.location.origin;
+    const redirectTo = `${siteUrl}/auth/callback`;
 
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo,
-        queryParams: { access_type: 'offline', prompt: 'consent' }
-        // flowType: 'pkce', // optional later
+        queryParams: {
+          // optional: prompt: 'select_account',
+          // optional: access_type: 'offline',
+        },
       },
     });
   };

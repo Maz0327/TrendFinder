@@ -1,25 +1,18 @@
-import { useEffect } from "react";
-import { useLocation } from "wouter";
-import { supabase } from "@/lib/supabaseClient";
+import { useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AuthCallback() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    // If we already have a session here, just go home:
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) {
-        navigate("/", { replace: true });
-      } else {
-        // If OAuthBridge already handled, hash will be empty and app's guards will take over.
-        navigate("/", { replace: true });
-      }
+    // Simply touching getSession() after redirect gives Supabase a chance
+    // to parse the URL fragment `#access_token=...` and persist the session.
+    supabase.auth.getSession().finally(() => {
+      // Bounce to home (or a stored returnTo)
+      navigate('/', { replace: true });
     });
   }, [navigate]);
 
-  return (
-    <div className="w-full min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground">
-      Finishing sign-in…
-    </div>
-  );
+  return <div className="p-6 text-sm opacity-70">Completing sign-in…</div>;
 }

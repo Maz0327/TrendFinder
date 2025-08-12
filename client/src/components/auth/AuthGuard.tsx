@@ -1,6 +1,6 @@
 // client/src/components/auth/AuthGuard.tsx
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 import { useLocation } from 'wouter';
 
 export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
