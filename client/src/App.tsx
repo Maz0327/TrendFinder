@@ -15,6 +15,7 @@ import LovableApp from '../../content-radar/App';
 import LoginPage from '@/pages/login';
 import RegisterPage from '@/pages/register';
 import AuthCallback from '@/pages/AuthCallback';
+import HealthCheck from '@/pages/HealthCheck';
 
 // Protected pages
 import Dashboard from '@/pages/dashboard';
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
           <Route path="/auth/callback" component={AuthCallback} />
+          <Route path="/health-check" component={HealthCheck} />
           
           {/* Lovable UI routes */}
           <Route path="/app-v2/:rest*">

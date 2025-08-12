@@ -23,17 +23,15 @@ export default function LoginPage() {
   };
 
   const signInWithGoogle = async () => {
-    const baseUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+    const { getSiteUrl } = await import('@/lib/siteUrl');
+    const baseUrl = getSiteUrl();
 
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${baseUrl}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-        // flowType: 'pkce', // optional later; this page already supports both
+        queryParams: { access_type: 'offline', prompt: 'consent' }
+        // flowType: 'pkce', // optional later
       },
     });
   };
