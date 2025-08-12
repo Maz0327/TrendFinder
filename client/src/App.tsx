@@ -13,6 +13,7 @@ import LovableApp from '../../content-radar/App';
 // Auth pages
 import LoginPage from '@/pages/login';
 import RegisterPage from '@/pages/register';
+import AuthCallback from '@/pages/AuthCallback';
 
 // Protected pages
 import Dashboard from '@/pages/dashboard';
@@ -66,6 +67,7 @@ export default function App() {
           {/* Public auth routes */}
           <Route path="/login" component={LoginPage} />
           <Route path="/register" component={RegisterPage} />
+          <Route path="/auth/callback" component={AuthCallback} />
           
           {/* Lovable UI routes */}
           <Route path="/app-v2/:rest*">

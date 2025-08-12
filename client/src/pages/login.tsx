@@ -22,12 +22,29 @@ export default function LoginPage() {
     }
   };
 
+  const signInWithGoogle = async () => {
+    const baseUrl =
+      (import.meta as any).env?.VITE_SITE_URL || window.location.origin;
+
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${baseUrl}/auth/callback`,
+        // optional but useful if we ever need Drive/Slides scopes in future
+        queryParams: { access_type: 'offline', prompt: 'consent' }
+      }
+    });
+  };
+
   const onGoogle = async () => {
     setBusy(true);
     setErr('');
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-    setBusy(false);
-    if (error) setErr(error.message);
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      setErr(error.message);
+      setBusy(false);
+    }
   };
 
   return (
