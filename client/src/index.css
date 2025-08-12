@@ -104,6 +104,33 @@ All colors MUST be HSL.
   box-shadow: 0 8px 40px hsl(220, 27%, 4%, 0.6);
 }
 
+/* Apple-inspired semantic tokens */
+:root {
+  --bg: 12 12 12;
+  --fg: 235 235 235;
+  --muted: 160 160 160;
+  --card: 22 22 22;
+  --border: 255 255 255;
+  --accent: 99 102 241;
+}
+
+body { 
+  background: rgb(var(--bg)); 
+  color: rgb(var(--fg)); 
+}
+
+.apple-blur {
+  @apply backdrop-blur-md bg-[rgb(22_22_22/0.6)] border border-[rgb(255_255_255/0.08)];
+}
+
+.glass-card {
+  @apply bg-[rgb(22_22_22/0.6)] backdrop-blur-md border border-[rgb(255_255_255/0.08)] shadow-soft;
+}
+
+a.active { 
+  @apply text-white; 
+}
+
 /* Line clamp utilities */
 .line-clamp-2 {
   display: -webkit-box;

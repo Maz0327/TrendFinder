@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../../client/src/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 export function useSupabaseUser() {
   const [user, setUser] = useState<Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] | null>(null);

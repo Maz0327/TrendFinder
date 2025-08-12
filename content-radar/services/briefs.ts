@@ -1,9 +1,8 @@
 import type { BriefRow, Json } from "@shared/database.types";
-import { getClient } from "../lib/supabase";
+import { supabase } from "../../client/src/lib/supabaseClient";
 
 export async function listBriefs(projectId?: string): Promise<BriefRow[]> {
-  const client = getClient();
-  let query = client.from("dsd_briefs").select("*").order("updated_at", { ascending: false }).limit(50);
+  let query = supabase.from("dsd_briefs").select("*").order("updated_at", { ascending: false }).limit(50);
   if (projectId) query = query.eq("project_id", projectId);
   const { data, error } = await query;
   if (error) throw error;
@@ -11,20 +10,18 @@ export async function listBriefs(projectId?: string): Promise<BriefRow[]> {
 }
 
 export async function getBrief(id: string): Promise<BriefRow> {
-  const client = getClient();
-  const { data, error } = await client.from("dsd_briefs").select("*").eq("id", id).single();
+  const { data, error } = await supabase.from("dsd_briefs").select("*").eq("id", id).single();
   if (error) throw error;
   return data as BriefRow;
 }
 
 export async function createBrief(input: { title: string; projectId?: string }): Promise<BriefRow> {
-  const client = getClient();
   const {
     data: { user },
-  } = await client.auth.getUser();
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from("dsd_briefs")
     .insert({ title: input.title, project_id: input.projectId ?? null, user_id: user.id })
     .select("*")

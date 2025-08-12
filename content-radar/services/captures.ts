@@ -1,5 +1,5 @@
 import type { CaptureRow } from "@shared/database.types";
-import { getClient } from "../lib/supabase";
+import { supabase } from "../../client/src/lib/supabaseClient";
 
 export type CaptureFilters = {
   projectId?: string;
@@ -7,8 +7,7 @@ export type CaptureFilters = {
 };
 
 export async function listCaptures(filters: CaptureFilters): Promise<CaptureRow[]> {
-  const client = getClient();
-  let query = client.from("captures").select("*").order("created_at", { ascending: false }).limit(50);
+  let query = supabase.from("captures").select("*").order("created_at", { ascending: false }).limit(50);
   if (filters.projectId) query = query.eq("project_id", filters.projectId);
   const { data, error } = await query;
   if (error) throw error;
@@ -21,8 +20,7 @@ export async function listCaptures(filters: CaptureFilters): Promise<CaptureRow[
 }
 
 export async function updateCapture(id: string, patch: Partial<CaptureRow>): Promise<CaptureRow> {
-  const client = getClient();
-  const { data, error } = await client.from("captures").update(patch).eq("id", id).select("*").single();
+  const { data, error } = await supabase.from("captures").update(patch).eq("id", id).select("*").single();
   if (error) throw error;
   return data as CaptureRow;
 }
