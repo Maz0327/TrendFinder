@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
@@ -62,73 +62,122 @@ function ProtectedApp() {
   );
 }
 
-export default function App() {
-  // Step 7: Verify session (from runbook)
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      console.log('Current user:', data.user);
+function AuthRouter() {
+  const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAuthenticated(!!data.session);
     });
+
+    // Listen for auth changes
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Loading state
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">
+        <div className="text-zinc-300">Loading...</div>
+      </div>
+    );
+  }
+
+  // Authenticated routes
+  if (isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/login" component={() => <div>Redirecting...</div>} />
+        <Route path="/register" component={() => <div>Redirecting...</div>} />
+        <Route path="/auth/callback" component={AuthCallback} />
+        <Route path="/health-check" component={HealthCheck} />
+        
+        {/* Lovable UI routes */}
+        <Route path="/app-v2/:rest*">
+          <LovableProjectProvider>
+            <LovableApp />
+          </LovableProjectProvider>
+        </Route>
+        
+        {/* Protected routes */}
+        <Route path="/dashboard">
+          <AppLayout>
+            <Dashboard />
+          </AppLayout>
+        </Route>
+        
+        <Route path="/captures-inbox">
+          <AppLayout>
+            <CapturesInbox />
+          </AppLayout>
+        </Route>
+        
+        <Route path="/feeds">
+          <AppLayout>
+            <FeedsPage />
+          </AppLayout>
+        </Route>
+        
+        {/* Default route - go to dashboard when authenticated */}
+        <Route path="/">
+          <AppLayout>
+            <Dashboard />
+          </AppLayout>
+        </Route>
+        
+        {/* Fallback */}
+        <Route>
+          <div className="p-8 text-center text-zinc-400">
+            <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
+            <a href="/dashboard" className="text-blue-400 underline">Go to Dashboard</a>
+          </div>
+        </Route>
+      </Switch>
+    );
+  }
+
+  // Unauthenticated routes
+  return (
+    <Switch>
+      <Route path="/login" component={LoginPage} />
+      <Route path="/register" component={RegisterPage} />
+      <Route path="/auth/callback" component={AuthCallback} />
+      <Route path="/health-check" component={HealthCheck} />
+      
+      {/* Default route - go to login when not authenticated */}
+      <Route path="/">
+        <div className="p-8">
+          <h1 className="text-2xl font-bold mb-4">Content Radar</h1>
+          <p className="mb-4">Strategic Intelligence Platform</p>
+          <div className="space-x-4">
+            <a href="/login" className="text-blue-400 underline">Login</a>
+            <a href="/register" className="text-blue-400 underline">Register</a>
+          </div>
+        </div>
+      </Route>
+      
+      {/* Fallback - redirect to login */}
+      <Route>
+        <div className="p-8 text-center text-zinc-400">
+          <h1 className="text-2xl font-bold mb-4">Please Sign In</h1>
+          <a href="/login" className="text-blue-400 underline">Go to Login</a>
+        </div>
+      </Route>
+    </Switch>
+  );
+}
+
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <OAuthBridge />
       <div className="min-h-screen bg-zinc-950 text-zinc-100">
-        <Switch>
-          {/* Public auth routes */}
-          <Route path="/login" component={LoginPage} />
-          <Route path="/register" component={RegisterPage} />
-          <Route path="/auth/callback" component={AuthCallback} />
-          <Route path="/health-check" component={HealthCheck} />
-          
-          {/* Lovable UI routes */}
-          <Route path="/app-v2/:rest*">
-            <LovableProjectProvider>
-              <LovableApp />
-            </LovableProjectProvider>
-          </Route>
-          
-          {/* Protected routes - simplified without AuthGuard for now */}
-          <Route path="/dashboard">
-            <AppLayout>
-              <Dashboard />
-            </AppLayout>
-          </Route>
-          
-          <Route path="/captures-inbox">
-            <AppLayout>
-              <CapturesInbox />
-            </AppLayout>
-          </Route>
-          
-          <Route path="/feeds">
-            <AppLayout>
-              <FeedsPage />
-            </AppLayout>
-          </Route>
-          
-          {/* Default route */}
-          <Route path="/">
-            <div className="p-8">
-              <h1 className="text-2xl font-bold mb-4">Content Radar</h1>
-              <p className="mb-4">Strategic Intelligence Platform</p>
-              <div className="space-x-4">
-                <a href="/login" className="text-blue-400 underline">Login</a>
-                <a href="/register" className="text-blue-400 underline">Register</a>
-                <a href="/dashboard" className="text-blue-400 underline">Dashboard</a>
-                <a href="/app-v2/captures-inbox" className="text-blue-400 underline">Lovable UI</a>
-              </div>
-            </div>
-          </Route>
-          
-          {/* Fallback */}
-          <Route>
-            <div className="p-8 text-center text-zinc-400">
-              <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
-              <a href="/" className="text-blue-400 underline">Go Home</a>
-            </div>
-          </Route>
-        </Switch>
+        <AuthRouter />
       </div>
     </QueryClientProvider>
   );
