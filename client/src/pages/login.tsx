@@ -83,10 +83,8 @@ export default function LoginPage() {
         </div>
         <div className="mt-4 text-sm text-zinc-400">
           No account?{' '}
-          <Link href="/register">
-            <a className="text-zinc-200 underline">
-              Register
-            </a>
+          <Link href="/register" className="text-zinc-200 underline">
+            Register
           </Link>
         </div>
       </div>
