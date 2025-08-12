@@ -1,3 +1,4 @@
+import React from "react";
 import { Route, Switch, useLocation } from "wouter";
 import AppLayout from "./layout/AppLayout";
 import CapturesInboxPage from "./pages/captures-inbox/CapturesInboxPage";
@@ -9,17 +10,28 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import { useSupabaseUser } from "./hooks/useSupabaseUser";
 
 export default function ContentRadarApp() {
-  const { user } = useSupabaseUser();
+  const { user, isLoading } = useSupabaseUser();
   const [location, navigate] = useLocation();
 
-  // Redirect to login if not authenticated
-  if (!user && !location.includes('login') && !location.includes('register') && !location.includes('forgot-password')) {
-    navigate('/app-v2/login');
-  }
+  // Handle redirects after hooks are called
+  React.useEffect(() => {
+    if (isLoading) return;
+    
+    // Redirect to login if not authenticated
+    if (!user && !location.includes('login') && !location.includes('register') && !location.includes('forgot-password')) {
+      navigate('/app-v2/login');
+      return;
+    }
 
-  // Redirect to captures-inbox if authenticated and at root
-  if (user && location === '/app-v2') {
-    navigate('/app-v2/captures-inbox');
+    // Redirect to captures-inbox if authenticated and at root
+    if (user && location === '/app-v2') {
+      navigate('/app-v2/captures-inbox');
+    }
+  }, [user, isLoading, location, navigate]);
+
+  // Show loading while checking auth (after all hooks are called)
+  if (isLoading) {
+    return <div className="p-8 text-center">Loading...</div>;
   }
 
   return (
