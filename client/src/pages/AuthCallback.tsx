@@ -6,22 +6,33 @@ export default function AuthCallback() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) navigate('/', { replace: true });
-    });
+    let timeout: number;
 
-    // Safety timeout in case the event is slow
-    const t = setTimeout(() => navigate('/', { replace: true }), 1500);
+    (async () => {
+      // 1) This triggers supabase-js to parse the hash and persist the session
+      const { data, error } = await supabase.auth.getSession();
 
-    return () => {
-      data.subscription.unsubscribe();
-      clearTimeout(t);
-    };
+      // 2) Clean the hash from the URL (security & aesthetics)
+      if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+
+      // 3) Navigate the user
+      if (!error && data?.session) {
+        // You can redirect to a stored "returnTo" if you keep one, or default dashboard
+        timeout = window.setTimeout(() => navigate('/', { replace: true }), 50);
+      } else {
+        // If something failed, send back to login
+        timeout = window.setTimeout(() => navigate('/login', { replace: true }), 50);
+      }
+    })();
+
+    return () => window.clearTimeout(timeout);
   }, [navigate]);
 
   return (
-    <div className="p-6 text-sm text-muted-foreground">
-      Finishing Google sign-in…
+    <div className="min-h-[60vh] flex items-center justify-center text-sm text-muted-foreground">
+      Finishing sign-in…
     </div>
   );
 }
