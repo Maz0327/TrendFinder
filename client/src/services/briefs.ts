@@ -14,7 +14,7 @@ interface ExportBriefResponse {
 }
 
 export async function exportBriefToSlides(request: ExportBriefRequest): Promise<ExportBriefResponse> {
-  const response = await fetch('/api/google-exports/brief', {
+  const response = await fetch('/api/google/brief', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -41,7 +41,7 @@ export async function checkGoogleAuthStatus(): Promise<{
   authUrl?: string;
   availableServices: string[];
 }> {
-  const response = await fetch('/api/google-exports/auth/status', {
+  const response = await fetch('/api/google/auth/status', {
     credentials: 'include'
   });
 
