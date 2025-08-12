@@ -2,32 +2,24 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./index.html", "./client/src/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['var(--font-sans)'],
-      },
       colors: {
-        // Apple-inspired semantic tokens
-        background: 'rgb(var(--bg))',
-        foreground: 'rgb(var(--fg))',
-        accent: 'rgb(var(--accent))',
-        'accent-foreground': 'rgb(var(--accent-foreground))',
-        surface: 'rgb(var(--surface))',
-        'surface-2': 'rgb(var(--surface-2))',
-        // existing semantic tokens
+        // semantic tokens
+        background: "rgb(var(--bg) / <alpha-value>)",
+        foreground: "rgb(var(--fg) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
         card: "rgb(var(--card) / <alpha-value>)",
         border: "rgb(var(--border) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
       },
       boxShadow: {
-        soft: 'var(--shadow-soft)',
-        strong: 'var(--shadow-strong)',
+        soft: "0 1px 2px rgba(0,0,0,0.06), 0 10px 20px rgba(0,0,0,0.06)",
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        xl: 'calc(var(--radius) + 4px)',
+        xl: "1rem",
+        "2xl": "1.25rem",
       },
       backdropBlur: {
         xs: "2px",

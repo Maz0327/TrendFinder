@@ -8,3 +8,5 @@ export const FLAGS = {
   PHASE5_MOMENTS_RADAR: true,
   PHASE5_BRIEF_V2: true,
 } as const;
+
+export const APPLE_SKIN = true; // flip to false to quickly revert styles

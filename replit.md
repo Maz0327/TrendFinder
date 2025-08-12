@@ -6,6 +6,15 @@ This project is a Strategic Intelligence platform utilizing the DSD Signal Drop 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+**August 12, 2025 - Apple-Inspired UI Polish Applied**
+- Applied comprehensive Apple-inspired design system with glass effects, pill buttons, and smooth animations
+- Created design tokens file with Apple-style CSS variables supporting light/dark themes
+- Updated UI components (Button, Input) with glass styling and focus states
+- Redesigned app header with glass backdrop and segmented navigation
+- Added SF Pro typography stack with system font fallbacks
+- All changes backed up and feature flagged for easy rollback
+
 ## System Architecture
 
 ### Frontend Architecture
