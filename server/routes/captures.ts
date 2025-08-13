@@ -60,16 +60,31 @@ capturesRouter.patch("/captures/:id", requireAuth, async (req: AuthedRequest, re
       notes?: string;
       customCopy?: string;
       tags?: string[];
+      dsdTags?: string[]; // This is an array of strings from the frontend
+      dsdSection?: string;
     };
 
     const capture = await db.getCaptureById(id);
     if (!capture) return res.status(404).json({ error: "Capture not found" });
     if (capture.userId !== req.user!.id) return res.status(403).json({ error: "Forbidden" });
 
+    // Transform dsdTags from string[] to the object format expected by the DB schema
+    let dsdTagsObject: { [key: string]: boolean } | undefined = undefined;
+    if (Array.isArray(updates.dsdTags)) {
+      dsdTagsObject = {};
+      const kebabToCamel = (s: string) => s.replace(/-([a-z])/g, g => g[1].toUpperCase());
+      for (const tag of updates.dsdTags) {
+        const camelCaseTag = kebabToCamel(tag);
+        dsdTagsObject[camelCaseTag] = true;
+      }
+    }
+
     const updated = await db.updateCapture(id, {
       workspaceNotes: updates.notes,
       content: typeof updates.customCopy === "string" ? sanitizeInput(updates.customCopy) : undefined,
       tags: Array.isArray(updates.tags) ? updates.tags : undefined,
+      dsdTags: dsdTagsObject, // Pass the transformed object
+      dsdSection: typeof updates.dsdSection === "string" ? updates.dsdSection : undefined,
     });
 
     res.json(updated);

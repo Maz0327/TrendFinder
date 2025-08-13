@@ -1683,16 +1683,12 @@ export class DatabaseStorage implements IStorage {
   // Cultural Moments
   async getCulturalMoments(filter?: { status?: string; limit?: number }): Promise<CulturalMoment[]> {
     try {
-      let query = 'SELECT * FROM cultural_moments WHERE 1=1';
+      // NOTE: The Drizzle schema is now the source of truth.
+      // The old query had ORDER BY emergence_date, which no longer exists. Changed to created_at.
+      // The filter by status also no longer exists on the new schema. Removing it.
+      let query = 'SELECT * FROM cultural_moments ORDER BY created_at DESC';
       const params: any[] = [];
       let paramCount = 1;
-
-      if (filter?.status) {
-        query += ` AND status = $${paramCount++}`;
-        params.push(filter.status);
-      }
-
-      query += ' ORDER BY emergence_date DESC';
 
       if (filter?.limit) {
         query += ` LIMIT $${paramCount++}`;
@@ -1701,19 +1697,8 @@ export class DatabaseStorage implements IStorage {
 
       const result = await this.client.query(query, params);
       
-      return result.rows.map(row => ({
-        id: row.id,
-        momentType: row.moment_type,
-        description: row.description,
-        emergenceDate: row.emergence_date,
-        peakDate: row.peak_date,
-        contributingCaptures: row.contributing_captures,
-        globalConfidence: row.global_confidence ? row.global_confidence.toString() : null,
-        culturalContext: row.cultural_context,
-        strategicImplications: row.strategic_implications,
-        status: row.status,
-        createdAt: row.created_at
-      } as CulturalMoment));
+      // The database returns rows that match the new Drizzle schema, so we can cast directly.
+      return result.rows as CulturalMoment[];
     } catch (error) {
       console.error("❌ Error fetching cultural moments:", error);
       return [];
@@ -1724,40 +1709,23 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await this.client.query(`
         INSERT INTO cultural_moments (
-          id, moment_type, description, emergence_date, peak_date,
-          contributing_captures, global_confidence, cultural_context,
-          strategic_implications, status, created_at
+          id, title, description, intensity, platforms, demographics, duration, created_at, updated_at
         )
         VALUES (
-          gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
+          gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW()
         )
         RETURNING *
       `, [
-        moment.momentType,
-        moment.description || null,
-        moment.emergenceDate || new Date(),
-        moment.peakDate || null,
-        JSON.stringify(moment.contributingCaptures || []),
-        moment.globalConfidence || 0.00,
-        JSON.stringify(moment.culturalContext || {}),
-        moment.strategicImplications || null,
-        moment.status || 'emerging'
+        moment.title,
+        moment.description,
+        moment.intensity,
+        JSON.stringify(moment.platforms || []),
+        JSON.stringify(moment.demographics || []),
+        moment.duration || null,
       ]);
       
       const row = result.rows[0];
-      return {
-        id: row.id,
-        momentType: row.moment_type,
-        description: row.description,
-        emergenceDate: row.emergence_date,
-        peakDate: row.peak_date,
-        contributingCaptures: row.contributing_captures,
-        globalConfidence: row.global_confidence ? row.global_confidence.toString() : null,
-        culturalContext: row.cultural_context,
-        strategicImplications: row.strategic_implications,
-        status: row.status,
-        createdAt: row.created_at
-      } as CulturalMoment;
+      return row as CulturalMoment;
     } catch (error) {
       console.error("❌ Error creating cultural moment:", error);
       throw error;
@@ -1771,21 +1739,18 @@ export class DatabaseStorage implements IStorage {
       let paramCount = 1;
 
       const fieldMap: Record<string, string> = {
-        'momentType': 'moment_type',
+        'title': 'title',
         'description': 'description',
-        'emergenceDate': 'emergence_date',
-        'peakDate': 'peak_date',
-        'contributingCaptures': 'contributing_captures',
-        'globalConfidence': 'global_confidence',
-        'culturalContext': 'cultural_context',
-        'strategicImplications': 'strategic_implications',
-        'status': 'status'
+        'intensity': 'intensity',
+        'platforms': 'platforms',
+        'demographics': 'demographics',
+        'duration': 'duration',
       };
 
       for (const [key, value] of Object.entries(updates)) {
-        if (fieldMap[key]) {
+        if (fieldMap[key] && value !== undefined) {
           fields.push(`${fieldMap[key]} = $${paramCount++}`);
-          if (['contributingCaptures', 'culturalContext'].includes(key)) {
+          if (['platforms', 'demographics'].includes(key)) {
             values.push(JSON.stringify(value));
           } else {
             values.push(value);
@@ -1793,6 +1758,13 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      if (fields.length === 0) {
+        // No fields to update, just return the existing record
+        const existing = await this.client.query('SELECT * FROM cultural_moments WHERE id = $1', [id]);
+        return existing.rows[0] as CulturalMoment;
+      }
+
+      fields.push(`updated_at = NOW()`);
       values.push(id);
 
       const result = await this.client.query(
@@ -1801,19 +1773,7 @@ export class DatabaseStorage implements IStorage {
       );
 
       const row = result.rows[0];
-      return {
-        id: row.id,
-        momentType: row.moment_type,
-        description: row.description,
-        emergenceDate: row.emergence_date,
-        peakDate: row.peak_date,
-        contributingCaptures: row.contributing_captures,
-        globalConfidence: row.global_confidence ? row.global_confidence.toString() : null,
-        culturalContext: row.cultural_context,
-        strategicImplications: row.strategic_implications,
-        status: row.status,
-        createdAt: row.created_at
-      } as CulturalMoment;
+      return row as CulturalMoment;
     } catch (error) {
       console.error("❌ Error updating cultural moment:", error);
       throw error;

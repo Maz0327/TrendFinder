@@ -23,9 +23,9 @@ export default function BriefBuilderV2Page() {
             key={b.id}
             onClick={() => {
               setSelectedId(b.id);
-              setDefine(JSON.stringify(b.define_section ?? {}, null, 2));
-              setShift(JSON.stringify(b.shift_section ?? {}, null, 2));
-              setDeliver(JSON.stringify(b.deliver_section ?? {}, null, 2));
+              setDefine(JSON.stringify(b.defineContent ?? {}, null, 2));
+              setShift(JSON.stringify(b.shiftContent ?? {}, null, 2));
+              setDeliver(JSON.stringify(b.deliverContent ?? {}, null, 2));
             }}
             className={`w-full text-left px-3 py-2 rounded-xl border hover:bg-muted/50 ${selectedId === b.id ? "bg-muted" : ""}`}
           >
@@ -53,9 +53,9 @@ export default function BriefBuilderV2Page() {
                 updateSections.mutate({
                   id: current.id,
                   patch: {
-                    define_section: safeJson(defineText),
-                    shift_section: safeJson(shiftText),
-                    deliver_section: safeJson(deliverText),
+                    defineContent: safeJson(defineText),
+                    shiftContent: safeJson(shiftText),
+                    deliverContent: safeJson(deliverText),
                   },
                 })
               }

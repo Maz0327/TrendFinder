@@ -22,7 +22,7 @@ import HealthCheck from '@/pages/HealthCheck';
 import Dashboard from '@/pages/dashboard';
 import CapturesInbox from '@/pages/captures-inbox';
 import MomentsRadar from '@/pages/moments-radar';
-import BriefBuilderV2 from '@/pages/brief-builder-v2';
+import BriefBuilder from '@/pages/brief-builder';
 import FeedsPage from '@/pages/feeds';
 import Settings from '@/pages/settings';
 import Integrations from '@/pages/integrations';
@@ -82,11 +82,11 @@ export default function App() {
               </RequireAuth>
             </Route>
             
-            <Route path="/brief-builder-v2">
+            <Route path="/brief-builder">
               <RequireAuth>
                 <ProjectProvider>
                   <AppLayout>
-                    <BriefBuilderV2 />
+                    <BriefBuilder />
                   </AppLayout>
                 </ProjectProvider>
               </RequireAuth>

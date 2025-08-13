@@ -390,12 +390,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Map to frontend format
       const signals = culturalMoments.map((moment) => ({
         id: moment.id,
-        title: moment.description || "Cultural Moment",
+        title: moment.title,
         description: moment.description,
-        intensity: moment.globalConfidence
-          ? parseInt(moment.globalConfidence)
-          : 5,
-        platforms: Array.isArray(moment.contributingCaptures) ? [] : ["web"],
+        intensity: moment.intensity,
+        platforms: moment.platforms || [],
         keywords: [],
         resonance: {},
         generation: "Mixed",
@@ -697,29 +695,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create sample cultural moments
-      const culturalMoments = [
+      const culturalMomentsData = [
         {
-          momentType: "trend",
-          description: "Mass adoption of AI tools for content creation",
-          strategicImplications: "Fundamental shift in creative workflows",
+          title: "AI Content Revolution",
+          description: "Mass adoption of AI tools for content creation is fundamentally shifting creative workflows.",
+          intensity: 8,
+          platforms: ["web", "twitter"],
         },
         {
-          momentType: "behavior",
-          description: "Social proof replacing traditional advertising",
-          strategicImplications:
-            "Marketing strategies pivoting to authenticity",
+          title: "The Rise of Social Proof",
+          description: "Social proof is replacing traditional advertising, forcing marketing strategies to pivot to authenticity.",
+          intensity: 7,
+          platforms: ["tiktok", "instagram"],
         },
       ];
 
-      for (const moment of culturalMoments) {
-        await storage.createCulturalMoment(moment);
+      for (const moment of culturalMomentsData) {
+        await storage.createCulturalMoment(moment as any);
       }
 
       res.json({
         success: true,
-        message: `Created ${createdCaptures.length} sample captures and ${culturalMoments.length} cultural moments`,
+        message: `Created ${createdCaptures.length} sample captures and ${culturalMomentsData.length} cultural moments`,
         captures: createdCaptures.length,
-        moments: culturalMoments.length,
+        moments: culturalMomentsData.length,
       });
     } catch (error) {
       console.error("Error populating sample data:", error);

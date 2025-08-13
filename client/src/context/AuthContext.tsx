@@ -7,14 +7,14 @@ type AuthContextValue = {
   status: AuthStatus;
   user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null;
   session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] | null;
-  signOut: () => Promise<void>;
+  signOut: () => ReturnType<typeof supabase.auth.signOut>;
 };
 
 const AuthContext = createContext<AuthContextValue>({
   status: 'loading',
   user: null,
   session: null,
-  signOut: async () => {},
+  signOut: async () => ({ error: null }),
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
