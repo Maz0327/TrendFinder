@@ -19,6 +19,8 @@ const mockGetUserCaptures = vi.fn();
 const mockGetCaptureById = vi.fn();
 const mockUpdateCapture = vi.fn();
 const mockDeleteCapture = vi.fn();
+const mockCreateCapture = vi.fn();
+const mockGetProjects = vi.fn();
 
 // Use vi.doMock for the storage module to avoid hoisting issues with the router import
 vi.doMock("../server/storage", () => ({
@@ -27,6 +29,8 @@ vi.doMock("../server/storage", () => ({
     getCaptureById: mockGetCaptureById,
     updateCapture: mockUpdateCapture,
     deleteCapture: mockDeleteCapture,
+    createCapture: mockCreateCapture,
+    getProjects: mockGetProjects,
   },
 }));
 
@@ -59,6 +63,32 @@ describe("Captures Router", () => {
       expect(res.status).toBe(200);
       expect(res.body).toEqual(captures);
       expect(mockGetUserCaptures).toHaveBeenCalledWith("test-user-id");
+    });
+  });
+
+  describe("POST /api/captures", () => {
+    it("should create a new capture and return it", async () => {
+      const payload = {
+        title: "New Test Capture",
+        url: "https://example.com/article",
+        notes: "These are the notes.",
+      };
+      const newCapture = { id: "new-capture-id", userId: "test-user-id", ...payload };
+
+      // Mock the project lookup and the capture creation
+      mockGetProjects.mockResolvedValue([{ id: "project-1", name: "My First Project", userId: "test-user-id" }]);
+      mockCreateCapture.mockResolvedValue(newCapture);
+
+      const res = await request(app).post("/api/captures").send(payload);
+
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual(newCapture);
+      expect(mockCreateCapture).toHaveBeenCalledWith(expect.objectContaining({
+        userId: "test-user-id",
+        projectId: "project-1",
+        title: payload.title,
+        content: payload.notes,
+      }));
     });
   });
 

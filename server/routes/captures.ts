@@ -51,6 +51,55 @@ capturesRouter.get("/captures/all", requireAuth, async (req: AuthedRequest, res:
   }
 });
 
+import { z } from "zod";
+import { validateBody, ValidatedRequest } from "../middleware/validate";
+
+const createCaptureSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  url: z.string().url("Invalid URL format").optional(),
+  notes: z.string().optional(),
+  platform: z.string().optional(),
+});
+
+// POST /api/captures
+capturesRouter.post(
+  "/captures",
+  requireAuth,
+  validateBody(createCaptureSchema),
+  async (req: ValidatedRequest<z.infer<typeof createCaptureSchema>>, res: Response) => {
+    try {
+      const { title, url, notes, platform } = req.validated!.body!;
+      const userId = req.user!.id;
+
+      // TODO: In a real app, find the project to associate with. For now, we'll need to handle this.
+      // This is a placeholder until project selection is added to the UI.
+      const projects = await db.getProjects(userId);
+      let projectId: string;
+      if (projects.length === 0) {
+        const newProject = await db.createProject({ userId, name: "My First Project" });
+        projectId = newProject.id;
+      } else {
+        projectId = projects[0].id;
+      }
+
+      const newCapture = await db.createCapture({
+        userId,
+        projectId,
+        title,
+        url,
+        content: notes, // Using notes as the main content for now
+        platform: platform || new URL(url || 'https://example.com').hostname,
+        type: 'manual',
+      });
+
+      res.status(201).json(newCapture);
+    } catch (error) {
+      console.error("Error creating capture:", error);
+      res.status(500).json({ error: "Failed to create capture" });
+    }
+  }
+);
+
 // PATCH /api/captures/:id
 capturesRouter.patch("/captures/:id", requireAuth, async (req: AuthedRequest, res: Response) => {
   try {

@@ -13,6 +13,16 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tag, Filter, Search, Plus, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function CaptureTaggingEnhanced() {
   const { toast } = useToast();
@@ -22,6 +32,7 @@ export default function CaptureTaggingEnhanced() {
   const [filterSection, setFilterSection] = useState("all");
   const [selectedCapture, setSelectedCapture] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isNewCaptureDialogOpen, setIsNewCaptureDialogOpen] = useState(false);
 
   // Fetch captures
   const { data: captures = [], isLoading, refetch } = useQuery({
@@ -48,6 +59,35 @@ export default function CaptureTaggingEnhanced() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/captures'] });
       toast({ title: "Success", description: "Capture updated successfully" });
+    }
+  });
+
+  // Create capture mutation
+  const createCaptureMutation = useMutation({
+    mutationFn: async (newCapture: { title: string; url?: string; notes?: string }) => {
+      const response = await fetch('/api/captures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newCapture)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create capture');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/captures'] });
+      toast({ title: "Success", description: "New capture created." });
+      setIsNewCaptureDialogOpen(false); // Close dialog on success
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 
@@ -183,7 +223,7 @@ export default function CaptureTaggingEnhanced() {
             <h3 className="text-lg font-semibold">
               Captured Signals ({filteredCaptures.length})
             </h3>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setIsNewCaptureDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Capture
             </Button>
@@ -284,6 +324,97 @@ export default function CaptureTaggingEnhanced() {
           setSelectedCapture(null);
         }}
       />
+
+      <NewCaptureDialog
+        isOpen={isNewCaptureDialogOpen}
+        onClose={() => setIsNewCaptureDialogOpen(false)}
+        createCapture={createCaptureMutation.mutate}
+        isCreating={createCaptureMutation.isPending}
+      />
     </PageLayout>
+  );
+}
+
+function NewCaptureDialog({
+  isOpen,
+  onClose,
+  createCapture,
+  isCreating,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  createCapture: (vars: { title: string; url?: string; notes?: string }) => void;
+  isCreating: boolean;
+}) {
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const handleCreate = () => {
+    if (!title) {
+      // Basic validation
+      alert("Title is required.");
+      return;
+    }
+    createCapture({ title, url, notes });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Capture</DialogTitle>
+          <DialogDescription>
+            Manually add a new signal or piece of content for analysis.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title" className="text-right">
+              Title
+            </Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="col-span-3"
+              placeholder="e.g., 'New AI Trend on Twitter'"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="url" className="text-right">
+              URL
+            </Label>
+            <Input
+              id="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="col-span-3"
+              placeholder="https://example.com"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="notes" className="text-right">
+              Notes
+            </Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="col-span-3"
+              placeholder="Initial thoughts, context, or why this is interesting..."
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleCreate} disabled={isCreating}>
+            {isCreating ? "Creating..." : "Create Capture"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

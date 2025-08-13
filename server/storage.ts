@@ -662,6 +662,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+
   async createCapture(capture: InsertCapture): Promise<Capture> {
     try {
       const result = await this.client.query(`
