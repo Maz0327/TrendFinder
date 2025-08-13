@@ -1,53 +1,28 @@
-// Client API service for brief operations
+import { apiGet, apiSend } from "./http";
+import type { Database } from "@shared/database.types";
 
-interface ExportBriefRequest {
-  captureIds: string[];
-  projectId: string;
-  title: string;
-  outline?: any[];
+type Brief = Database["public"]["Tables"]["dsd_briefs"]["Row"];
+type BriefInsert = Database["public"]["Tables"]["dsd_briefs"]["Insert"];
+type BriefUpdate = Database["public"]["Tables"]["dsd_briefs"]["Update"];
+
+export async function listBriefs(params?: { projectId?: string }) {
+  const q = params?.projectId ? `?projectId=${encodeURIComponent(params.projectId)}` : "";
+  return apiGet<Brief[]>(`/briefs${q}`);
 }
 
-interface ExportBriefResponse {
-  slidesUrl: string;
-  presentationId: string;
-  title: string;
+export async function createBrief(payload: BriefInsert) {
+  return apiSend<Brief>("/briefs", "POST", payload);
 }
 
-export async function exportBriefToSlides(request: ExportBriefRequest): Promise<ExportBriefResponse> {
-  const response = await fetch('/api/google/brief', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include', // Include session cookies
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    
-    if (response.status === 401 && errorData.authRequired) {
-      throw new Error('Google authentication required. Please visit the Integrations page to configure your Google API credentials.');
-    }
-    
-    throw new Error(errorData.error || `Export failed: ${response.status}`);
-  }
-
-  return response.json();
+export async function updateBrief(id: string, payload: BriefUpdate) {
+  return apiSend<Brief>(`/briefs/${id}`, "PUT", payload);
 }
 
-export async function checkGoogleAuthStatus(): Promise<{
-  authenticated: boolean;
-  authUrl?: string;
-  availableServices: string[];
-}> {
-  const response = await fetch('/api/google/auth/status', {
-    credentials: 'include'
-  });
+export async function deleteBrief(id: string) {
+  return apiSend<{ id: string }>(`/briefs/${id}`, "DELETE");
+}
 
-  if (!response.ok) {
-    throw new Error('Failed to check authentication status');
-  }
-
-  return response.json();
+// Google Slides export function
+export async function exportBriefToSlides(briefId: string, options?: { templateId?: string }) {
+  return apiSend<{ slideUrl: string; exportId: string }>(`/briefs/${briefId}/export-slides`, "POST", options);
 }
