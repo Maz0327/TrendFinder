@@ -15,15 +15,8 @@ export function useBriefs(params?: { projectId?: string }) {
 
   const insertMutation = useMutation({
     mutationFn: (payload: Omit<BriefInsert, "user_id">) => {
-      const briefPayload: BriefInsert = {
-        ...payload,
-        title: payload.title || "Test DSD Brief",
-        status: payload.status || "draft",
-        define_section: payload.define_section || { bullets: ["who, what, why"] },
-        shift_section: payload.shift_section || { directions: ["reframe X as Y"] },
-        deliver_section: payload.deliver_section || { outputs: ["IG reels concept", "post copy"] },
-      };
-      return createBrief(briefPayload);
+      // Server will add user_id from JWT
+      return createBrief(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/briefs"] });

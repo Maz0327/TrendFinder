@@ -22,7 +22,7 @@ export async function listCaptures(params?: {
   return apiGet<{ items: Capture[]; total: number }>(`/captures${q}`);
 }
 
-export async function createCapture(payload: CaptureInsert) {
+export async function createCapture(payload: Omit<CaptureInsert, "user_id">) {
   return apiSend<Capture>("/captures", "POST", payload);
 }
 

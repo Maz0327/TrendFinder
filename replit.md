@@ -7,6 +7,17 @@ This project is a Strategic Intelligence platform utilizing the DSD Signal Drop 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
+**August 13, 2025 - Phase 5-6 Google Export Scaffolding Complete** 
+- **Task Block #1 Complete**: API consolidation and Google export scaffolding complete ✅
+- **Google OAuth Service**: Complete authentication flow with token management and refresh
+- **Google Drive Service**: Project folder management and file organization 
+- **Google Slides Service**: Canvas-to-slides conversion with mock implementation 
+- **Export API Routes**: `/api/briefs/:id/export/slides` and Google auth endpoints active
+- **Feature Flags**: Google export capabilities enabled with environment guardrails
+- **Mock Google APIs**: Development-ready fallbacks for googleapis package conflicts  
+- **TypeScript Infrastructure**: Service interfaces updated for proper client-server separation
+- **Health Checks**: API responding correctly (401 auth errors as expected), server stable
+
 **August 13, 2025 - Complete Chrome Extension Integration**
 - **Chrome Extension deployed**: Full-featured browser extension with token-based authentication
 - **Database schema updated**: Added extension_tokens and analysis_jobs tables with enhanced captures metadata

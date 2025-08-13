@@ -23,17 +23,8 @@ export function useCaptures(params?: {
 
   const insertMutation = useMutation({
     mutationFn: (payload: Omit<CaptureInsert, "user_id">) => {
-      const capturePayload: CaptureInsert = {
-        ...payload,
-        title: payload.title || "Test Capture",
-        content: payload.content || "This is a smoke-test capture",
-        platform: payload.platform || "web",
-        tags: payload.tags || ["test", "smoke"],
-        dsd_tags: payload.dsd_tags || ["define"],
-        predicted_virality: payload.predicted_virality || 0.42,
-        actual_virality: payload.actual_virality || 0,
-      };
-      return createCapture(capturePayload);
+      // Server will add user_id from JWT
+      return createCapture(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/captures"] });

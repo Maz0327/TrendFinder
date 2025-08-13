@@ -24,6 +24,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUser(id: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<InsertUser>): Promise<User>;
   
   // Project Management
   getProjects(userId: string): Promise<Project[]>;
@@ -335,6 +336,80 @@ export class DatabaseStorage implements IStorage {
       } as User;
     } catch (error) {
       console.error("❌ Error creating user:", error);
+      throw error;
+    }
+  }
+
+  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User> {
+    try {
+      const setClause = [];
+      const values = [];
+      let paramCount = 1;
+
+      // Build dynamic SET clause
+      if (updates.email) {
+        setClause.push(`email = $${paramCount++}`);
+        values.push(updates.email);
+      }
+      if (updates.username) {
+        setClause.push(`username = $${paramCount++}`);
+        values.push(updates.username);
+      }
+      if (updates.googleTokens !== undefined) {
+        setClause.push(`google_tokens = $${paramCount++}`);
+        values.push(JSON.stringify(updates.googleTokens));
+      }
+      if (updates.progressData !== undefined) {
+        setClause.push(`progress_data = $${paramCount++}`);
+        values.push(JSON.stringify(updates.progressData));
+      }
+      if (updates.onboardingCompleted !== undefined) {
+        setClause.push(`onboarding_completed = $${paramCount++}`);
+        values.push(updates.onboardingCompleted);
+      }
+      if (updates.tourCompleted !== undefined) {
+        setClause.push(`tour_completed = $${paramCount++}`);
+        values.push(updates.tourCompleted);
+      }
+      if (updates.role) {
+        setClause.push(`role = $${paramCount++}`);
+        values.push(updates.role);
+      }
+
+      if (setClause.length === 0) {
+        throw new Error('No valid fields to update');
+      }
+
+      setClause.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const result = await this.client.query(`
+        UPDATE users 
+        SET ${setClause.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING *
+      `, values);
+
+      if (result.rows.length === 0) {
+        throw new Error('User not found');
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        email: row.email,
+        username: row.username,
+        password: row.password,
+        role: row.role,
+        onboardingCompleted: row.onboarding_completed,
+        tourCompleted: row.tour_completed,
+        progressData: row.progress_data,
+        googleTokens: row.google_tokens,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as User;
+    } catch (error) {
+      console.error("❌ Error updating user:", error);
       throw error;
     }
   }

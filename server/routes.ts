@@ -39,6 +39,7 @@ import { registerProjectRoutes } from "./routes/projects";
 import { registerBriefRoutes } from "./routes/briefs";
 import { registerMomentRoutes } from "./routes/moments";
 import { registerFeedRoutes } from "./routes/feeds";
+import { registerGoogleExportRoutes } from "./routes/google-export";
 import googleExportsRouter from "./routes/google-exports";
 import { setupSettingsRoutes } from "./routes/settings";
 import { setupAnnotationsRoutes } from "./routes/annotations";
@@ -372,6 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerBriefRoutes(app);
   registerMomentRoutes(app);
   registerFeedRoutes(app);
+  registerGoogleExportRoutes(app);
   setupAnalyticsRoutes(app);
   setupSearchRoutes(app);
 

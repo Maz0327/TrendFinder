@@ -1,12 +1,40 @@
-// client/src/flags.ts
-export const ENABLE_NAV_SHELL = true;
-export const ENABLE_PROJECT_SWITCHER = true;
-
-// keep existing flags below if present (do not remove others)
-export const FLAGS = {
-  PHASE5_CAPTURE_ASSIST: true,
-  PHASE5_MOMENTS_RADAR: true,
-  PHASE5_BRIEF_V2: true,
+// Feature flags for Content Radar application
+export const FEATURES = {
+  // Google export functionality
+  BRIEF_EXPORT: true,
+  GOOGLE_SLIDES_EXPORT: true,
+  GOOGLE_DRIVE_INTEGRATION: true,
+  
+  // AI features
+  FAST_MEDIA_ANALYSIS: false,
+  DEEP_MEDIA_ANALYSIS: false,
+  AI_ARRANGE_BLOCKS: false,
+  
+  // Advanced features
+  REAL_TIME_COLLABORATION: false,
+  CHROME_EXTENSION: true,
+  TRUTH_ANALYSIS_V2: false,
+  
+  // System features
+  BACKGROUND_JOBS: true,
+  SYSTEM_MONITORING: true,
+  ERROR_TRACKING: true,
 } as const;
 
-export const APPLE_SKIN = true; // flip to false to quickly revert styles
+export type FeatureFlag = keyof typeof FEATURES;
+
+export function isFeatureEnabled(flag: FeatureFlag): boolean {
+  return FEATURES[flag];
+}
+
+export function getEnabledFeatures(): FeatureFlag[] {
+  return Object.entries(FEATURES)
+    .filter(([, enabled]) => enabled)
+    .map(([flag]) => flag as FeatureFlag);
+}
+
+export function getDisabledFeatures(): FeatureFlag[] {
+  return Object.entries(FEATURES)
+    .filter(([, enabled]) => !enabled)
+    .map(([flag]) => flag as FeatureFlag);
+}

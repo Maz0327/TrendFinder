@@ -10,7 +10,7 @@ export async function listBriefs(params?: { projectId?: string }) {
   return apiGet<Brief[]>(`/briefs${q}`);
 }
 
-export async function createBrief(payload: BriefInsert) {
+export async function createBrief(payload: Omit<BriefInsert, "user_id">) {
   return apiSend<Brief>("/briefs", "POST", payload);
 }
 
