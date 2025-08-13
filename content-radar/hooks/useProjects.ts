@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ProjectRow } from "@shared/database.types";
+import type { Project } from "@shared/supabase-schema";
 import { listProjects, createProject } from "../services/projects";
 
 export function useProjects() {
   const qc = useQueryClient();
 
-  const projectsQuery = useQuery<ProjectRow[]>({
+  const projectsQuery = useQuery<Project[]>({
     queryKey: ["cr-projects"],
     queryFn: () => listProjects(),
     staleTime: 30_000,

@@ -24,7 +24,7 @@ export default function CapturesInboxPage() {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               <div>{c.platform ?? ""}</div>
-              <div>{new Date(c.created_at).toLocaleString()}</div>
+              <div>{c.createdAt ? new Date(c.createdAt).toLocaleString() : "N/A"}</div>
             </CardContent>
           </Card>
         ))}

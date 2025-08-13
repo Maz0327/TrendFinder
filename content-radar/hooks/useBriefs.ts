@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { BriefRow } from "@shared/database.types";
+import type { DsdBrief } from "@shared/supabase-schema";
 import { createBrief, getBrief, listBriefs, updateBriefSections } from "../services/briefs";
 
 export function useBriefs(projectId?: string) {
   const qc = useQueryClient();
 
-  const briefsQuery = useQuery<BriefRow[]>({
+  const briefsQuery = useQuery<DsdBrief[]>({
     queryKey: ["cr-briefs", projectId ?? null],
     queryFn: () => listBriefs(projectId),
   });
@@ -16,7 +16,7 @@ export function useBriefs(projectId?: string) {
   });
 
   const updateSections = useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: { define_section?: any; shift_section?: any; deliver_section?: any } }) =>
+    mutationFn: ({ id, patch }: { id: string; patch: { defineContent?: any; shiftContent?: any; deliverContent?: any } }) =>
       updateBriefSections(id, patch),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["cr-briefs"] });
@@ -25,7 +25,7 @@ export function useBriefs(projectId?: string) {
   });
 
   const briefQuery = (id: string) =>
-    useQuery<BriefRow>({
+    useQuery<DsdBrief>({
       queryKey: ["cr-brief", id],
       queryFn: () => getBrief(id),
       enabled: !!id,

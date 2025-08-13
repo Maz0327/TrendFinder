@@ -341,19 +341,17 @@ export const collectivePatterns = pgTable("collective_patterns", {
 // 10. Cultural Moments table - Detected cultural shifts
 export const culturalMoments = pgTable("cultural_moments", {
   id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
-  momentType: text("moment_type").notNull(),
-  description: text("description"),
-  emergenceDate: timestamp("emergence_date", { withTimezone: true }).defaultNow(),
-  peakDate: timestamp("peak_date", { withTimezone: true }),
-  contributingCaptures: jsonb("contributing_captures").default('[]'),
-  globalConfidence: decimal("global_confidence", { precision: 3, scale: 2 }).default('0.00'),
-  culturalContext: jsonb("cultural_context").default('{}'),
-  strategicImplications: text("strategic_implications"),
-  status: text("status").default("emerging"), // 'emerging' | 'active' | 'declining' | 'archived'
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  intensity: integer("intensity").notNull(),
+  platforms: jsonb("platforms").$type<string[]>(),
+  demographics: jsonb("demographics").$type<string[]>(),
+  duration: text("duration"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
-  statusIdx: index("idx_cultural_moments_status").on(table.status),
-  emergenceIdx: index("idx_cultural_moments_emergence").on(table.emergenceDate),
+  intensityIdx: index("idx_cultural_moments_intensity").on(table.intensity),
+  createdIdx: index("idx_cultural_moments_created_at").on(table.createdAt),
 }));
 
 // 11. Hypothesis Validations table - Track prediction accuracy

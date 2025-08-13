@@ -1,16 +1,16 @@
-import type { ProjectRow } from "@shared/database.types";
+import type { Project } from "@shared/supabase-schema";
 import { supabase } from "../../client/src/lib/supabaseClient";
 
-export async function listProjects(): Promise<ProjectRow[]> {
+export async function listProjects(): Promise<Project[]> {
   const { data, error } = await supabase
     .from("projects")
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data as ProjectRow[]) ?? [];
+  return (data as Project[]) ?? [];
 }
 
-export async function createProject(input: { name: string; description?: string }): Promise<ProjectRow> {
+export async function createProject(input: { name: string; description?: string }): Promise<Project> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -26,5 +26,5 @@ export async function createProject(input: { name: string; description?: string 
     .select("*")
     .single();
   if (error) throw error;
-  return data as ProjectRow;
+  return data as Project;
 }
