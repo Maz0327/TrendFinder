@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { AuthError } from '@supabase/supabase-js';
 
 type AuthStatus = 'loading' | 'authed' | 'anon';
 
@@ -7,14 +8,14 @@ type AuthContextValue = {
   status: AuthStatus;
   user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null;
   session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] | null;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<{ error: AuthError | null }>;
 };
 
 const AuthContext = createContext<AuthContextValue>({
   status: 'loading',
   user: null,
   session: null,
-  signOut: async () => {},
+  signOut: async () => ({ error: null }),
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

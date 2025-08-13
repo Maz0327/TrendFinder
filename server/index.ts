@@ -36,6 +36,15 @@ app.use(requestSizeLimit); // Request size validation
 app.use(validateContentType(['application/json', 'application/x-www-form-urlencoded']));
 app.use('/api/', apiRateLimit); // Rate limiting for API routes
 
+// CORS for Chrome Extension
+import cors from 'cors';
+app.use('/api/extension/', cors({
+  origin: ['chrome-extension://*', 'moz-extension://*'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-extension-token']
+}));
+
 // Chrome Extension Security
 app.use('/api/extension/', extensionSecurity.validateExtensionOrigin);
 app.use('/api/extension/', extensionSecurity.extensionRateLimit);

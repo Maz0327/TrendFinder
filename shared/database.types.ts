@@ -68,6 +68,16 @@ export interface Database {
           dsd_section: string | null
           predicted_virality: number | null
           actual_virality: number | null
+          project_id: string | null
+          image_url: string | null
+          image_thumb_url: string | null
+          selection_rect: Json | null
+          ocr_text: string | null
+          source_author: string | null
+          source_posted_at: string | null
+          source_metrics: Json | null
+          analysis_status: string | null
+          analysis_run_id: string | null
           created_at: string
           updated_at: string
         }
@@ -85,6 +95,16 @@ export interface Database {
           dsd_section?: string | null
           predicted_virality?: number | null
           actual_virality?: number | null
+          project_id?: string | null
+          image_url?: string | null
+          image_thumb_url?: string | null
+          selection_rect?: Json | null
+          ocr_text?: string | null
+          source_author?: string | null
+          source_posted_at?: string | null
+          source_metrics?: Json | null
+          analysis_status?: string | null
+          analysis_run_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -102,6 +122,16 @@ export interface Database {
           dsd_section?: string | null
           predicted_virality?: number | null
           actual_virality?: number | null
+          project_id?: string | null
+          image_url?: string | null
+          image_thumb_url?: string | null
+          selection_rect?: Json | null
+          ocr_text?: string | null
+          source_author?: string | null
+          source_posted_at?: string | null
+          source_metrics?: Json | null
+          analysis_status?: string | null
+          analysis_run_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -431,6 +461,58 @@ export interface Database {
           aggregated_data?: Json
         }
       }
+      extension_tokens: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          token_hash: string
+          created_at: string
+          last_used_at: string | null
+          revoked: boolean
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          token_hash: string
+          created_at?: string
+          last_used_at?: string | null
+          revoked?: boolean
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          token_hash?: string
+          created_at?: string
+          last_used_at?: string | null
+          revoked?: boolean
+        }
+      }
+      analysis_jobs: {
+        Row: {
+          id: string
+          capture_id: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          capture_id: string
+          status: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          capture_id?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -443,3 +525,28 @@ export interface Database {
     }
   }
 }
+
+// Export commonly used types
+export type CaptureRow = Database['public']['Tables']['captures']['Row'];
+export type CaptureInsert = Database['public']['Tables']['captures']['Insert'];
+export type CaptureUpdate = Database['public']['Tables']['captures']['Update'];
+
+export type ProjectRow = Database['public']['Tables']['projects']['Row'];
+export type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
+export type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
+
+export type BriefRow = Database['public']['Tables']['dsd_briefs']['Row'];
+export type BriefInsert = Database['public']['Tables']['dsd_briefs']['Insert'];
+export type BriefUpdate = Database['public']['Tables']['dsd_briefs']['Update'];
+
+export type MomentRow = Database['public']['Tables']['cultural_moments']['Row'];
+export type MomentInsert = Database['public']['Tables']['cultural_moments']['Insert'];
+export type MomentUpdate = Database['public']['Tables']['cultural_moments']['Update'];
+
+export type ExtensionTokenRow = Database['public']['Tables']['extension_tokens']['Row'];
+export type ExtensionTokenInsert = Database['public']['Tables']['extension_tokens']['Insert'];
+export type ExtensionTokenUpdate = Database['public']['Tables']['extension_tokens']['Update'];
+
+export type AnalysisJobRow = Database['public']['Tables']['analysis_jobs']['Row'];
+export type AnalysisJobInsert = Database['public']['Tables']['analysis_jobs']['Insert'];
+export type AnalysisJobUpdate = Database['public']['Tables']['analysis_jobs']['Update'];

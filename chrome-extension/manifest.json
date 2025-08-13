@@ -1,90 +1,49 @@
 {
   "manifest_version": 3,
-  "name": "Strategic Content Capture",
+  "name": "Content Radar",
   "version": "1.0.0",
-  "description": "Capture and analyze web content for strategic insights using AI-powered analysis",
+  "description": "Capture and analyze content signals for strategic intelligence",
   "permissions": [
     "activeTab",
     "storage",
-    "contextMenus",
-    "notifications",
-    "alarms",
-    "tabs",
-    "clipboardWrite",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
-  "commands": {
-    "quick-capture": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+C",
-        "mac": "Command+Shift+C"
-      },
-      "description": "Quick capture current page"
-    },
-    "screen-select": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
-      "description": "Select screen area to capture"
-    },
-    "voice-note": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+V",
-        "mac": "Command+Shift+V"
-      },
-      "description": "Add voice note"
-    },
-    "switch-project": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+P",
-        "mac": "Command+Shift+P"
-      },
-      "description": "Switch active project"
-    },
-    "add-note": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+N",
-        "mac": "Command+Shift+N"
-      },
-      "description": "Add note to last capture"
-    }
-  },
   "host_permissions": [
-    "http://localhost:*/*",
-    "https://*.replit.app/*",
-    "https://*.replit.dev/*",
-    "https://8b8b11fe-8b26-478c-833b-4cb2c7d9c3ca-00-1u6v7kw2cbj6z.worf.replit.dev/*"
+    "https://*/*",
+    "http://localhost:*"
   ],
   "background": {
-    "service_worker": "background-enhanced.js"
-  },
-  "action": {
-    "default_popup": "popup.html",
-    "default_title": "Strategic Content Capture",
-    "default_icon": {
-      "16": "images/icon16.png",
-      "48": "images/icon48.png",
-      "128": "images/icon128.png"
-    }
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content-enhanced.js"],
-      "run_at": "document_end",
-      "css": ["styles/content.css"]
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
     }
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Content Radar",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "web_accessible_resources": [
     {
-      "resources": ["src/content/screenshot-selector.js", "styles/selection.css"],
+      "resources": ["capture-overlay.html"],
       "matches": ["<all_urls>"]
     }
-  ],
-  "icons": {
-    "16": "images/icon16.png",
-    "48": "images/icon48.png",
-    "128": "images/icon128.png"
-  }
+  ]
 }
