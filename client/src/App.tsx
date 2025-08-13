@@ -8,10 +8,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import RequireAuth from '@/components/auth/RequireAuth';
 import AuthDebug from '@/components/auth/AuthDebug';
 
-// Lovable UI Integration
-import { ProjectProvider as LovableProjectProvider } from '../../content-radar/context/ProjectContext';
-import LovableApp from '../../content-radar/App';
-
 // Auth pages
 import LoginPage from '@/pages/login';
 import RegisterPage from '@/pages/register';
@@ -42,14 +38,7 @@ export default function App() {
             <Route path="/auth/callback" component={AuthCallback} />
             <Route path="/health-check" component={HealthCheck} />
             
-            {/* Lovable UI routes - also require auth */}
-            <Route path="/app-v2/:rest*">
-              <RequireAuth>
-                <LovableProjectProvider>
-                  <LovableApp />
-                </LovableProjectProvider>
-              </RequireAuth>
-            </Route>
+
             
             {/* Protected routes */}
             <Route path="/dashboard">
