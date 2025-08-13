@@ -1,68 +1,51 @@
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listBriefs, createBrief } from "@/services/briefs";
 import type { Database } from "@shared/database.types";
 
-type BriefRow = Database["public"]["Tables"]["dsd_briefs"]["Row"];
+type Brief = Database["public"]["Tables"]["dsd_briefs"]["Row"];
 type BriefInsert = Database["public"]["Tables"]["dsd_briefs"]["Insert"];
 
-export function useBriefs() {
-  const [data, setData] = useState<BriefRow[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
+export function useBriefs(params?: { projectId?: string }) {
+  const queryClient = useQueryClient();
 
-  const fetchBriefs = useCallback(async () => {
-    setLoading(true); setError(null);
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session) {
-      setLoading(false);
-      setError("Not authenticated");
-      setData(null);
-      return;
-    }
-    const userId = session.session.user.id;
+  const query = useQuery({
+    queryKey: ["/api/briefs", params?.projectId],
+    queryFn: () => listBriefs(params),
+  });
 
-    const { data: rows, error: err } = await supabase
-      .from("dsd_briefs")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+  const insertMutation = useMutation({
+    mutationFn: (payload: Omit<BriefInsert, "user_id">) => {
+      const briefPayload: BriefInsert = {
+        ...payload,
+        title: payload.title || "Test DSD Brief",
+        status: payload.status || "draft",
+        define_section: payload.define_section || { bullets: ["who, what, why"] },
+        shift_section: payload.shift_section || { directions: ["reframe X as Y"] },
+        deliver_section: payload.deliver_section || { outputs: ["IG reels concept", "post copy"] },
+      };
+      return createBrief(briefPayload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/briefs"] });
+    },
+  });
 
-    if (err) setError(err.message);
-    setData(rows ?? null);
-    setLoading(false);
-  }, []);
-
-  const insertDummy = useCallback(async () => {
-    setLoading(true); setError(null);
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session) {
-      setLoading(false);
-      setError("Not authenticated");
-      return null;
-    }
-    const userId = session.session.user.id;
-
-    const payload: BriefInsert = {
-      user_id: userId,
+  const insertDummy = () => {
+    return insertMutation.mutateAsync({
       title: "Test DSD Brief",
       status: "draft",
       define_section: { bullets: ["who, what, why"] },
       shift_section: { directions: ["reframe X as Y"] },
       deliver_section: { outputs: ["IG reels concept", "post copy"] },
-    };
+    } as Omit<BriefInsert, "user_id">);
+  };
 
-    const { data: row, error: err } = await supabase
-      .from("dsd_briefs")
-      .insert(payload)
-      .select("*")
-      .single();
-
-    if (err) setError(err.message);
-    setLoading(false);
-    return row ?? null;
-  }, []);
-
-  useEffect(() => { fetchBriefs(); }, [fetchBriefs]);
-
-  return { data, loading, error, fetchBriefs, insertDummy };
+  return { 
+    data: query.data || null, 
+    loading: query.isLoading, 
+    error: query.error?.message || null, 
+    fetchBriefs: query.refetch,
+    insertDummy,
+    insertMutation
+  };
 }

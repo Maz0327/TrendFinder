@@ -1,51 +1,42 @@
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listMoments, createMoment } from "@/services/moments";
 import type { Database } from "@shared/database.types";
 
-type MomentRow = Database["public"]["Tables"]["cultural_moments"]["Row"];
+type Moment = Database["public"]["Tables"]["cultural_moments"]["Row"];
 type MomentInsert = Database["public"]["Tables"]["cultural_moments"]["Insert"];
 
-export function useMoments() {
-  const [data, setData] = useState<MomentRow[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
+export function useMoments(params?: { projectId?: string }) {
+  const queryClient = useQueryClient();
 
-  const fetchMoments = useCallback(async () => {
-    setLoading(true); setError(null);
-    const { data: rows, error: err } = await supabase
-      .from("cultural_moments")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const query = useQuery({
+    queryKey: ["/api/moments", params?.projectId],
+    queryFn: () => listMoments(params),
+  });
 
-    if (err) setError(err.message);
-    setData(rows ?? null);
-    setLoading(false);
-  }, []);
+  const insertMutation = useMutation({
+    mutationFn: (payload: MomentInsert) => createMoment(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/moments"] });
+    },
+  });
 
-  const insertDummy = useCallback(async () => {
-    setLoading(true); setError(null);
-
-    const payload: MomentInsert = {
+  const insertDummy = () => {
+    return insertMutation.mutateAsync({
       title: "Test Cultural Moment",
       description: "A tiny smoke-test moment",
       intensity: 3,
       platforms: ["tiktok", "instagram"],
       demographics: ["Gen Z", "Millennials"],
       duration: "fleeting",
-    };
+    });
+  };
 
-    const { data: row, error: err } = await supabase
-      .from("cultural_moments")
-      .insert(payload)
-      .select("*")
-      .single();
-
-    if (err) setError(err.message);
-    setLoading(false);
-    return row ?? null;
-  }, []);
-
-  useEffect(() => { fetchMoments(); }, [fetchMoments]);
-
-  return { data, loading, error, fetchMoments, insertDummy };
+  return { 
+    data: query.data || null, 
+    loading: query.isLoading, 
+    error: query.error?.message || null, 
+    fetchMoments: query.refetch,
+    insertDummy,
+    insertMutation
+  };
 }
