@@ -364,6 +364,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register new routes for Lovable UI support
   setupSettingsRoutes(app);
   setupAnnotationsRoutes(app);
+  
+  // Register project and brief routes
+  registerProjectRoutes(app);
+  registerBriefRoutes(app);
   setupAnalyticsRoutes(app);
   setupSearchRoutes(app);
 
