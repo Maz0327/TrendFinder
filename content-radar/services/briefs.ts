@@ -31,8 +31,7 @@ export async function createBrief(input: { title: string; projectId?: string }):
 }
 
 export async function updateBriefSections(id: string, patch: { define_section?: Json; shift_section?: Json; deliver_section?: Json }): Promise<BriefRow> {
-  const client = getClient();
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from("dsd_briefs")
     .update({
       define_section: patch.define_section ?? undefined,

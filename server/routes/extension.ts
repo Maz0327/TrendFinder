@@ -1,100 +1,157 @@
-import { Router, Response } from "express";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
-import { storage } from "../storage";
-import { AIAnalyzer } from "../services/aiAnalyzer";
-import { productionMonitor } from "../monitoring/productionMonitor";
-import { sanitizeInput } from "../utils/sanitize";
-import { z } from "zod";
+import { Router, Request, Response } from 'express';
+import { supabaseAdmin } from '../lib/supabaseAdmin';
+import { 
+  generateExtensionToken, 
+  verifyExtensionToken, 
+  revokeExtensionToken, 
+  getUserExtensionTokens 
+} from '../lib/extensionAuth';
 
-const aiAnalyzer = new AIAnalyzer();
+const router = Router();
 
-export const extensionRouter = Router();
-
-// GET /api/extension/active-project
-extensionRouter.get("/extension/active-project", requireAuth, async (req: AuthedRequest, res: Response) => {
+// Create new extension token (authenticated route)
+router.post('/tokens', async (req, res) => {
   try {
-    const projects = await storage.getProjects(req.user!.id);
-    const activeProject = projects.find((p: any) => p.status === "active") || projects[0];
-
-    if (!activeProject) {
-      return res.status(404).json({ error: "No projects found" });
+    const { name } = req.body;
+    const userId = (req as any).user?.id; // Assuming user is attached via auth middleware
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Token name is required' });
+    }
+    
+    const token = await generateExtensionToken(userId, name);
+    res.json({ token, message: 'Extension token created successfully' });
+  } catch (error) {
+    console.error('Error creating extension token:', error);
+    res.status(500).json({ error: 'Failed to create extension token' });
+  }
+});
 
-    res.json({
-      success: true,
-      project: {
-        id: activeProject.id,
-        name: activeProject.name,
-        description: activeProject.description,
+// List user's extension tokens
+router.get('/tokens', async (req, res) => {
+  try {
+    const userId = (req as any).user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const tokens = await getUserExtensionTokens(userId);
+    res.json({ tokens });
+  } catch (error) {
+    console.error('Error fetching extension tokens:', error);
+    res.status(500).json({ error: 'Failed to fetch extension tokens' });
+  }
+});
+
+// Revoke extension token
+router.delete('/tokens/:tokenId', async (req, res) => {
+  try {
+    const { tokenId } = req.params;
+    const userId = (req as any).user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    await revokeExtensionToken(tokenId, userId);
+    res.json({ message: 'Extension token revoked successfully' });
+  } catch (error) {
+    console.error('Error revoking extension token:', error);
+    res.status(500).json({ error: 'Failed to revoke extension token' });
+  }
+});
+
+// Capture endpoint for Chrome Extension (uses extension token auth)
+router.post('/capture', verifyExtensionToken, async (req, res) => {
+  try {
+    const userId = (req as any).extensionUserId;
+    const { 
+      title, 
+      content, 
+      url, 
+      platform, 
+      tags,
+      image_url,
+      image_thumb_url,
+      selection_rect,
+      ocr_text,
+      source_author,
+      source_posted_at,
+      source_metrics,
+      project_id 
+    } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' });
+    }
+    
+    // Insert capture into database
+    const { data: capture, error } = await supabaseAdmin
+      .from('captures')
+      .insert({
+        user_id: userId,
+        title,
+        content,
+        url,
+        platform,
+        tags,
+        image_url,
+        image_thumb_url,
+        selection_rect,
+        ocr_text,
+        source_author,
+        source_posted_at,
+        source_metrics,
+        project_id,
+        analysis_status: 'pending'
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating capture:', error);
+      return res.status(500).json({ error: 'Failed to create capture' });
+    }
+    
+    // Create analysis job
+    const { error: jobError } = await supabaseAdmin
+      .from('analysis_jobs')
+      .insert({
+        capture_id: capture.id,
+        status: 'pending'
+      });
+      
+    if (jobError) {
+      console.error('Error creating analysis job:', jobError);
+    }
+    
+    res.status(201).json({ 
+      capture: {
+        id: capture.id,
+        title: capture.title,
+        url: capture.url,
+        created_at: capture.created_at
       },
+      message: 'Capture created successfully' 
     });
   } catch (error) {
-    console.error("Extension active project error:", error);
-    res.status(500).json({ error: "Failed to get active project" });
+    console.error('Error processing capture:', error);
+    res.status(500).json({ error: 'Failed to process capture' });
   }
 });
 
-const extensionCaptureSchema = z.object({
-  projectId: z.string().uuid().optional(),
-  content: z.string().min(1),
-  url: z.string().url().optional(),
-  platform: z.string().optional(),
-  type: z.string().optional().default("extension"),
-  priority: z.enum(["low", "normal", "high"]).optional().default("normal"),
+// Health check for extension
+router.get('/health', verifyExtensionToken, (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    userId: (req as any).extensionUserId,
+    timestamp: new Date().toISOString() 
+  });
 });
 
-// POST /api/extension/capture
-extensionRouter.post("/extension/capture", requireAuth, async (req: AuthedRequest, res: Response) => {
-  try {
-    const parsed = extensionCaptureSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid input", details: parsed.error.errors });
-    }
-    const { projectId, content, url, platform, type, priority } = parsed.data;
-
-    // Track extension request
-    const extensionId = req.headers["x-extension-id"] as string | undefined;
-    if (extensionId) productionMonitor.trackExtensionRequest(extensionId);
-
-    const safeContent = sanitizeInput(content);
-    const userId = req.user!.id;
-    const fallbackProjectId = (await storage.getProjects(userId))[0]?.id;
-
-    const capture = await storage.createCapture({
-      userId,
-      projectId: projectId || fallbackProjectId,
-      type: type || "extension",
-      content: safeContent,
-      url,
-      platform: platform || "web",
-      title: `Extension Capture - ${new Date().toLocaleString()}`,
-      analysisStatus: "pending",
-    });
-
-    if (safeContent.length > 50) {
-      try {
-        const analysis = await aiAnalyzer.analyzeContent("Extension Capture", safeContent, platform || "web");
-        await storage.updateCapture(capture.id, { viralScore: analysis.viralScore, analysisStatus: "completed" });
-      } catch (e) {
-        console.warn("Analysis failed for extension capture:", e);
-      }
-    }
-
-    res.json({
-      success: true,
-      capture: { id: capture.id, title: capture.title, createdAt: capture.createdAt },
-    });
-  } catch (error) {
-    console.error("Extension capture error:", error);
-
-    const extensionId = req.headers["x-extension-id"] as string | undefined;
-    if (extensionId) {
-      productionMonitor.trackExtensionRequest(extensionId, error instanceof Error ? error.message : "Unknown error");
-    }
-
-    res.status(500).json({
-      error: "Failed to create capture",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+export { router as extensionRouter };
