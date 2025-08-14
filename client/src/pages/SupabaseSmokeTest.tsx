@@ -59,7 +59,7 @@ export default function SupabaseSmokeTest() {
         <h2 style={{ fontSize: 18, marginBottom: 8 }}>Captures</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
           <button onClick={addCapture}    style={{ padding: "8px 12px", borderRadius: 8, background: "#6366F1", border: 0, color: "#fff" }}>Insert Dummy</button>
-          <button onClick={fetchCaptures} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
+          <button onClick={() => fetchCaptures()} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
         </div>
         {cl && <div>Loading…</div>}
         {ce && <div style={{ color: "#F87171" }}>{ce}</div>}
@@ -72,7 +72,7 @@ export default function SupabaseSmokeTest() {
         <h2 style={{ fontSize: 18, marginBottom: 8 }}>DSD Briefs</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
           <button onClick={addBrief}  style={{ padding: "8px 12px", borderRadius: 8, background: "#6366F1", border: 0, color: "#fff" }}>Insert Dummy</button>
-          <button onClick={fetchBriefs} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
+          <button onClick={() => fetchBriefs()} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
         </div>
         {bl && <div>Loading…</div>}
         {be && <div style={{ color: "#F87171" }}>{be}</div>}
@@ -85,7 +85,7 @@ export default function SupabaseSmokeTest() {
         <h2 style={{ fontSize: 18, marginBottom: 8 }}>Cultural Moments</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
           <button onClick={addMoment}  style={{ padding: "8px 12px", borderRadius: 8, background: "#6366F1", border: 0, color: "#fff" }}>Insert Dummy</button>
-          <button onClick={fetchMoments} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
+          <button onClick={() => fetchMoments()} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
         </div>
         {ml && <div>Loading…</div>}
         {me && <div style={{ color: "#F87171" }}>{me}</div>}

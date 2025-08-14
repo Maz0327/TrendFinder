@@ -33,7 +33,7 @@ export function SupabaseDebug() {
     try {
       // Test API connection
       try {
-        const capturesTest = await api.get('/captures', { page: 1, pageSize: 1 });
+        const capturesTest = await api.get('/captures', { page: 1, pageSize: 1 }) as any;
         info.apiConnection = `Connected - API responding (${capturesTest.total || 0} captures)`;
       } catch (error: any) {
         info.apiConnection = `API Error: ${error.message}`;

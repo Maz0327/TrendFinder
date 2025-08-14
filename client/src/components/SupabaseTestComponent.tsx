@@ -20,7 +20,7 @@ export function SupabaseTestComponent() {
     try {
       // Test 1: API Connection - test captures endpoint
       try {
-        const capturesResponse = await api.get('/captures', { page: 1, pageSize: 1 });
+        const capturesResponse = await api.get('/captures', { page: 1, pageSize: 1 }) as any;
         results.push({
           test: 'API Connection',
           status: 'passed',

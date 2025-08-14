@@ -6,7 +6,7 @@ export function useUserFeeds(projectId?: string | null) {
 
   const feeds = useQuery({
     queryKey: ["user_feeds", { projectId: projectId ?? null }],
-    queryFn: () => listUserFeeds(projectId ?? null),
+    queryFn: () => listUserFeeds({ projectId: projectId || undefined }),
   });
 
   const addFeed = useMutation({
@@ -15,7 +15,7 @@ export function useUserFeeds(projectId?: string | null) {
   });
 
   const setActive = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => toggleUserFeedActive(id, isActive),
+    mutationFn: ({ id }: { id: string; isActive?: boolean }) => toggleUserFeedActive(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["user_feeds"] }),
   });
 

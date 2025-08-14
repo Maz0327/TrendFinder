@@ -203,6 +203,37 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Row mapping helper methods
+  private mapCaptureRow(row: any): Capture {
+    return {
+      id: row.id,
+      projectId: row.project_id,
+      userId: row.user_id,
+      title: row.title,
+      content: row.content,
+      url: row.url,
+      platform: row.platform,
+      screenshotUrl: row.screenshot_url,
+      summary: row.summary,
+      tags: row.tags || [],
+      metadata: row.metadata,
+      truthAnalysis: row.truth_analysis,
+      analysisStatus: row.analysis_status,
+      googleAnalysis: row.google_analysis,
+      dsdTags: row.dsd_tags,
+      dsdSection: row.dsd_section,
+      viralScore: row.viral_score,
+      culturalResonance: row.cultural_resonance,
+      prediction: row.prediction,
+      outcome: row.outcome,
+      workspaceNotes: row.workspace_notes,
+      briefSectionAssignment: row.brief_section_assignment,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    } as Capture;
+  }
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
       const result = await this.client.query(
@@ -606,39 +637,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateCapture(id: string, data: Partial<any>): Promise<any | null> {
-    try {
-      const setClause: string[] = [];
-      const values: any[] = [];
-      let paramCount = 1;
 
-      if (data.analysis_status !== undefined) {
-        setClause.push(`analysis_status = $${paramCount++}`);
-        values.push(data.analysis_status);
-      }
-      if (data.tags !== undefined) {
-        setClause.push(`tags = $${paramCount++}`);
-        values.push(data.tags);
-      }
-
-      if (setClause.length === 0) return null;
-
-      setClause.push(`updated_at = NOW()`);
-      values.push(id);
-
-      const result = await this.client.query(`
-        UPDATE captures 
-        SET ${setClause.join(', ')}
-        WHERE id = $${paramCount}
-        RETURNING *
-      `, values);
-
-      return result.rows.length > 0 ? this.mapCaptureRow(result.rows[0]) : null;
-    } catch (error) {
-      console.error("❌ Error updating capture:", error);
-      return null;
-    }
-  }
 
   async listMoments(): Promise<any[]> {
     try {
