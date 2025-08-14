@@ -1,81 +1,93 @@
-import { Express } from "express";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { Express, Request, Response } from "express";
 import { storage } from "../storage";
-import { z } from "zod";
+import { mapMoment } from "../lib/mappers";
+import { getUserFromRequest } from "./auth";
 
-const createMomentSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().optional(),
-  intensity: z.number().min(1).max(5),
-  platforms: z.array(z.string()),
-  demographics: z.array(z.string()),
-  duration: z.enum(["fleeting", "short", "sustained", "long"]),
-});
-
-const updateMomentSchema = createMomentSchema.partial();
-
-export function registerMomentRoutes(app: Express) {
-  app.get("/api/moments", requireAuth, async (req: AuthedRequest, res) => {
+export function registerMomentsRoutes(app: Express) {
+  
+  // Get moments with filtering
+  app.get('/api/moments', async (req: Request, res: Response) => {
     try {
-      const userId = req.user.id;
-      const projectId = req.query.projectId as string | undefined;
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
 
-      const moments = await storage.getCulturalMoments();
+      const {
+        projectId,
+        q: search,
+        tags: tagsParam
+      } = req.query;
 
-      res.json(moments);
-    } catch (error: any) {
-      console.error("Error fetching moments:", error);
-      res.status(500).json({ error: "Failed to fetch moments" });
-    }
-  });
+      // Parse tags parameter
+      const tags = typeof tagsParam === 'string' 
+        ? tagsParam.split(',').filter(Boolean) 
+        : [];
 
-  app.post("/api/moments", requireAuth, async (req: AuthedRequest, res) => {
-    try {
-      const userId = req.user.id;
-      const data = createMomentSchema.parse(req.body);
+      // Get all moments (storage doesn't have project filtering for moments yet)
+      const allMoments = await storage.listMoments();
 
-      const moment = await storage.createCulturalMoment({
-        ...data,
-        user_id: userId,
+      let filteredMoments = allMoments.filter(moment => {
+        // Tags filter (ANY match)
+        if (tags.length > 0) {
+          const momentTags = Array.isArray(moment.tags) ? moment.tags : [];
+          const hasMatchingTag = tags.some(tag => momentTags.includes(tag));
+          if (!hasMatchingTag) {
+            return false;
+          }
+        }
+
+        // Search filter
+        if (search) {
+          const searchLower = (search as string).toLowerCase();
+          const titleMatch = moment.title.toLowerCase().includes(searchLower);
+          const descMatch = moment.description.toLowerCase().includes(searchLower);
+          if (!titleMatch && !descMatch) {
+            return false;
+          }
+        }
+
+        return true;
       });
 
-      res.json(moment);
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ error: "Invalid request data", details: error.errors });
-      }
-      console.error("Error creating moment:", error);
-      res.status(500).json({ error: "Failed to create moment" });
+      const momentDTOs = filteredMoments.map(mapMoment);
+
+      res.json(momentDTOs);
+    } catch (error) {
+      console.error('Moments list error:', error);
+      res.status(500).json({ error: 'Failed to fetch moments' });
     }
   });
 
-  app.patch("/api/moments/:id", requireAuth, async (req: AuthedRequest, res) => {
+  // Update moment (optional for now)
+  app.patch('/api/moments/:id', async (req: Request, res: Response) => {
     try {
-      const userId = req.user.id;
-      const momentId = req.params.id;
-      const data = updateMomentSchema.parse(req.body);
-
-      const moment = await storage.updateCulturalMoment(momentId, data);
-      res.json(moment);
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
       }
-      console.error("Error updating moment:", error);
-      res.status(500).json({ error: "Failed to update moment" });
-    }
-  });
 
-  app.delete("/api/moments/:id", requireAuth, async (req: AuthedRequest, res) => {
-    try {
-      const userId = req.user.id;
-      const momentId = req.params.id;
+      const { id } = req.params;
+      const { tags } = req.body;
 
-      // Note: deleteCulturalMoment method needs to be added to storage interface
-      res.status(501).json({ error: "Delete not implemented yet" });
-    } catch (error: any) {
-      console.error("Error deleting moment:", error);
-      res.status(500).json({ error: "Failed to delete moment" });
+      const updateData: any = {};
+      
+      if (Array.isArray(tags)) {
+        updateData.tags = tags;
+      }
+
+      updateData.updated_at = new Date().toISOString();
+
+      const moment = await storage.updateMoment(id, updateData);
+      
+      if (!moment) {
+        return res.status(404).json({ error: 'Moment not found' });
+      }
+
+      res.json(mapMoment(moment));
+    } catch (error) {
+      console.error('Moment update error:', error);
+      res.status(500).json({ error: 'Failed to update moment' });
     }
   });
 }

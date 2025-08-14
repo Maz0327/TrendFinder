@@ -26,8 +26,14 @@ import { startDbWorker } from "./jobs/worker";
 import jobsRouter from "./routes/jobs";
 import { enqueue, getJob } from "./jobs/inMemoryQueue";
 
-import { capturesRouter } from "./routes/captures";
+import { registerCapturesRoutes } from "./routes/captures";
 import { extensionRouter } from "./routes/extension";
+import { registerAuthRoutes } from "./routes/auth";
+import { registerProjectsRoutes } from "./routes/projects";
+import { registerMomentsRoutes } from "./routes/moments";
+import { registerBriefsRoutes } from "./routes/briefs";
+import { registerFeedsRoutes } from "./routes/feeds";
+import { registerExportJobsRoutes } from "./routes/export-jobs";
 import { logger } from "./logger";
 import { requestId } from "./middleware/requestId";
 import { httpLogger } from "./middleware/httpLogger";
@@ -35,10 +41,7 @@ import aiRouter from "./routes/ai";
 import brightDataRouter from "./routes/brightData";
 import intelligenceRouter from "./routes/intelligence";
 import contentRouter from "./routes/content";
-import { registerProjectRoutes } from "./routes/projects";
-import { registerBriefRoutes } from "./routes/briefs";
-import { registerMomentRoutes } from "./routes/moments";
-import { registerFeedRoutes } from "./routes/feeds";
+// These are handled by the new API routes above
 import { registerGoogleExportRoutes } from "./routes/google-export";
 import googleExportsRouter from "./routes/google-exports";
 import { setupSettingsRoutes } from "./routes/settings";
@@ -114,7 +117,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   startDbWorker();
 
   // Mount modular routers
-  app.use("/api", capturesRouter);
+  // Register all API routes
+  registerAuthRoutes(app);
+  registerProjectsRoutes(app);
+  registerCapturesRoutes(app);
+  registerMomentsRoutes(app);
+  registerBriefsRoutes(app);
+  registerFeedsRoutes(app);
+  registerExportJobsRoutes(app);
+  
+  // Legacy routes
   app.use("/api", extensionRouter);
   app.use("/api", aiRouter);
   app.use("/api", brightDataRouter);
@@ -126,8 +138,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   logger.info("Mounted captures and extension routers");
 
   // Mount all API sub-routers under /api
-  const { buildApiRouter } = await import("./routes/index");
-  app.use("/api", buildApiRouter());
+  // Temporarily disabled to avoid import conflicts  
+  // const { buildApiRouter } = await import("./routes/index");
+  // app.use("/api", buildApiRouter());
 
   // Health check routes
   app.get("/health", healthCheckEndpoint);
@@ -369,10 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAnnotationsRoutes(app);
   
   // Register project and brief routes
-  registerProjectRoutes(app);
-  registerBriefRoutes(app);
-  registerMomentRoutes(app);
-  registerFeedRoutes(app);
+  // Legacy route registration - now handled by new API routes above
   registerGoogleExportRoutes(app);
   setupAnalyticsRoutes(app);
   setupSearchRoutes(app);

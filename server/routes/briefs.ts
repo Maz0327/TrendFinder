@@ -1,290 +1,184 @@
-import type { Express } from "express";
+import { Express, Request, Response } from "express";
 import { storage } from "../storage";
-import { insertBriefSchema } from "@shared/supabase-schema";
-import { z } from "zod";
-import fs from "fs/promises";
-import path from "path";
+import { mapBrief, mapBriefDetail, validateSlidesJson } from "../lib/mappers";
+import { getUserFromRequest } from "./auth";
+import type { BriefDetail } from "../types/dto";
 
-export function registerBriefRoutes(app: Express) {
-  // Get all briefs for a project
-  app.get("/api/briefs", async (req, res) => {
+export function registerBriefsRoutes(app: Express) {
+  
+  // Get briefs list
+  app.get('/api/briefs', async (req: Request, res: Response) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
       }
-      
-      const { projectId } = req.query;
-      if (!projectId) {
-        return res.status(400).json({ error: "Project ID required" });
-      }
-      
-      const briefs = await storage.getBriefs(projectId as string);
-      res.json(briefs);
-    } catch (error) {
-      console.error("Failed to fetch briefs:", error);
-      res.status(500).json({ error: "Failed to fetch briefs" });
-    }
-  });
 
-  // Get single brief
-  app.get("/api/briefs/:id", async (req, res) => {
-    try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-      
-      const brief = await storage.getDsdBriefById(req.params.id);
-      if (!brief) {
-        return res.status(404).json({ error: "Brief not found" });
-      }
-      
-      res.json(brief);
+      const {
+        projectId,
+        q: search,
+        tags: tagsParam
+      } = req.query;
+
+      // Parse tags parameter
+      const tags = typeof tagsParam === 'string' 
+        ? tagsParam.split(',').filter(Boolean) 
+        : [];
+
+      // Get all briefs for user
+      const allBriefs = await storage.listBriefs(user.id);
+
+      let filteredBriefs = allBriefs.filter(brief => {
+        // Project filter
+        if (projectId && brief.client_profile_id !== projectId) {
+          return false;
+        }
+
+        // Tags filter (ANY match)
+        if (tags.length > 0) {
+          const briefTags = Array.isArray(brief.tags) ? brief.tags : [];
+          const hasMatchingTag = tags.some(tag => briefTags.includes(tag));
+          if (!hasMatchingTag) {
+            return false;
+          }
+        }
+
+        // Search filter
+        if (search) {
+          const searchLower = (search as string).toLowerCase();
+          const titleMatch = brief.title.toLowerCase().includes(searchLower);
+          if (!titleMatch) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      const briefDTOs = filteredBriefs.map(mapBrief);
+
+      res.json(briefDTOs);
     } catch (error) {
-      console.error("Failed to fetch brief:", error);
-      res.status(500).json({ error: "Failed to fetch brief" });
+      console.error('Briefs list error:', error);
+      res.status(500).json({ error: 'Failed to fetch briefs' });
     }
   });
 
   // Create new brief
-  app.post("/api/briefs", async (req, res) => {
+  app.post('/api/briefs', async (req: Request, res: Response) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
       }
-      
-      const validatedData = insertBriefSchema.parse(req.body);
-      
-      // Verify project ownership
-      const project = await storage.getProjectById(validatedData.projectId);
-      if (!project || project.userId !== req.session.user.id) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      
-      const brief = await storage.createBrief(validatedData);
-      res.json(brief);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
-      }
-      console.error("Failed to create brief:", error);
-      res.status(500).json({ error: "Failed to create brief" });
-    }
-  });
 
-  // Update brief
-  app.patch("/api/briefs/:id", async (req, res) => {
-    try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const { projectId, title } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: 'Brief title is required' });
       }
-      
-      const brief = await storage.getDsdBriefById(req.params.id);
-      if (!brief) {
-        return res.status(404).json({ error: "Brief not found" });
-      }
-      
-      // Verify project ownership
-      const project = await storage.getProjectById(brief.projectId);
-      if (!project || project.userId !== req.session.user.id) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      
-      const updatedBrief = await storage.updateDsdBrief(req.params.id, req.body);
-      res.json(updatedBrief);
-    } catch (error) {
-      console.error("Failed to update brief:", error);
-      res.status(500).json({ error: "Failed to update brief" });
-    }
-  });
 
-  // Generate brief content with AI
-  app.post("/api/briefs/generate", async (req, res) => {
-    try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-      
-      const { projectId, title, description, sections, captures } = req.body;
-      
-      // Verify project ownership
-      const project = await storage.getProjectById(projectId);
-      if (!project || project.userId !== req.session.user.id) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      
-      // Build AI prompt based on Jimmy John's format
-      const prompt = buildBriefPrompt(title, description, sections, captures);
-      
-      // Call OpenAI to generate content
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-5",
-          messages: [
-            {
-              role: "system",
-              content: "You are a strategic creative brief writer who follows the Jimmy John's brief format. Generate compelling brief content based on the captures and insights provided. Focus on clear, actionable insights that drive creative strategy."
-            },
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000
-        })
+      const brief = await storage.createBrief({
+        user_id: user.id,
+        client_profile_id: projectId || null,
+        title,
+        status: 'draft',
+        slides: [],
+        tags: []
       });
-      
-      if (!response.ok) {
-        throw new Error("AI generation failed");
-      }
-      
-      const result = await response.json();
-      const generatedContent = JSON.parse(result.choices[0].message.content);
-      
-      // Merge AI-generated content with existing sections
-      const enhancedSections = mergeSectionsWithAI(sections, generatedContent);
-      
-      res.json({ sections: enhancedSections });
+
+      res.status(201).json(mapBrief(brief));
     } catch (error) {
-      console.error("Failed to generate brief:", error);
-      res.status(500).json({ error: "Failed to generate brief content" });
+      console.error('Brief creation error:', error);
+      res.status(500).json({ error: 'Failed to create brief' });
     }
   });
 
-  // Export brief
-  app.post("/api/briefs/export", async (req, res) => {
+  // Get brief detail with slides
+  app.get('/api/briefs/:id', async (req: Request, res: Response) => {
     try {
-      if (!req.session?.user?.id) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
       }
+
+      const { id } = req.params;
+      const brief = await storage.getBrief(id);
       
-      const { format, title, description, sections, captures } = req.body;
-      
-      let exportData: Buffer;
-      let contentType: string;
-      let extension: string;
-      
-      switch (format) {
-        case 'markdown':
-          exportData = Buffer.from(generateMarkdown(title, description, sections, captures));
-          contentType = 'text/markdown';
-          extension = 'md';
-          break;
-          
-        case 'pdf':
-          // TODO: Implement PDF generation using puppeteer or similar
-          exportData = Buffer.from(generateMarkdown(title, description, sections, captures));
-          contentType = 'application/pdf';
-          extension = 'pdf';
-          break;
-          
-        case 'slides':
-          // TODO: Implement slides generation
-          exportData = Buffer.from(generateMarkdown(title, description, sections, captures));
-          contentType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-          extension = 'pptx';
-          break;
-          
-        default:
-          return res.status(400).json({ error: "Invalid export format" });
+      if (!brief || brief.user_id !== user.id) {
+        return res.status(404).json({ error: 'Brief not found' });
       }
-      
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${title.replace(/\s+/g, '-')}.${extension}"`);
-      res.send(exportData);
+
+      res.json(mapBriefDetail(brief));
     } catch (error) {
-      console.error("Failed to export brief:", error);
-      res.status(500).json({ error: "Failed to export brief" });
+      console.error('Brief detail error:', error);
+      res.status(500).json({ error: 'Failed to fetch brief' });
     }
   });
-}
 
-function buildBriefPrompt(title: string, description: string, sections: any, captures: any[]) {
-  const captureInsights = captures.map(c => ({
-    title: c.title,
-    content: c.content,
-    truthAnalysis: c.truthAnalysis,
-    platform: c.platform
-  }));
-  
-  return `
-Create a strategic brief titled "${title}" with the following context:
-${description}
-
-Based on these captures and insights:
-${JSON.stringify(captureInsights, null, 2)}
-
-Generate content for each section following the Jimmy John's brief format:
-1. Performance - Key metrics and results that matter
-2. Cultural Signals - Emerging cultural trends and behaviors
-3. Platform Signals - Platform-specific trends and features
-4. Opportunities - Strategic opportunities to pursue
-5. Cohorts - Target audience segments
-6. Ideation - Creative concepts and ideas
-
-Current section drafts:
-${JSON.stringify(sections, null, 2)}
-
-Please enhance and complete each section with strategic insights drawn from the captures. Return as JSON with the same structure.
-`;
-}
-
-function mergeSectionsWithAI(currentSections: any, aiGenerated: any) {
-  const merged: any = {};
-  
-  for (const [key, section] of Object.entries(currentSections)) {
-    merged[key] = {
-      ...section as any,
-      content: aiGenerated[key]?.content || (section as any).content || ""
-    };
-  }
-  
-  return merged;
-}
-
-function generateMarkdown(title: string, description: string, sections: any, captures: any[]) {
-  let markdown = `# ${title}\n\n`;
-  
-  if (description) {
-    markdown += `${description}\n\n---\n\n`;
-  }
-  
-  const sectionOrder = ['performance', 'cultural-signals', 'platform-signals', 'opportunities', 'cohorts', 'ideation'];
-  const sectionTitles: Record<string, string> = {
-    'performance': '## Performance',
-    'cultural-signals': '## Cultural Signals',
-    'platform-signals': '## Platform Signals',
-    'opportunities': '## Opportunities',
-    'cohorts': '## Cohorts',
-    'ideation': '## Ideation'
-  };
-  
-  for (const sectionKey of sectionOrder) {
-    const section = sections[sectionKey];
-    if (section && section.content) {
-      markdown += `${sectionTitles[sectionKey]}\n\n${section.content}\n\n`;
-      
-      // Add related captures
-      if (section.captures && section.captures.length > 0) {
-        markdown += `### Supporting Evidence\n\n`;
-        for (const captureId of section.captures) {
-          const capture = captures.find(c => c.id === captureId);
-          if (capture) {
-            markdown += `- **${capture.title}** (${capture.platform || 'Web'})\n`;
-            if (capture.truthAnalysis?.humanTruth) {
-              markdown += `  - Truth: ${capture.truthAnalysis.humanTruth}\n`;
-            }
-          }
-        }
-        markdown += '\n';
+  // Update brief metadata
+  app.patch('/api/briefs/:id', async (req: Request, res: Response) => {
+    try {
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
       }
+
+      const { id } = req.params;
+      const { title, status, tags } = req.body;
+
+      const updateData: any = {};
+      
+      if (title) updateData.title = title;
+      if (status) updateData.status = status;
+      if (Array.isArray(tags)) updateData.tags = tags;
+      
+      updateData.updated_at = new Date().toISOString();
+
+      const brief = await storage.updateBrief(id, updateData);
+      
+      if (!brief) {
+        return res.status(404).json({ error: 'Brief not found' });
+      }
+
+      res.json(mapBrief(brief));
+    } catch (error) {
+      console.error('Brief update error:', error);
+      res.status(500).json({ error: 'Failed to update brief' });
     }
-  }
-  
-  return markdown;
+  });
+
+  // Save full brief detail (replace slides atomically)
+  app.post('/api/briefs/:id/save', async (req: Request, res: Response) => {
+    try {
+      const user = getUserFromRequest(req);
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const { id } = req.params;
+      const briefData = req.body as BriefDetail;
+
+      // Validate slides
+      const validatedSlides = validateSlidesJson(briefData.slides);
+
+      const updateData: any = {
+        title: briefData.title,
+        status: briefData.status || 'draft',
+        tags: Array.isArray(briefData.tags) ? briefData.tags : [],
+        slides: validatedSlides,
+        updated_at: new Date().toISOString()
+      };
+
+      const brief = await storage.updateBrief(id, updateData);
+      
+      if (!brief) {
+        return res.status(404).json({ error: 'Brief not found' });
+      }
+
+      res.json(mapBriefDetail(brief));
+    } catch (error) {
+      console.error('Brief save error:', error);
+      res.status(500).json({ error: 'Failed to save brief' });
+    }
+  });
 }

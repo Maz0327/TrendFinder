@@ -581,6 +581,357 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Additional methods for new API routes
+  async listProjects(userId: string): Promise<Project[]> {
+    return this.getProjects(userId);
+  }
+
+  async listCaptures(userId: string, options?: { project_id?: string }): Promise<Capture[]> {
+    try {
+      let query = 'SELECT * FROM captures WHERE user_id = $1';
+      let params = [userId];
+      
+      if (options?.project_id) {
+        query += ' AND project_id = $2';
+        params.push(options.project_id);
+      }
+      
+      query += ' ORDER BY created_at DESC';
+      
+      const result = await this.client.query(query, params);
+      return result.rows.map(row => this.mapCaptureRow(row));
+    } catch (error) {
+      console.error("❌ Error listing captures:", error);
+      return [];
+    }
+  }
+
+  async updateCapture(id: string, data: Partial<any>): Promise<any | null> {
+    try {
+      const setClause: string[] = [];
+      const values: any[] = [];
+      let paramCount = 1;
+
+      if (data.analysis_status !== undefined) {
+        setClause.push(`analysis_status = $${paramCount++}`);
+        values.push(data.analysis_status);
+      }
+      if (data.tags !== undefined) {
+        setClause.push(`tags = $${paramCount++}`);
+        values.push(data.tags);
+      }
+
+      if (setClause.length === 0) return null;
+
+      setClause.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const result = await this.client.query(`
+        UPDATE captures 
+        SET ${setClause.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING *
+      `, values);
+
+      return result.rows.length > 0 ? this.mapCaptureRow(result.rows[0]) : null;
+    } catch (error) {
+      console.error("❌ Error updating capture:", error);
+      return null;
+    }
+  }
+
+  async listMoments(): Promise<any[]> {
+    try {
+      const result = await this.client.query('SELECT * FROM cultural_moments ORDER BY created_at DESC');
+      return result.rows.map(row => ({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        intensity: row.intensity,
+        tags: row.tags || [],
+        platforms: row.platforms || [],
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      }));
+    } catch (error) {
+      console.error("❌ Error listing moments:", error);
+      return [];
+    }
+  }
+
+  async updateMoment(id: string, data: Partial<any>): Promise<any | null> {
+    try {
+      const setClause: string[] = [];
+      const values: any[] = [];
+      let paramCount = 1;
+
+      if (data.tags !== undefined) {
+        setClause.push(`tags = $${paramCount++}`);
+        values.push(data.tags);
+      }
+
+      if (setClause.length === 0) return null;
+
+      setClause.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const result = await this.client.query(`
+        UPDATE cultural_moments 
+        SET ${setClause.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING *
+      `, values);
+
+      if (result.rows.length === 0) return null;
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        intensity: row.intensity,
+        tags: row.tags || [],
+        platforms: row.platforms || [],
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error updating moment:", error);
+      return null;
+    }
+  }
+
+  async listBriefs(userId: string): Promise<any[]> {
+    try {
+      const result = await this.client.query('SELECT * FROM dsd_briefs WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+      return result.rows.map(row => ({
+        id: row.id,
+        user_id: row.user_id,
+        client_profile_id: row.client_profile_id,
+        title: row.title,
+        status: row.status,
+        slides: row.slides || [],
+        tags: row.tags || [],
+        define_section: row.define_section,
+        shift_section: row.shift_section,
+        deliver_section: row.deliver_section,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      }));
+    } catch (error) {
+      console.error("❌ Error listing briefs:", error);
+      return [];
+    }
+  }
+
+  async getBrief(id: string): Promise<any | null> {
+    try {
+      const result = await this.client.query('SELECT * FROM dsd_briefs WHERE id = $1', [id]);
+      if (result.rows.length === 0) return null;
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        client_profile_id: row.client_profile_id,
+        title: row.title,
+        status: row.status,
+        slides: row.slides || [],
+        tags: row.tags || [],
+        define_section: row.define_section,
+        shift_section: row.shift_section,
+        deliver_section: row.deliver_section,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error getting brief:", error);
+      return null;
+    }
+  }
+
+  async updateBrief(id: string, data: Partial<any>): Promise<any | null> {
+    try {
+      const setClause: string[] = [];
+      const values: any[] = [];
+      let paramCount = 1;
+
+      if (data.title !== undefined) {
+        setClause.push(`title = $${paramCount++}`);
+        values.push(data.title);
+      }
+      if (data.status !== undefined) {
+        setClause.push(`status = $${paramCount++}`);
+        values.push(data.status);
+      }
+      if (data.tags !== undefined) {
+        setClause.push(`tags = $${paramCount++}`);
+        values.push(data.tags);
+      }
+      if (data.slides !== undefined) {
+        setClause.push(`slides = $${paramCount++}`);
+        values.push(JSON.stringify(data.slides));
+      }
+
+      if (setClause.length === 0) return null;
+
+      setClause.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const result = await this.client.query(`
+        UPDATE dsd_briefs 
+        SET ${setClause.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING *
+      `, values);
+
+      if (result.rows.length === 0) return null;
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        client_profile_id: row.client_profile_id,
+        title: row.title,
+        status: row.status,
+        slides: row.slides || [],
+        tags: row.tags || [],
+        define_section: row.define_section,
+        shift_section: row.shift_section,
+        deliver_section: row.deliver_section,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error updating brief:", error);
+      return null;
+    }
+  }
+
+  async listUserFeeds(userId: string, options?: { project_id?: string }): Promise<any[]> {
+    try {
+      let query = 'SELECT * FROM user_feeds WHERE user_id = $1';
+      let params = [userId];
+      
+      if (options?.project_id) {
+        query += ' AND project_id = $2';
+        params.push(options.project_id);
+      }
+      
+      query += ' ORDER BY created_at DESC';
+      
+      const result = await this.client.query(query, params);
+      return result.rows.map(row => ({
+        id: row.id,
+        user_id: row.user_id,
+        project_id: row.project_id,
+        feed_url: row.feed_url,
+        title: row.title,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      }));
+    } catch (error) {
+      console.error("❌ Error listing user feeds:", error);
+      return [];
+    }
+  }
+
+  async getUserFeed(id: string): Promise<any | null> {
+    try {
+      const result = await this.client.query('SELECT * FROM user_feeds WHERE id = $1', [id]);
+      if (result.rows.length === 0) return null;
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        project_id: row.project_id,
+        feed_url: row.feed_url,
+        title: row.title,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error getting user feed:", error);
+      return null;
+    }
+  }
+
+  async createUserFeed(data: any): Promise<any> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO user_feeds (id, user_id, project_id, feed_url, title, is_active, created_at, updated_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW())
+        RETURNING *
+      `, [data.user_id, data.project_id, data.feed_url, data.title, data.is_active]);
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        project_id: row.project_id,
+        feed_url: row.feed_url,
+        title: row.title,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error creating user feed:", error);
+      throw error;
+    }
+  }
+
+  async updateUserFeed(id: string, data: Partial<any>): Promise<any | null> {
+    try {
+      const setClause: string[] = [];
+      const values: any[] = [];
+      let paramCount = 1;
+
+      if (data.is_active !== undefined) {
+        setClause.push(`is_active = $${paramCount++}`);
+        values.push(data.is_active);
+      }
+
+      if (setClause.length === 0) return null;
+
+      setClause.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const result = await this.client.query(`
+        UPDATE user_feeds 
+        SET ${setClause.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING *
+      `, values);
+
+      if (result.rows.length === 0) return null;
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        project_id: row.project_id,
+        feed_url: row.feed_url,
+        title: row.title,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error updating user feed:", error);
+      return null;
+    }
+  }
+
+  async deleteUserFeed(id: string): Promise<void> {
+    try {
+      await this.client.query('DELETE FROM user_feeds WHERE id = $1', [id]);
+    } catch (error) {
+      console.error("❌ Error deleting user feed:", error);
+      throw error;
+    }
+  }
+
   // Capture Management
   async getCaptures(projectId: string): Promise<Capture[]> {
     try {

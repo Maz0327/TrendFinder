@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { registerProjectRoutes } from "./projects";
-import { registerBriefRoutes } from "./briefs";
+// Brief routes now handled by main server/routes.ts
 import googleExportsRouter from "./google-exports";
 import { setupSettingsRoutes } from "./settings";
 import { setupAnnotationsRoutes } from "./annotations";
