@@ -36,8 +36,28 @@ app.use(requestSizeLimit); // Request size validation
 app.use(validateContentType(['application/json', 'application/x-www-form-urlencoded']));
 app.use('/api/', apiRateLimit); // Rate limiting for API routes
 
-// CORS for Chrome Extension
+// Enhanced CORS configuration for Replit/Bolt origins
 import cors from 'cors';
+
+const allow = [
+  process.env.VITE_SITE_URL,                 // e.g., https://workspace.XXX.repl.co
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://localhost:5173",
+  "https://127.0.0.1:5173"
+];
+
+// Global CORS for API routes
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (allow.some(a => a && origin.startsWith(a))) return cb(null, true);
+    return cb(null, false);
+  },
+  credentials: true,
+}));
+
+// Additional CORS for Chrome Extension
 app.use('/api/extension/', cors({
   origin: ['chrome-extension://*', 'moz-extension://*'],
   credentials: true,

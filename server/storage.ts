@@ -932,6 +932,519 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Enhanced storage methods for new API routes
+
+  async listCapturesWithPagination(params: {
+    userId: string;
+    projectId?: string;
+    platform?: string;
+    q?: string;
+    tags?: string[];
+    page: number;
+    pageSize: number;
+  }): Promise<{ rows: any[], total: number }> {
+    try {
+      let query = 'SELECT * FROM captures WHERE user_id = $1';
+      let countQuery = 'SELECT COUNT(*) FROM captures WHERE user_id = $1';
+      const values: any[] = [params.userId];
+      let paramCount = 1;
+
+      if (params.projectId) {
+        query += ` AND project_id = $${++paramCount}`;
+        countQuery += ` AND project_id = $${paramCount}`;
+        values.push(params.projectId);
+      }
+
+      if (params.platform) {
+        query += ` AND platform = $${++paramCount}`;
+        countQuery += ` AND platform = $${paramCount}`;
+        values.push(params.platform);
+      }
+
+      if (params.q) {
+        query += ` AND (title ILIKE $${++paramCount} OR content ILIKE $${paramCount})`;
+        countQuery += ` AND (title ILIKE $${paramCount} OR content ILIKE $${paramCount})`;
+        values.push(`%${params.q}%`);
+      }
+
+      if (params.tags && params.tags.length > 0) {
+        query += ` AND tags @> $${++paramCount}`;
+        countQuery += ` AND tags @> $${paramCount}`;
+        values.push(params.tags);
+      }
+
+      // Get total count
+      const countResult = await this.client.query(countQuery, values);
+      const total = parseInt(countResult.rows[0].count);
+
+      // Add pagination
+      query += ` ORDER BY created_at DESC LIMIT $${++paramCount} OFFSET $${++paramCount}`;
+      values.push(params.pageSize, (params.page - 1) * params.pageSize);
+
+      const result = await this.client.query(query, values);
+      const rows = result.rows.map(row => this.mapCaptureRow(row));
+
+      return { rows, total };
+    } catch (error) {
+      console.error("❌ Error in listCapturesWithPagination:", error);
+      return { rows: [], total: 0 };
+    }
+  }
+
+  async updateCaptureTags(params: {
+    id: string;
+    userId: string;
+    add: string[];
+    remove: string[];
+  }): Promise<any> {
+    try {
+      // First get current tags
+      const current = await this.client.query(
+        'SELECT tags FROM captures WHERE id = $1 AND user_id = $2',
+        [params.id, params.userId]
+      );
+
+      if (current.rows.length === 0) {
+        throw new Error('Capture not found');
+      }
+
+      let currentTags: string[] = current.rows[0].tags || [];
+      
+      // Remove tags
+      if (params.remove.length > 0) {
+        currentTags = currentTags.filter(tag => !params.remove.includes(tag));
+      }
+
+      // Add new tags (avoid duplicates)
+      if (params.add.length > 0) {
+        const newTags = params.add.filter(tag => !currentTags.includes(tag));
+        currentTags = [...currentTags, ...newTags];
+      }
+
+      // Update
+      const result = await this.client.query(
+        'UPDATE captures SET tags = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3 RETURNING *',
+        [currentTags, params.id, params.userId]
+      );
+
+      return result.rows.length > 0 ? this.mapCaptureRow(result.rows[0]) : null;
+    } catch (error) {
+      console.error("❌ Error updating capture tags:", error);
+      throw error;
+    }
+  }
+
+  async listBriefsWithPagination(params: {
+    userId: string;
+    projectId?: string;
+    q?: string;
+    tags?: string[];
+    page: number;
+    pageSize: number;
+  }): Promise<{ rows: any[], total: number }> {
+    try {
+      let query = 'SELECT * FROM dsd_briefs WHERE user_id = $1';
+      let countQuery = 'SELECT COUNT(*) FROM dsd_briefs WHERE user_id = $1';
+      const values: any[] = [params.userId];
+      let paramCount = 1;
+
+      if (params.projectId) {
+        query += ` AND client_profile_id = $${++paramCount}`;
+        countQuery += ` AND client_profile_id = $${paramCount}`;
+        values.push(params.projectId);
+      }
+
+      if (params.q) {
+        query += ` AND title ILIKE $${++paramCount}`;
+        countQuery += ` AND title ILIKE $${paramCount}`;
+        values.push(`%${params.q}%`);
+      }
+
+      if (params.tags && params.tags.length > 0) {
+        query += ` AND tags @> $${++paramCount}`;
+        countQuery += ` AND tags @> $${paramCount}`;
+        values.push(params.tags);
+      }
+
+      // Get total count
+      const countResult = await this.client.query(countQuery, values);
+      const total = parseInt(countResult.rows[0].count);
+
+      // Add pagination
+      query += ` ORDER BY created_at DESC LIMIT $${++paramCount} OFFSET $${++paramCount}`;
+      values.push(params.pageSize, (params.page - 1) * params.pageSize);
+
+      const result = await this.client.query(query, values);
+      const rows = result.rows.map(row => ({
+        id: row.id,
+        user_id: row.user_id,
+        client_profile_id: row.client_profile_id,
+        title: row.title,
+        status: row.status,
+        tags: row.tags || [],
+        slides: row.slides || [],
+        define_section: row.define_section,
+        shift_section: row.shift_section,
+        deliver_section: row.deliver_section,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      }));
+
+      return { rows, total };
+    } catch (error) {
+      console.error("❌ Error in listBriefsWithPagination:", error);
+      return { rows: [], total: 0 };
+    }
+  }
+
+  async getBriefWithDetails(params: { id: string; userId: string }): Promise<any | null> {
+    try {
+      const result = await this.client.query(
+        'SELECT * FROM dsd_briefs WHERE id = $1 AND user_id = $2',
+        [params.id, params.userId]
+      );
+
+      if (result.rows.length === 0) return null;
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        client_profile_id: row.client_profile_id,
+        title: row.title,
+        status: row.status,
+        tags: row.tags || [],
+        slides: row.slides || [],
+        define_section: row.define_section,
+        shift_section: row.shift_section,
+        deliver_section: row.deliver_section,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error getting brief with details:", error);
+      return null;
+    }
+  }
+
+  async createBriefWithSections(params: any): Promise<any> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO dsd_briefs (id, user_id, client_profile_id, title, status, tags, define_section, shift_section, deliver_section, created_at, updated_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        RETURNING *
+      `, [
+        params.userId,
+        params.projectId || null,
+        params.title,
+        'draft',
+        params.tags || [],
+        params.define_section || {},
+        params.shift_section || {},
+        params.deliver_section || {}
+      ]);
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        client_profile_id: row.client_profile_id,
+        title: row.title,
+        status: row.status,
+        tags: row.tags || [],
+        slides: row.slides || [],
+        define_section: row.define_section,
+        shift_section: row.shift_section,
+        deliver_section: row.deliver_section,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error creating brief with sections:", error);
+      throw error;
+    }
+  }
+
+  async updateBriefWithSections(params: { id: string; userId: string; patch: any }): Promise<any | null> {
+    try {
+      const setClause: string[] = [];
+      const values: any[] = [];
+      let paramCount = 0;
+
+      if (params.patch.title !== undefined) {
+        setClause.push(`title = $${++paramCount}`);
+        values.push(params.patch.title);
+      }
+      if (params.patch.status !== undefined) {
+        setClause.push(`status = $${++paramCount}`);
+        values.push(params.patch.status);
+      }
+      if (params.patch.tags !== undefined) {
+        setClause.push(`tags = $${++paramCount}`);
+        values.push(params.patch.tags);
+      }
+      if (params.patch.define_section !== undefined) {
+        setClause.push(`define_section = $${++paramCount}`);
+        values.push(JSON.stringify(params.patch.define_section));
+      }
+      if (params.patch.shift_section !== undefined) {
+        setClause.push(`shift_section = $${++paramCount}`);
+        values.push(JSON.stringify(params.patch.shift_section));
+      }
+      if (params.patch.deliver_section !== undefined) {
+        setClause.push(`deliver_section = $${++paramCount}`);
+        values.push(JSON.stringify(params.patch.deliver_section));
+      }
+
+      if (setClause.length === 0) return null;
+
+      setClause.push(`updated_at = NOW()`);
+      values.push(params.id, params.userId);
+
+      const result = await this.client.query(`
+        UPDATE dsd_briefs 
+        SET ${setClause.join(', ')}
+        WHERE id = $${++paramCount} AND user_id = $${++paramCount}
+        RETURNING *
+      `, values);
+
+      if (result.rows.length === 0) return null;
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        client_profile_id: row.client_profile_id,
+        title: row.title,
+        status: row.status,
+        tags: row.tags || [],
+        slides: row.slides || [],
+        define_section: row.define_section,
+        shift_section: row.shift_section,
+        deliver_section: row.deliver_section,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error updating brief with sections:", error);
+      return null;
+    }
+  }
+
+  async updateBriefTags(params: { id: string; userId: string; add: string[]; remove: string[] }): Promise<any | null> {
+    try {
+      // Get current tags
+      const current = await this.client.query(
+        'SELECT tags FROM dsd_briefs WHERE id = $1 AND user_id = $2',
+        [params.id, params.userId]
+      );
+
+      if (current.rows.length === 0) return null;
+
+      let currentTags: string[] = current.rows[0].tags || [];
+      
+      // Remove tags
+      if (params.remove.length > 0) {
+        currentTags = currentTags.filter(tag => !params.remove.includes(tag));
+      }
+
+      // Add new tags (avoid duplicates)  
+      if (params.add.length > 0) {
+        const newTags = params.add.filter(tag => !currentTags.includes(tag));
+        currentTags = [...currentTags, ...newTags];
+      }
+
+      // Update
+      const result = await this.client.query(
+        'UPDATE dsd_briefs SET tags = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3 RETURNING *',
+        [currentTags, params.id, params.userId]
+      );
+
+      if (result.rows.length === 0) return null;
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        client_profile_id: row.client_profile_id,
+        title: row.title,
+        status: row.status,
+        tags: row.tags || [],
+        slides: row.slides || [],
+        define_section: row.define_section,
+        shift_section: row.shift_section,
+        deliver_section: row.deliver_section,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error updating brief tags:", error);
+      return null;
+    }
+  }
+
+  async listMomentsWithPagination(params: {
+    userId?: string;
+    projectId?: string;
+    q?: string;
+    page: number;
+    pageSize: number;
+  }): Promise<{ rows: any[], total: number }> {
+    try {
+      let query = 'SELECT * FROM cultural_moments WHERE 1=1';
+      let countQuery = 'SELECT COUNT(*) FROM cultural_moments WHERE 1=1';
+      const values: any[] = [];
+      let paramCount = 0;
+
+      if (params.q) {
+        query += ` AND (title ILIKE $${++paramCount} OR description ILIKE $${paramCount})`;
+        countQuery += ` AND (title ILIKE $${paramCount} OR description ILIKE $${paramCount})`;
+        values.push(`%${params.q}%`);
+      }
+
+      // Get total count
+      const countResult = await this.client.query(countQuery, values);
+      const total = parseInt(countResult.rows[0].count);
+
+      // Add pagination
+      query += ` ORDER BY created_at DESC LIMIT $${++paramCount} OFFSET $${++paramCount}`;
+      values.push(params.pageSize, (params.page - 1) * params.pageSize);
+
+      const result = await this.client.query(query, values);
+      const rows = result.rows.map(row => ({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        intensity: row.intensity,
+        tags: row.tags || [],
+        platforms: row.platforms || [],
+        demographics: row.demographics || [],
+        duration: row.duration,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      }));
+
+      return { rows, total };
+    } catch (error) {
+      console.error("❌ Error in listMomentsWithPagination:", error);
+      return { rows: [], total: 0 };
+    }
+  }
+
+  async createMomentWithDetails(params: any): Promise<any> {
+    try {
+      const result = await this.client.query(`
+        INSERT INTO cultural_moments (id, title, description, intensity, platforms, demographics, duration, tags, created_at, updated_at)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        RETURNING *
+      `, [
+        params.title,
+        params.description,
+        params.intensity,
+        params.platforms || [],
+        params.demographics || [],
+        params.duration || null,
+        params.tags || []
+      ]);
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        intensity: row.intensity,
+        tags: row.tags || [],
+        platforms: row.platforms || [],
+        demographics: row.demographics || [],
+        duration: row.duration,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error creating moment with details:", error);
+      throw error;
+    }
+  }
+
+  async listUserFeedsForProject(params: { userId: string; projectId?: string }): Promise<any[]> {
+    try {
+      let query = 'SELECT * FROM user_feeds WHERE user_id = $1';
+      const values = [params.userId];
+
+      if (params.projectId) {
+        query += ' AND project_id = $2';
+        values.push(params.projectId);
+      }
+
+      query += ' ORDER BY created_at DESC';
+
+      const result = await this.client.query(query, values);
+      return result.rows.map(row => ({
+        id: row.id,
+        user_id: row.user_id,
+        project_id: row.project_id,
+        feed_url: row.feed_url,
+        title: row.title,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      }));
+    } catch (error) {
+      console.error("❌ Error listing user feeds for project:", error);
+      return [];
+    }
+  }
+
+  async createUserFeedWithValidation(params: any): Promise<any> {
+    return this.createUserFeed(params);
+  }
+
+  async toggleUserFeedStatus(params: { id: string; userId: string }): Promise<any> {
+    try {
+      const result = await this.client.query(`
+        UPDATE user_feeds 
+        SET is_active = NOT is_active, updated_at = NOW()
+        WHERE id = $1 AND user_id = $2
+        RETURNING *
+      `, [params.id, params.userId]);
+
+      if (result.rows.length === 0) {
+        throw new Error('Feed not found');
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        project_id: row.project_id,
+        feed_url: row.feed_url,
+        title: row.title,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+    } catch (error) {
+      console.error("❌ Error toggling user feed status:", error);
+      throw error;
+    }
+  }
+
+  async deleteUserFeedWithValidation(params: { id: string; userId: string }): Promise<void> {
+    try {
+      const result = await this.client.query(
+        'DELETE FROM user_feeds WHERE id = $1 AND user_id = $2',
+        [params.id, params.userId]
+      );
+
+      if (result.rowCount === 0) {
+        throw new Error('Feed not found or access denied');
+      }
+    } catch (error) {
+      console.error("❌ Error deleting user feed with validation:", error);
+      throw error;
+    }
+  }
+
   // Capture Management
   async getCaptures(projectId: string): Promise<Capture[]> {
     try {

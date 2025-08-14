@@ -7,19 +7,24 @@ type CaptureUpdate = Database["public"]["Tables"]["captures"]["Update"];
 
 export async function listCaptures(params?: {
   projectId?: string;
-  status?: string;
   platform?: string;
-  tag?: string;
-  search?: string;
+  q?: string; // renamed from 'search' to match server API
+  tags?: string[]; // enhanced to support multiple tags
   page?: number;
   pageSize?: number;
 }) {
   const qp = new URLSearchParams();
-  Object.entries(params || {}).forEach(([k, v]) => {
-    if (v !== undefined && v !== null && `${v}` !== "") qp.set(k, String(v));
-  });
+  if (params?.projectId) qp.set("projectId", params.projectId);
+  if (params?.platform) qp.set("platform", params.platform);
+  if (params?.q) qp.set("q", params.q);
+  if (params?.tags && params.tags.length > 0) qp.set("tags", params.tags.join(","));
+  if (params?.page) qp.set("page", params.page.toString());
+  if (params?.pageSize) qp.set("pageSize", params.pageSize.toString());
+  
   const q = qp.toString() ? `?${qp.toString()}` : "";
-  return apiGet<{ items: Capture[]; total: number }>(`/captures${q}`);
+  // Updated to handle new server response format: { rows, total, page, pageSize }
+  const response = await apiGet<{ rows: Capture[]; total: number; page: number; pageSize: number }>(`/captures${q}`);
+  return { items: response.rows, total: response.total, page: response.page, pageSize: response.pageSize };
 }
 
 export async function createCapture(payload: Omit<CaptureInsert, "user_id">) {

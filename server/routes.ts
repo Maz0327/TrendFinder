@@ -26,13 +26,14 @@ import { startDbWorker } from "./jobs/worker";
 import jobsRouter from "./routes/jobs";
 import { enqueue, getJob } from "./jobs/inMemoryQueue";
 
-import { registerCapturesRoutes } from "./routes/captures";
+// Legacy route functions - temporarily commented to avoid conflicts with new API routers
+// import { registerCapturesRoutes } from "./routes/captures";
 import { extensionRouter } from "./routes/extension";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerProjectsRoutes } from "./routes/projects";
-import { registerMomentsRoutes } from "./routes/moments";
-import { registerBriefsRoutes } from "./routes/briefs";
-import { registerFeedsRoutes } from "./routes/feeds";
+// import { registerMomentsRoutes } from "./routes/moments";
+// import { registerBriefsRoutes } from "./routes/briefs";
+// import { registerFeedsRoutes } from "./routes/feeds";
 import { registerExportJobsRoutes } from "./routes/export-jobs";
 import { logger } from "./logger";
 import { requestId } from "./middleware/requestId";
@@ -117,14 +118,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   startDbWorker();
 
   // Mount modular routers
-  // Register all API routes
+  // Register legacy API routes (non-conflicting ones)
   registerAuthRoutes(app);
   registerProjectsRoutes(app);
-  registerCapturesRoutes(app);
-  registerMomentsRoutes(app);
-  registerBriefsRoutes(app);
-  registerFeedsRoutes(app);
   registerExportJobsRoutes(app);
+
+  // Import and mount new comprehensive API routes that replace the legacy ones
+  const capturesRouter = (await import("./routes/captures")).default;
+  const briefsRouter = (await import("./routes/briefs")).default;
+  const momentsRouter = (await import("./routes/moments")).default;
+  const feedsRouter = (await import("./routes/feeds")).default;
+
+  app.use("/api/captures", capturesRouter);
+  app.use("/api/briefs", briefsRouter);
+  app.use("/api/moments", momentsRouter);
+  app.use("/api/feeds", feedsRouter);
   
   // Legacy routes
   app.use("/api", extensionRouter);

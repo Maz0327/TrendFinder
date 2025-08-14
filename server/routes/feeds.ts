@@ -1,115 +1,67 @@
-import { Express, Request, Response } from "express";
+import { Router } from "express";
+import { requireAuth } from "../middleware/supabase-auth";
+import { z } from "zod";
 import { storage } from "../storage";
-import { mapFeed } from "../lib/mappers";
-import { getUserFromRequest } from "./auth";
 
-export function registerFeedsRoutes(app: Express) {
+const r = Router();
+r.use(requireAuth);
+
+// GET /api/feeds?projectId=
+r.get("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const { projectId } = req.query as Record<string,string>;
   
-  // Get feeds
-  app.get('/api/feeds', async (req: Request, res: Response) => {
-    try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
+  try {
+    const rows = await storage.listUserFeedsForProject({ userId, projectId });
+    res.json(rows);
+  } catch (error) {
+    console.error("Error listing feeds:", error);
+    res.status(500).json({ error: "Failed to list feeds" });
+  }
+});
 
-      const { projectId } = req.query;
+// POST /api/feeds { feed_url, title?, projectId? }
+r.post("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const body = z.object({
+    feed_url: z.string().url(),
+    title: z.string().optional(),
+    projectId: z.string().uuid().nullable().optional()
+  }).parse(req.body);
+  
+  try {
+    const row = await storage.createUserFeedWithValidation({ userId, ...body });
+    res.status(201).json(row);
+  } catch (error) {
+    console.error("Error creating feed:", error);
+    res.status(500).json({ error: "Failed to create feed" });
+  }
+});
 
-      const feeds = await storage.listUserFeeds(user.id, {
-        project_id: projectId as string || undefined
-      });
+// PATCH /api/feeds/:id/toggle
+r.patch("/:id/toggle", async (req, res) => {
+  const userId = (req as any).user.id;
+  
+  try {
+    const row = await storage.toggleUserFeedStatus({ id: req.params.id, userId });
+    res.json(row);
+  } catch (error) {
+    console.error("Error toggling feed:", error);
+    res.status(500).json({ error: "Failed to toggle feed" });
+  }
+});
 
-      const feedDTOs = feeds.map(mapFeed);
+// DELETE /api/feeds/:id
+r.delete("/:id", async (req, res) => {
+  const userId = (req as any).user.id;
+  
+  try {
+    await storage.deleteUserFeedWithValidation({ id: req.params.id, userId });
+    res.status(204).end();
+  } catch (error) {
+    console.error("Error deleting feed:", error);
+    res.status(500).json({ error: "Failed to delete feed" });
+  }
+});
 
-      res.json(feedDTOs);
-    } catch (error) {
-      console.error('Feeds list error:', error);
-      res.status(500).json({ error: 'Failed to fetch feeds' });
-    }
-  });
-
-  // Create new feed
-  app.post('/api/feeds', async (req: Request, res: Response) => {
-    try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
-
-      const { feedUrl, title, projectId } = req.body;
-      if (!feedUrl) {
-        return res.status(400).json({ error: 'Feed URL is required' });
-      }
-
-      const feed = await storage.createUserFeed({
-        user_id: user.id,
-        project_id: projectId || null,
-        feed_url: feedUrl,
-        title: title || null,
-        is_active: true
-      });
-
-      res.status(201).json(mapFeed(feed));
-    } catch (error) {
-      console.error('Feed creation error:', error);
-      res.status(500).json({ error: 'Failed to create feed' });
-    }
-  });
-
-  // Toggle feed active status
-  app.patch('/api/feeds/:id/toggle', async (req: Request, res: Response) => {
-    try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
-
-      const { id } = req.params;
-      
-      // Get current feed to check ownership and current status
-      const currentFeed = await storage.getUserFeed(id);
-      if (!currentFeed || currentFeed.user_id !== user.id) {
-        return res.status(404).json({ error: 'Feed not found' });
-      }
-
-      const feed = await storage.updateUserFeed(id, {
-        is_active: !currentFeed.is_active,
-        updated_at: new Date().toISOString()
-      });
-
-      if (!feed) {
-        return res.status(404).json({ error: 'Feed not found' });
-      }
-
-      res.json(mapFeed(feed));
-    } catch (error) {
-      console.error('Feed toggle error:', error);
-      res.status(500).json({ error: 'Failed to toggle feed' });
-    }
-  });
-
-  // Delete feed
-  app.delete('/api/feeds/:id', async (req: Request, res: Response) => {
-    try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
-
-      const { id } = req.params;
-      
-      // Check ownership before deletion
-      const currentFeed = await storage.getUserFeed(id);
-      if (!currentFeed || currentFeed.user_id !== user.id) {
-        return res.status(404).json({ error: 'Feed not found' });
-      }
-
-      await storage.deleteUserFeed(id);
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Feed deletion error:', error);
-      res.status(500).json({ error: 'Failed to delete feed' });
-    }
-  });
-}
+export default r;

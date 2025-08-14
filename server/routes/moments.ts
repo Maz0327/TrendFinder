@@ -1,93 +1,47 @@
-import { Express, Request, Response } from "express";
+import { Router } from "express";
+import { requireAuth } from "../middleware/supabase-auth";
+import { z } from "zod";
 import { storage } from "../storage";
-import { mapMoment } from "../lib/mappers";
-import { getUserFromRequest } from "./auth";
 
-export function registerMomentsRoutes(app: Express) {
+const r = Router();
+r.use(requireAuth);
+
+// GET /api/moments?projectId=&q=&page=&pageSize=
+r.get("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const { projectId, q, page="1", pageSize="20" } = req.query as Record<string,string>;
   
-  // Get moments with filtering
-  app.get('/api/moments', async (req: Request, res: Response) => {
-    try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
+  try {
+    const result = await storage.listMomentsWithPagination({ 
+      userId, projectId, q, page:+page, pageSize:+pageSize 
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("Error listing moments:", error);
+    res.status(500).json({ error: "Failed to list moments" });
+  }
+});
 
-      const {
-        projectId,
-        q: search,
-        tags: tagsParam
-      } = req.query;
+// POST /api/moments { title, description, intensity, platforms?, demographics?, duration?, projectId? }
+r.post("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const body = z.object({
+    title: z.string().min(1),
+    description: z.string().min(1),
+    intensity: z.number().int().min(0).max(100),
+    platforms: z.array(z.string()).optional(),
+    demographics: z.array(z.string()).optional(),
+    duration: z.string().optional(),
+    projectId: z.string().uuid().nullable().optional(),
+  }).parse(req.body);
+  
+  try {
+    const moment = await storage.createMomentWithDetails({ userId, ...body });
+    res.status(201).json(moment);
+  } catch (error) {
+    console.error("Error creating moment:", error);
+    res.status(500).json({ error: "Failed to create moment" });
+  }
+});
 
-      // Parse tags parameter
-      const tags = typeof tagsParam === 'string' 
-        ? tagsParam.split(',').filter(Boolean) 
-        : [];
-
-      // Get all moments (storage doesn't have project filtering for moments yet)
-      const allMoments = await storage.listMoments();
-
-      let filteredMoments = allMoments.filter(moment => {
-        // Tags filter (ANY match)
-        if (tags.length > 0) {
-          const momentTags = Array.isArray(moment.tags) ? moment.tags : [];
-          const hasMatchingTag = tags.some(tag => momentTags.includes(tag));
-          if (!hasMatchingTag) {
-            return false;
-          }
-        }
-
-        // Search filter
-        if (search) {
-          const searchLower = (search as string).toLowerCase();
-          const titleMatch = moment.title.toLowerCase().includes(searchLower);
-          const descMatch = moment.description.toLowerCase().includes(searchLower);
-          if (!titleMatch && !descMatch) {
-            return false;
-          }
-        }
-
-        return true;
-      });
-
-      const momentDTOs = filteredMoments.map(mapMoment);
-
-      res.json(momentDTOs);
-    } catch (error) {
-      console.error('Moments list error:', error);
-      res.status(500).json({ error: 'Failed to fetch moments' });
-    }
-  });
-
-  // Update moment (optional for now)
-  app.patch('/api/moments/:id', async (req: Request, res: Response) => {
-    try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
-
-      const { id } = req.params;
-      const { tags } = req.body;
-
-      const updateData: any = {};
-      
-      if (Array.isArray(tags)) {
-        updateData.tags = tags;
-      }
-
-      updateData.updated_at = new Date().toISOString();
-
-      const moment = await storage.updateMoment(id, updateData);
-      
-      if (!moment) {
-        return res.status(404).json({ error: 'Moment not found' });
-      }
-
-      res.json(mapMoment(moment));
-    } catch (error) {
-      console.error('Moment update error:', error);
-      res.status(500).json({ error: 'Failed to update moment' });
-    }
-  });
-}
+export default r;
