@@ -40,6 +40,9 @@ class SmokeTest {
     // Extension API
     await this.testExtensionAPI();
     
+    // Brief Canvas API
+    await this.testBriefCanvasAPI();
+    
     this.printResults();
   }
 
@@ -223,6 +226,47 @@ class SmokeTest {
       
       const data = await response.json();
       return `Extension API working (status: ${data.status})`;
+    });
+  }
+
+  private async testBriefCanvasAPI(): Promise<void> {
+    await this.test('Brief Canvas - Blocks API', async () => {
+      const testBriefId = 'test-brief-id';
+      const response = await fetch(`${API_BASE}/briefs/${testBriefId}/blocks`);
+      
+      if (response.status === 401) {
+        return 'Brief blocks API protected (auth required)';
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Brief blocks API failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return `Brief blocks API working (${data.data?.length || 0} blocks)`;
+    });
+
+    await this.test('Brief Canvas - Upload API', async () => {
+      const response = await fetch(`${API_BASE}/uploads/brief-asset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brief_id: 'test-brief-id',
+          kind: 'image',
+          filename: 'test.png',
+          contentType: 'image/png'
+        })
+      });
+      
+      if (response.status === 401) {
+        return 'Upload API protected (auth required)';
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Upload API failed: ${response.status}`);
+      }
+      
+      return 'Upload API working (signed URL generation)';
     });
   }
 

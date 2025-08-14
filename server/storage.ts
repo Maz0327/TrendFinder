@@ -3493,4 +3493,35 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
+// Brief assets interface
+export interface BriefAssetRecord {
+  id?: string;
+  brief_id: string;
+  kind: 'image' | 'video' | 'graphic';
+  storage_path: string;
+  width?: number;
+  height?: number;
+  mime?: string;
+  meta?: any;
+}
+
+export async function recordBriefAsset(db: any, asset: BriefAssetRecord) {
+  // db is the postgres client or supabase client
+  const { data, error } = await db
+    .from('brief_assets')
+    .insert({
+      brief_id: asset.brief_id,
+      kind: asset.kind,
+      storage_path: asset.storage_path,
+      width: asset.width ?? null,
+      height: asset.height ?? null,
+      mime: asset.mime ?? null,
+      meta: asset.meta ?? {}
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export const storage = new DatabaseStorage();

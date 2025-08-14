@@ -51,6 +51,8 @@ import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupSearchRoutes } from "./routes/search";
 import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
 import { productionMonitor } from "./monitoring/productionMonitor";
+import briefBlocksRouter from "./routes/brief-blocks";
+import uploadsRouter from "./routes/uploads";
 
 // Initialize AI services
 const liveBrightData = new LiveBrightDataService();
@@ -110,9 +112,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/bright-data", publicLimiter);
   app.use("/api/ai", publicLimiter);
 
-  // Add content sanitization middleware
+  // Add content sanitization middleware only to API routes that process user input
   const { sanitizeInput } = await import("./middleware/sanitization");
-  app.use(sanitizeInput);
+  app.use("/api", sanitizeInput);
 
   // Start durable DB-backed worker
   startDbWorker();
@@ -141,6 +143,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", intelligenceRouter);
   app.use("/api", contentRouter);
   app.use("/api", jobsRouter);
+  // Brief Canvas routers (fixed auth middleware)
+  app.use(briefBlocksRouter);
+  app.use(uploadsRouter);
 
   // example log on startup
   logger.info("Mounted captures and extension routers");
