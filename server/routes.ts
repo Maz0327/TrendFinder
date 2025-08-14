@@ -154,6 +154,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Media Analysis router
   const mediaAnalysisRouter = (await import("./routes/media-analysis")).default;
   app.use("/api/analysis", mediaAnalysisRouter);
+  
+  // Capture Analysis router (Task Block #5)
+  const analysisRouter = (await import("./routes/analysis")).default;
+  app.use("/api", analysisRouter);
 
   // example log on startup
   logger.info("Mounted captures and extension routers");

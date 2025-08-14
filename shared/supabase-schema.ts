@@ -618,3 +618,34 @@ export type ScanHistory = typeof scanHistory.$inferSelect;
 export type InsertScanHistory = z.infer<typeof insertScanHistorySchema>;
 
 export type UserSession = typeof userSessions.$inferSelect;
+
+// 18. Capture Analyses table - Store per-capture analysis snapshots
+export const captureAnalyses = pgTable("capture_analyses", {
+  id: uuid("id").primaryKey().default(sql`uuid_generate_v4()`),
+  captureId: uuid("capture_id").notNull().references(() => captures.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(), // 'google' | 'openai' | 'mock'
+  mode: text("mode").notNull(), // 'sync' | 'deep'
+  status: text("status").notNull().default("completed"), // 'queued' | 'processing' | 'completed' | 'failed'
+  summary: text("summary"),
+  labels: jsonb("labels").default('[]').$type<Array<{ name: string; conf?: number; source?: string }>>(),
+  ocr: jsonb("ocr").default('[]').$type<Array<{ text: string; bbox?: any; conf?: number }>>(),
+  transcript: text("transcript"), // for videos (ASR)
+  keyframes: jsonb("keyframes").default('[]').$type<Array<{ ts: number; url: string }>>(),
+  raw: jsonb("raw"), // raw provider response (trimmed)
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  captureIdx: index("idx_capture_analyses_capture_id").on(table.captureId),
+  createdAtIdx: index("idx_capture_analyses_created_at").on(table.createdAt),
+  statusIdx: index("idx_capture_analyses_status").on(table.status),
+  providerIdx: index("idx_capture_analyses_provider").on(table.provider),
+}));
+
+// Schema and type exports for capture analyses
+export const insertCaptureAnalysisSchema = createInsertSchema(captureAnalyses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CaptureAnalysis = typeof captureAnalyses.$inferSelect;
+export type InsertCaptureAnalysis = z.infer<typeof insertCaptureAnalysisSchema>;

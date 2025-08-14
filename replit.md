@@ -7,7 +7,19 @@ This project is a Strategic Intelligence platform utilizing the DSD Signal Drop 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
-**August 14, 2025 - Media Analysis Pipeline Activated & System Stabilization Complete**
+**August 14, 2025 - Task Block #5 Complete: Capture ↔️ Media Analysis Integration**
+- **Capture Analyses Table**: Created capture_analyses schema in shared/supabase-schema.ts with proper TypeScript types and validation ✅
+- **Database Migration**: Applied capture_analyses table with RLS policies, indexes, and proper foreign key relationships ✅
+- **Analysis Service Layer**: Implemented server/services/analysisService.ts with upload-and-analyze, re-analyze, and status endpoints ✅
+- **Auto-Tagging Engine**: Created analysis-tag-map service with semantic tag mapping and noise filtering ✅
+- **API Route Integration**: Registered /api/captures/upload-and-analyze and related analysis endpoints in routes.ts ✅
+- **File Upload Support**: Multer integration with 50MB limit and Supabase Storage "media" bucket integration ✅
+- **Sync vs Deep Analysis**: Mode selection based on file size (≤5MB sync, >5MB queued) with proper job tracking ✅
+- **TypeScript Resolution**: All analysis service TypeScript errors resolved, clean compilation achieved ✅
+- **Smoke Test Infrastructure**: Created scripts/smoke-analysis.ts for end-to-end workflow verification ✅
+- **Complete Integration**: Captures → Analysis → Auto-tagging → Storage workflow fully operational ✅
+
+**Previous - Media Analysis Pipeline Activated & System Stabilization Complete**
 - **Media Analysis Pipeline Live**: Google Gemini provider configured, background workers enabled, 5MB sync limit active ✅
 - **Health Check Results**: All three verification tests passing - GET /health (200), sync analysis (200), queued analysis (202) ✅  
 - **Environment Configuration**: MEDIA_PROVIDER=google, ENABLE_WORKERS=true, SUPABASE_STORAGE_BUCKET=media, AUTO_TAG_FROM_ANALYSIS=true, ANALYSIS_MAX_SYNC_IMAGE_BYTES=5242880 ✅
