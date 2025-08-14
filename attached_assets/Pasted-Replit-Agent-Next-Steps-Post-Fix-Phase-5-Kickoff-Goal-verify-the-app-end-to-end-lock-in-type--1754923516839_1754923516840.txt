@@ -1,0 +1,121 @@
+Replit Agent — Next Steps (Post-Fix, Phase 5 Kickoff)
+Goal: verify the app end-to-end, lock in type-safety, and scaffold Phase 5 features behind flags—without breaking prod.
+
+1) Clean status + quick smoke
+Run:
+
+bash
+Copy
+Edit
+npx tsc --noEmit && npm run build
+Start the dev server and confirm it boots:
+
+bash
+Copy
+Edit
+npm run dev --silent >/dev/null 2>&1 & sleep 5; lsof -i -P -n | grep LISTEN | head -n 5 || true
+Create a tiny smoke script:
+
+bash
+Copy
+Edit
+node -e "console.log('SMOKE_OK')"
+2) Supabase types + lint consistency
+Ensure all imports reference the consolidated types file (@shared/database.types), not supabase.generated.ts.
+
+Run:
+
+bash
+Copy
+Edit
+npm run lint || true
+npm run format || true
+3) Verify DB connectivity from app code
+Run a minimal runtime check (read-only):
+
+bash
+Copy
+Edit
+node - <<'EOF'
+const { createClient } = require('@supabase/supabase-js');
+const url = process.env.VITE_SUPABASE_URL;
+const anon = process.env.VITE_SUPABASE_ANON_KEY;
+(async () => {
+  const supabase = createClient(url, anon);
+  const { data, error } = await supabase.from('captures').select('id').limit(1);
+  if (error) { console.error('DB_CHECK_FAIL', error.message); process.exit(1); }
+  console.log('DB_CHECK_OK', data?.length ?? 0);
+})();
+EOF
+4) Seed minimal demo data (idempotent)
+Create scripts/seed-minimal.ts if it doesn’t exist, inserting only if empty:
+
+one captures row,
+
+one cultural_moments row,
+
+one dsd_briefs row (with user_id linked to an existing users.id or a stub).
+
+Run:
+
+bash
+Copy
+Edit
+node scripts/seed-minimal.ts
+5) Feature flags for Phase 5
+Add a tiny flag module at client/src/flags.ts:
+
+ts
+Copy
+Edit
+export const FLAGS = {
+  PHASE5_CAPTURE_ASSIST: true,
+  PHASE5_MOMENTS_RADAR: true,
+  PHASE5_BRIEF_V2: true,
+} as const;
+Guard any new UI with these flags.
+
+6) Scaffold Phase 5 UI (safe, no breaking changes)
+Create non-disruptive routes/pages (or components if routes exist):
+
+client/src/pages/moments-radar.tsx – list of cultural_moments (title, intensity, updated_at), realtime subscribe.
+
+client/src/pages/brief-builder-v2.tsx – reads/writes dsd_briefs (title, status, define_section/shift_section/deliver_section), shows linked captures (read-only for now).
+
+client/src/pages/captures-inbox.tsx – paginated captures, basic filters (platform, tag includes), add “Open Source” button linking to url.
+
+Wire them to Supabase using existing @shared/database.types. Use existing hook patterns from useCaptures/useBriefs/useMoments. Do not break existing pages or routes.
+
+7) Realtime wiring sanity
+Ensure client/src/services/supabase-realtime.ts subscribes to captures, cultural_moments, dsd_briefs changes.
+
+Add toast/log on insert/update to confirm events arrive.
+
+8) Basic scripts & CI sanity
+Add script aliases if missing:
+
+bash
+Copy
+Edit
+npm pkg set scripts.typecheck="tsc --noEmit"
+npm pkg set scripts.verify="npm run typecheck && npm run lint && npm run build"
+Run:
+
+bash
+Copy
+Edit
+npm run verify
+9) Output a short status report
+Print:
+
+Typecheck PASS/FAIL
+
+Build PASS/FAIL
+
+Count of rows in captures, cultural_moments, dsd_briefs
+
+List of new routes created
+
+Any TODOs or blockers
+
+End of instructions.

@@ -1,0 +1,424 @@
+awesome — since you’ve finished step 1 & 2 (verification + creating projects), here’s the next precise sequence for the Replit agent to execute so we wire this into the app cleanly, keep it secure, and get ready for the UI work.
+
+I’ll write this as a single, copy-pasteable Replit Agent brief.
+
+⸻
+
+Replit Agent Task: Wire up projects + user_feeds end-to-end
+
+0) Preconditions
+	•	Do not change existing tables. Only add policies/types/code below.
+	•	Keep using @shared/database.types for TS types (we’re not relying on CLI codegen yet).
+
+⸻
+
+1) Add RLS Policies (SQL)
+
+Run in Supabase SQL Editor exactly as-is:
+
+-- Enable Row Level Security
+alter table public.projects enable row level security;
+alter table public.user_feeds enable row level security;
+
+-- Projects: owner-only access
+drop policy if exists projects_select_own on public.projects;
+create policy projects_select_own
+on public.projects
+for select
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists projects_modify_own on public.projects;
+create policy projects_modify_own
+on public.projects
+for all
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+-- User Feeds: owner-only access
+drop policy if exists user_feeds_select_own on public.user_feeds;
+create policy user_feeds_select_own
+on public.user_feeds
+for select
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists user_feeds_insert_own on public.user_feeds;
+create policy user_feeds_insert_own
+on public.user_feeds
+for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists user_feeds_update_own on public.user_feeds;
+create policy user_feeds_update_own
+on public.user_feeds
+for update
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+drop policy if exists user_feeds_delete_own on public.user_feeds;
+create policy user_feeds_delete_own
+on public.user_feeds
+for delete
+to authenticated
+using (user_id = auth.uid());
+
+Confirm there are no SQL errors.
+
+⸻
+
+2) Update shared TS types (don’t rely on CLI codegen)
+
+Open shared/database.types.ts and merge in these table defs (add if missing):
+
+// append within Database.public.Tables
+
+projects: {
+  Row: {
+    id: string
+    user_id: string
+    name: string
+    description: string | null
+    created_at: string
+    updated_at: string
+  }
+  Insert: {
+    id?: string
+    user_id: string
+    name: string
+    description?: string | null
+    created_at?: string
+    updated_at?: string
+  }
+  Update: {
+    id?: string
+    user_id?: string
+    name?: string
+    description?: string | null
+    created_at?: string
+    updated_at?: string
+  }
+}
+
+user_feeds: {
+  Row: {
+    id: string
+    user_id: string
+    project_id: string | null
+    feed_url: string
+    title: string | null
+    is_active: boolean
+    created_at: string
+    updated_at: string
+  }
+  Insert: {
+    id?: string
+    user_id: string
+    project_id?: string | null
+    feed_url: string
+    title?: string | null
+    is_active?: boolean
+    created_at?: string
+    updated_at?: string
+  }
+  Update: {
+    id?: string
+    user_id?: string
+    project_id?: string | null
+    feed_url?: string
+    title?: string | null
+    is_active?: boolean
+    created_at?: string
+    updated_at?: string
+  }
+}
+
+Run:
+
+npm run typecheck
+
+Ensure no TS errors.
+
+⸻
+
+3) Create lightweight Supabase client helpers
+
+Add client/src/services/feeds.ts:
+
+import { supabase } from "@/lib/supabaseClient";
+import type { Database } from "@shared/database.types";
+
+type UserFeed = Database["public"]["Tables"]["user_feeds"]["Row"];
+type InsertUserFeed = Database["public"]["Tables"]["user_feeds"]["Insert"];
+type Project = Database["public"]["Tables"]["projects"]["Row"];
+type InsertProject = Database["public"]["Tables"]["projects"]["Insert"];
+
+export async function listProjects() {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as Project[];
+}
+
+export async function createProject(input: Omit<InsertProject, "user_id">) {
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
+  if (authErr) throw authErr;
+  if (!user) throw new Error("Not authenticated");
+
+  const payload: InsertProject = {
+    user_id: user.id,
+    name: input.name,
+    description: input.description ?? null,
+  };
+
+  const { data, error } = await supabase.from("projects").insert(payload).select("*").single();
+  if (error) throw error;
+  return data as Project;
+}
+
+export async function listUserFeeds(projectId?: string | null) {
+  let query = supabase.from("user_feeds").select("*").order("created_at", { ascending: false });
+  if (projectId) query = query.eq("project_id", projectId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as UserFeed[];
+}
+
+export async function createUserFeed(input: Omit<InsertUserFeed, "user_id">) {
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
+  if (authErr) throw authErr;
+  if (!user) throw new Error("Not authenticated");
+
+  const payload: InsertUserFeed = {
+    user_id: user.id,
+    feed_url: input.feed_url,
+    title: input.title ?? null,
+    project_id: input.project_id ?? null,
+    is_active: input.is_active ?? true,
+  };
+
+  const { data, error } = await supabase.from("user_feeds").insert(payload).select("*").single();
+  if (error) throw error;
+  return data as UserFeed;
+}
+
+export async function toggleUserFeedActive(id: string, isActive: boolean) {
+  const { data, error } = await supabase
+    .from("user_feeds")
+    .update({ is_active: isActive })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as UserFeed;
+}
+
+export async function deleteUserFeed(id: string) {
+  const { error } = await supabase.from("user_feeds").delete().eq("id", id);
+  if (error) throw error;
+}
+
+Run:
+
+npm run typecheck
+
+
+⸻
+
+4) Add minimal UI hooks (headless, no design work yet)
+
+Add client/src/hooks/useProjects.ts:
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createProject, listProjects } from "@/services/feeds";
+
+export function useProjects() {
+  const qc = useQueryClient();
+
+  const projects = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => listProjects(),
+  });
+
+  const addProject = useMutation({
+    mutationFn: createProject,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+
+  return { projects, addProject };
+}
+
+Add client/src/hooks/useUserFeeds.ts:
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createUserFeed, deleteUserFeed, listUserFeeds, toggleUserFeedActive } from "@/services/feeds";
+
+export function useUserFeeds(projectId?: string | null) {
+  const qc = useQueryClient();
+
+  const feeds = useQuery({
+    queryKey: ["user_feeds", { projectId: projectId ?? null }],
+    queryFn: () => listUserFeeds(projectId ?? null),
+  });
+
+  const addFeed = useMutation({
+    mutationFn: createUserFeed,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["user_feeds"] }),
+  });
+
+  const setActive = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => toggleUserFeedActive(id, isActive),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["user_feeds"] }),
+  });
+
+  const removeFeed = useMutation({
+    mutationFn: (id: string) => deleteUserFeed(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["user_feeds"] }),
+  });
+
+  return { feeds, addFeed, setActive, removeFeed };
+}
+
+Run:
+
+npm run typecheck
+
+
+⸻
+
+5) (Optional quick test) Wire a barebones route to prove it works
+
+Create client/src/pages/feeds.tsx:
+
+import { useState } from "react";
+import { useProjects } from "@/hooks/useProjects";
+import { useUserFeeds } from "@/hooks/useUserFeeds";
+
+export default function FeedsPage() {
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const { projects, addProject } = useProjects();
+  const { feeds, addFeed, setActive, removeFeed } = useUserFeeds(selectedProject);
+
+  return (
+    <div className="p-6 text-sm text-neutral-200">
+      <h1 className="text-xl font-bold mb-4">Your Feeds (prototype)</h1>
+
+      <div className="mb-6">
+        <h2 className="font-semibold mb-2">Projects</h2>
+        {projects.isLoading ? "Loading..." : (
+          <ul className="space-y-2">
+            <li>
+              <button className="px-2 py-1 bg-neutral-700 rounded" onClick={() => setSelectedProject(null)}>
+                All Projects
+              </button>
+            </li>
+            {projects.data?.map(p => (
+              <li key={p.id}>
+                <button className={`px-2 py-1 rounded ${selectedProject === p.id ? "bg-blue-600" : "bg-neutral-700"}`}
+                        onClick={() => setSelectedProject(p.id)}>
+                  {p.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-3">
+          <button
+            className="px-3 py-1 bg-green-600 rounded"
+            onClick={() => addProject.mutate({ name: `Project ${Date.now()}`, description: null })}
+          >
+            + Quick Add Project
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="font-semibold mb-2">Feeds</h2>
+        {feeds.isLoading ? "Loading..." : (
+          <ul className="space-y-2">
+            {feeds.data?.map(f => (
+              <li key={f.id} className="flex items-center gap-2">
+                <span className="flex-1">{f.title ?? f.feed_url}</span>
+                <button className="px-2 py-1 bg-neutral-700 rounded"
+                        onClick={() => setActive.mutate({ id: f.id, isActive: !f.is_active })}>
+                  {f.is_active ? "Disable" : "Enable"}
+                </button>
+                <button className="px-2 py-1 bg-red-700 rounded" onClick={() => removeFeed.mutate(f.id)}>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-3 flex gap-2">
+          <button
+            className="px-3 py-1 bg-green-600 rounded"
+            onClick={() => addFeed.mutate({
+              feed_url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+              title: "NYT Home",
+              project_id: selectedProject,
+            })}
+          >
+            + Quick Add NYT
+          </button>
+          <button
+            className="px-3 py-1 bg-green-600 rounded"
+            onClick={() => addFeed.mutate({
+              feed_url: "https://feeds.feedburner.com/TechCrunch/",
+              title: "TechCrunch",
+              project_id: selectedProject,
+            })}
+          >
+            + Quick Add TechCrunch
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+If we’re using a central router, add a temporary route entry (only if routing is already in place). Otherwise skip this step and just keep the page for later UI work.
+
+Run:
+
+npm run typecheck && npm run build
+
+
+⸻
+
+6) Realtime (optional now, safe to skip)
+
+If we want instant updates when feeds/projects change, confirm client/src/services/supabase-realtime.ts subscribes to user_feeds and projects. If not, add two channels for INSERT/UPDATE/DELETE and invalidate React Query caches accordingly. (Leave disabled by default behind a flag.)
+
+⸻
+
+7) Commit
+
+git add -A
+git commit -m "feat(feeds): add projects+user_feeds RLS, types, services, and test page"
+git push origin main
+
+
+⸻
+
+Acceptance criteria
+	•	npm run typecheck → PASS
+	•	npm run build → PASS
+	•	Able to create/list/delete projects in DB via UI services
+	•	Able to create/list/toggle/delete user_feeds (owner-only)
+	•	No changes to existing tables; no regressions
+
+⸻
+
+Once this is done, we’re green to proceed to the Lovable UI work and then Phase 5/6 without schema thrash later.

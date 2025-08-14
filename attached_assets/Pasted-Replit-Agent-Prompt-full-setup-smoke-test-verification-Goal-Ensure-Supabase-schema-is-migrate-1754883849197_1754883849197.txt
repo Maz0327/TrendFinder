@@ -1,0 +1,653 @@
+Replit Agent Prompt (full setup + smoke test + verification)
+Goal: Ensure Supabase schema is migrated (already approved), env keys are loaded, TypeScript types are present, Supabase client is configured, and add a minimal smoke-test UI to verify auth + CRUD for captures, dsd_briefs, and cultural_moments. Then run, verify, and commit.
+
+0) Preflight
+Pull latest repo changes (if applicable).
+
+Ensure Node is >= 18.17. If not, set Node to 20:
+
+Create a file .nvmrc with:
+
+Copy
+Edit
+20
+Use that Node version in the shell.
+
+1) Env check (do not overwrite)
+Confirm the following already exist in the Replit Secrets or .env:
+
+VITE_SUPABASE_URL
+
+VITE_SUPABASE_ANON_KEY
+
+(Optional server/admin tasks only) SUPABASE_SERVICE_ROLE_KEY
+
+If any of the two VITE vars are missing, stop and report.
+
+2) Supabase Types (only create if missing)
+If src/types/supabase.ts exists, leave it untouched.
+
+If it does not exist, create src/types/supabase.ts with the content below:
+
+ts
+Copy
+Edit
+// Database types for Supabase - essential types based on our schema
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      users: {
+        Row: {
+          id: string
+          email: string
+          username: string | null
+          role: string | null
+          onboarding_completed: boolean | null
+          tour_completed: boolean | null
+          progress_data: Json | null
+          google_tokens: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          username?: string | null
+          role?: string | null
+          onboarding_completed?: boolean | null
+          tour_completed?: boolean | null
+          progress_data?: Json | null
+          google_tokens?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          username?: string | null
+          role?: string | null
+          onboarding_completed?: boolean | null
+          tour_completed?: boolean | null
+          progress_data?: Json | null
+          google_tokens?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      captures: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          content: string
+          platform: string | null
+          url: string | null
+          tags: string[] | null
+          viral_score: number | null
+          ai_analysis: Json | null
+          dsd_tags: string[] | null
+          dsd_section: string | null
+          predicted_virality: number | null
+          actual_virality: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          content: string
+          platform?: string | null
+          url?: string | null
+          tags?: string[] | null
+          viral_score?: number | null
+          ai_analysis?: Json | null
+          dsd_tags?: string[] | null
+          dsd_section?: string | null
+          predicted_virality?: number | null
+          actual_virality?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          content?: string
+          platform?: string | null
+          url?: string | null
+          tags?: string[] | null
+          viral_score?: number | null
+          ai_analysis?: Json | null
+          dsd_tags?: string[] | null
+          dsd_section?: string | null
+          predicted_virality?: number | null
+          actual_virality?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      cultural_moments: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          intensity: number
+          platforms: string[] | null
+          demographics: string[] | null
+          duration: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description: string
+          intensity: number
+          platforms?: string[] | null
+          demographics?: string[] | null
+          duration?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          intensity?: number
+          platforms?: string[] | null
+          demographics?: string[] | null
+          duration?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      dsd_briefs: {
+        Row: {
+          id: string
+          user_id: string
+          client_profile_id: string | null
+          title: string
+          status: string | null
+          define_section: Json | null
+          shift_section: Json | null
+          deliver_section: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          client_profile_id?: string | null
+          title: string
+          status?: string | null
+          define_section?: Json | null
+          shift_section?: Json | null
+          deliver_section?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          client_profile_id?: string | null
+          title?: string
+          status?: string | null
+          define_section?: Json | null
+          shift_section?: Json | null
+          deliver_section?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+  }
+}
+If Supabase CLI is available later, we can replace this with generated types; for now this file is the source of truth.
+
+3) Supabase client
+Create (or verify) src/lib/supabaseClient.ts with:
+
+ts
+Copy
+Edit
+import { createClient } from "@supabase/supabase-js";
+
+const url = import.meta.env.VITE_SUPABASE_URL;
+const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!url || !anon) {
+  // Helps catch missing env during dev
+  console.warn("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY");
+}
+
+export const supabase = createClient(url!, anon!, {
+  auth: { persistSession: true, autoRefreshToken: true },
+});
+4) tsconfig path alias
+Ensure tsconfig.json contains:
+
+json
+Copy
+Edit
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
+  }
+}
+If not, add it.
+
+5) Vite config sanity (allowedHosts)
+Open vite.config.ts and ensure server.allowedHosts is not set to "all". Use true or leave it out. Example:
+
+ts
+Copy
+Edit
+server: {
+  // ...
+  allowedHosts: true
+}
+6) Install dependencies (only if missing)
+Ensure these are installed (skip if already present):
+
+@supabase/supabase-js
+
+react, react-dom
+
+TypeScript + React types if needed: typescript, @types/react, @types/react-dom
+
+7) Add smoke-test hooks
+Create these three files:
+
+src/hooks/useCaptures.ts
+
+ts
+Copy
+Edit
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import type { Database } from "@/types/supabase";
+
+type CaptureRow = Database["public"]["Tables"]["captures"]["Row"];
+type CaptureInsert = Database["public"]["Tables"]["captures"]["Insert"];
+
+export function useCaptures() {
+  const [data, setData] = useState<CaptureRow[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+
+  const fetchCaptures = useCallback(async () => {
+    setLoading(true); setError(null);
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session) {
+      setLoading(false);
+      setError("Not authenticated");
+      setData(null);
+      return;
+    }
+    const userId = session.session.user.id;
+
+    const { data: rows, error: err } = await supabase
+      .from("captures")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (err) setError(err.message);
+    setData(rows ?? null);
+    setLoading(false);
+  }, []);
+
+  const insertDummy = useCallback(async () => {
+    setLoading(true); setError(null);
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session) {
+      setLoading(false);
+      setError("Not authenticated");
+      return null;
+    }
+    const userId = session.session.user.id;
+
+    const payload: CaptureInsert = {
+      user_id: userId,
+      title: "Test Capture",
+      content: "This is a smoke-test capture",
+      platform: "web",
+      tags: ["test", "smoke"],
+      dsd_tags: ["define"],
+      predicted_virality: 0.42,
+      actual_virality: 0,
+    };
+
+    const { data: rows, error: err } = await supabase
+      .from("captures")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (err) setError(err.message);
+    setLoading(false);
+    return rows ?? null;
+  }, []);
+
+  useEffect(() => { fetchCaptures(); }, [fetchCaptures]);
+
+  return { data, loading, error, fetchCaptures, insertDummy };
+}
+src/hooks/useBriefs.ts
+
+ts
+Copy
+Edit
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import type { Database } from "@/types/supabase";
+
+type BriefRow = Database["public"]["Tables"]["dsd_briefs"]["Row"];
+type BriefInsert = Database["public"]["Tables"]["dsd_briefs"]["Insert"];
+
+export function useBriefs() {
+  const [data, setData] = useState<BriefRow[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+
+  const fetchBriefs = useCallback(async () => {
+    setLoading(true); setError(null);
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session) {
+      setLoading(false);
+      setError("Not authenticated");
+      setData(null);
+      return;
+    }
+    const userId = session.session.user.id;
+
+    const { data: rows, error: err } = await supabase
+      .from("dsd_briefs")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (err) setError(err.message);
+    setData(rows ?? null);
+    setLoading(false);
+  }, []);
+
+  const insertDummy = useCallback(async () => {
+    setLoading(true); setError(null);
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session) {
+      setLoading(false);
+      setError("Not authenticated");
+      return null;
+    }
+    const userId = session.session.user.id;
+
+    const payload: BriefInsert = {
+      user_id: userId,
+      title: "Test DSD Brief",
+      status: "draft",
+      define_section: { bullets: ["who, what, why"] },
+      shift_section: { directions: ["reframe X as Y"] },
+      deliver_section: { outputs: ["IG reels concept", "post copy"] },
+    };
+
+    const { data: row, error: err } = await supabase
+      .from("dsd_briefs")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (err) setError(err.message);
+    setLoading(false);
+    return row ?? null;
+  }, []);
+
+  useEffect(() => { fetchBriefs(); }, [fetchBriefs]);
+
+  return { data, loading, error, fetchBriefs, insertDummy };
+}
+src/hooks/useMoments.ts
+
+ts
+Copy
+Edit
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import type { Database } from "@/types/supabase";
+
+type MomentRow = Database["public"]["Tables"]["cultural_moments"]["Row"];
+type MomentInsert = Database["public"]["Tables"]["cultural_moments"]["Insert"];
+
+export function useMoments() {
+  const [data, setData] = useState<MomentRow[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+
+  const fetchMoments = useCallback(async () => {
+    setLoading(true); setError(null);
+    const { data: rows, error: err } = await supabase
+      .from("cultural_moments")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (err) setError(err.message);
+    setData(rows ?? null);
+    setLoading(false);
+  }, []);
+
+  const insertDummy = useCallback(async () => {
+    setLoading(true); setError(null);
+
+    const payload: MomentInsert = {
+      title: "Test Cultural Moment",
+      description: "A tiny smoke-test moment",
+      intensity: 3,
+      platforms: ["tiktok", "instagram"],
+      demographics: ["Gen Z", "Millennials"],
+      duration: "fleeting",
+    };
+
+    const { data: row, error: err } = await supabase
+      .from("cultural_moments")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (err) setError(err.message);
+    setLoading(false);
+    return row ?? null;
+  }, []);
+
+  useEffect(() => { fetchMoments(); }, [fetchMoments]);
+
+  return { data, loading, error, fetchMoments, insertDummy };
+}
+8) Add the smoke-test page
+Create src/pages/SupabaseSmokeTest.tsx:
+
+tsx
+Copy
+Edit
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useCaptures } from "@/hooks/useCaptures";
+import { useBriefs } from "@/hooks/useBriefs";
+import { useMoments } from "@/hooks/useMoments";
+
+export default function SupabaseSmokeTest() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const { data: captures, loading: cl, error: ce, insertDummy: addCapture, fetchCaptures } = useCaptures();
+  const { data: briefs,   loading: bl, error: be, insertDummy: addBrief,   fetchBriefs }   = useBriefs();
+  const { data: moments,  loading: ml, error: me, insertDummy: addMoment,  fetchMoments }  = useMoments();
+
+  async function signUp() {
+    const { error } = await supabase.auth.signUp({ email, password });
+    alert(error ? `Sign up error: ${error.message}` : "Check your email to confirm.");
+  }
+
+  async function signIn() {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    alert(error ? `Sign in error: ${error.message}` : "Signed in!");
+    if (!error) { fetchCaptures(); fetchBriefs(); }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    alert("Signed out");
+  }
+
+  return (
+    <div style={{ color: "#EAEAEA", background: "#0F1115", minHeight: "100vh", padding: 24, fontFamily: "Inter, system-ui, sans-serif" }}>
+      <h1 style={{ fontSize: 24, marginBottom: 16 }}>Supabase Smoke Test</h1>
+
+      <section style={{ marginBottom: 24, padding: 16, background: "#151822", borderRadius: 12 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 8 }}>Auth</h2>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            placeholder="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ padding: 8, borderRadius: 8, background: "#0F1115", color: "#EAEAEA", border: "1px solid #2A2F3A", minWidth: 220 }}
+          />
+          <input
+            type="password"
+            placeholder="password (min 6)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ padding: 8, borderRadius: 8, background: "#0F1115", color: "#EAEAEA", border: "1px solid #2A2F3A", minWidth: 220 }}
+          />
+          <button onClick={signUp}  style={{ padding: "8px 12px", borderRadius: 8, background: "#3B82F6", border: 0, color: "#fff" }}>Sign Up</button>
+          <button onClick={signIn}  style={{ padding: "8px 12px", borderRadius: 8, background: "#10B981", border: 0, color: "#fff" }}>Sign In</button>
+          <button onClick={signOut} style={{ padding: "8px 12px", borderRadius: 8, background: "#EF4444", border: 0, color: "#fff" }}>Sign Out</button>
+        </div>
+        <p style={{ marginTop: 8, opacity: 0.8 }}>RLS policies require an authenticated user for captures/briefs CRUD.</p>
+      </section>
+
+      <section style={{ marginBottom: 24, padding: 16, background: "#151822", borderRadius: 12 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 8 }}>Captures</h2>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          <button onClick={addCapture}    style={{ padding: "8px 12px", borderRadius: 8, background: "#6366F1", border: 0, color: "#fff" }}>Insert Dummy</button>
+          <button onClick={fetchCaptures} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
+        </div>
+        {cl && <div>Loading…</div>}
+        {ce && <div style={{ color: "#F87171" }}>{ce}</div>}
+        <pre style={{ whiteSpace: "pre-wrap", background: "#0F1115", padding: 12, borderRadius: 8, border: "1px solid #2A2F3A" }}>
+{JSON.stringify(captures ?? [], null, 2)}
+        </pre>
+      </section>
+
+      <section style={{ marginBottom: 24, padding: 16, background: "#151822", borderRadius: 12 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 8 }}>DSD Briefs</h2>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          <button onClick={addBrief}  style={{ padding: "8px 12px", borderRadius: 8, background: "#6366F1", border: 0, color: "#fff" }}>Insert Dummy</button>
+          <button onClick={fetchBriefs} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
+        </div>
+        {bl && <div>Loading…</div>}
+        {be && <div style={{ color: "#F87171" }}>{be}</div>}
+        <pre style={{ whiteSpace: "pre-wrap", background: "#0F1115", padding: 12, borderRadius: 8, border: "1px solid #2A2F3A" }}>
+{JSON.stringify(briefs ?? [], null, 2)}
+        </pre>
+      </section>
+
+      <section style={{ marginBottom: 24, padding: 16, background: "#151822", borderRadius: 12 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 8 }}>Cultural Moments</h2>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          <button onClick={addMoment}  style={{ padding: "8px 12px", borderRadius: 8, background: "#6366F1", border: 0, color: "#fff" }}>Insert Dummy</button>
+          <button onClick={fetchMoments} style={{ padding: "8px 12px", borderRadius: 8, background: "#374151", border: 0, color: "#fff" }}>Refresh</button>
+        </div>
+        {ml && <div>Loading…</div>}
+        {me && <div style={{ color: "#F87171" }}>{me}</div>}
+        <pre style={{ whiteSpace: "pre-wrap", background: "#0F1115", padding: 12, borderRadius: 8, border: "1px solid #2A2F3A" }}>
+{JSON.stringify(moments ?? [], null, 2)}
+        </pre>
+      </section>
+    </div>
+  );
+}
+9) Temporarily mount smoke-test
+Edit src/App.tsx to render the smoke test (do not delete your old app; just replace the default export for now):
+
+tsx
+Copy
+Edit
+import SupabaseSmokeTest from "@/pages/SupabaseSmokeTest";
+
+export default function App() {
+  return <SupabaseSmokeTest />;
+}
+10) Typecheck and run
+Typecheck:
+
+bash
+Copy
+Edit
+npx tsc --noEmit
+Dev server:
+
+bash
+Copy
+Edit
+npm run dev
+11) Manual verification (in the running app)
+In the Auth block, enter an email + password (≥6 chars).
+
+Sign Up (confirm email if required in Supabase Auth; or temporarily disable confirmations).
+
+Sign In.
+
+Under Captures, click Insert Dummy, then Refresh. Confirm the JSON shows the row.
+
+Repeat for DSD Briefs and Cultural Moments.
+
+If you see “Not authenticated”, sign in and hit Refresh again.
+
+12) Restore original app mount
+Put src/App.tsx back to the previous app layout (remove the smoke test import and JSX).
+
+Keep the three hooks and the smoke-test page in the repo for later use.
+
+13) Commit changes
+bash
+Copy
+Edit
+git add .
+git commit -m "chore: supabase client + types + smoke test hooks/pages; verified CRUD"
+git push
+Done. Report back any errors from steps 10–11 (type errors, RLS errors, or env key issues).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ChatGPT can make mistakes. OpenAI doesn't use Maz Abdul's Workspace workspace data to train its models.

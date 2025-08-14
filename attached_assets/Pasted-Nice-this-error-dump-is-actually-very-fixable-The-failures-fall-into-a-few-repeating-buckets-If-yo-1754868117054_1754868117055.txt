@@ -1,0 +1,308 @@
+Nice—this error dump is actually very fixable. The failures fall into a few repeating buckets. If you tackle them in this order, the list will shrink fast.
+
+---
+
+# Fix order (highest leverage first)
+
+1. **Install missing deps**
+
+* `sonner` is missing.
+
+  ```bash
+  npm i sonner
+  ```
+
+  If you don’t want the lib, you can stub it (see 1b below).
+
+---
+
+2. **Give your API a typed surface (most of the client errors)**
+   Right now `api` is just `fetch`, so calls like `api.getStats` / `api.post` don’t exist. Create a thin wrapper that exposes `get`, `post`, etc., and use generics so React Query knows the data shape.
+
+Create **client/src/lib/api.ts**:
+
+```ts
+// client/src/lib/api.ts
+export type Json = Record<string, any> | any[];
+
+async function apiRequest<T = unknown>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    credentials: "include",
+    ...init,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+  }
+  // try json, fallback to void
+  const ct = res.headers.get("content-type") || "";
+  return ct.includes("application/json") ? (await res.json()) as T : (undefined as T);
+}
+
+export const api = {
+  get: <T = unknown>(url: string) => apiRequest<T>(url),
+  post: <T = unknown>(url: string, body?: unknown) =>
+    apiRequest<T>(url, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
+  patch: <T = unknown>(url: string, body?: unknown) =>
+    apiRequest<T>(url, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
+  del: <T = unknown>(url: string) =>
+    apiRequest<T>(url, { method: "DELETE" }),
+};
+```
+
+Then **replace** usages like:
+
+* `api.getStats()` → `api.get<DashboardStats>('/api/stats')` (or whatever endpoint you really use)
+* `api.post('/api/captures', data)` → `api.post<Capture>('/api/captures', data)`
+* `api.getContent(filters)` → `api.get<TrendItem[]>(`/api/content?\${toQS(filters)}`)`
+
+This change will clear every “`TS2339: Property 'get'/'post'/...' does not exist`” and most “unknown”s once you add generics.
+
+---
+
+3. **Type your React Query data (fixes “unknown” everywhere)**
+   Where you have `useQuery` results used as arrays/objects, add generics and sane defaults.
+
+Examples:
+
+* **projects/captures/etc.**
+
+  ```ts
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ['projects'],
+    queryFn: () => api.get<Project[]>('/api/projects'),
+  });
+  ```
+
+* **Header.tsx (`result` is unknown)**
+  Define the mutation return type:
+
+  ```ts
+  type ScanResult = { success: boolean; itemsProcessed: number; errors: any[] };
+
+  const runScan = useMutation({
+    mutationKey: ['scan'],
+    mutationFn: () => api.post<ScanResult>('/api/scan/run'),
+    onSuccess: (result) => {
+      toast({
+        title: result.success ? 'Scan complete' : 'Scan finished with errors',
+        description: `Processed ${result.itemsProcessed} items${result.errors.length ? ` with ${result.errors.length} errors` : ''}`,
+        variant: result.success ? 'default' : 'destructive',
+      });
+    },
+  });
+  ```
+
+* **lists like `moments`, `profiles`, `analyses`, `captures`**
+  Wherever you do `.map`/`.filter`, make the query typed and default to `[]`. That removes all the `TS18046: 'X' is unknown` errors.
+
+* **select options that complain about `unknown` in JSX**
+
+  ```ts
+  const platforms = Array.from(new Set(captures.map((c) => c.platform).filter(Boolean))) as string[];
+
+  {platforms.map((platform) => (
+    <SelectItem key={platform} value={platform}>{platform}</SelectItem>
+  ))}
+  ```
+
+---
+
+4. **Small component prop/type fixes**
+
+* **MetricCard expects `string | number` but you pass a React element**
+  In `new-dashboard.tsx`, render the number, not the component:
+
+  ```tsx
+  <MetricCard
+    label="Total Captures"
+    value={metrics?.totalCaptures ?? 0} // number only
+    change={`+${metrics?.recentCaptures ?? 0}`}
+  />
+  ```
+
+  (If you really want the animated component, change `MetricCardProps['value']` to `React.ReactNode`.)
+
+* **TrendChart requires `title`**
+
+  ```tsx
+  <TrendChart title="Capture trend" data={chartData} />
+  ```
+
+* **selectedProject is a string**
+  If it’s an id string, pass that; if it’s an object, type it correctly.
+
+  ```tsx
+  // If you only store an id:
+  projectId={selectedProjectId || ''}
+  // Or if storing Project:
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  projectId={selectedProject?.id || ''}
+  ```
+
+* **`useAuth().setUser` missing**
+  Either expose `setUser` from your auth context or stop using it and rely on Supabase session. Quick fix: remove the `setUser` lines and use your existing `login/register` handlers that set Supabase session.
+
+---
+
+5. **Server type mismatches**
+
+* **AuthedRequest email optionality**
+  Make your interface match usage (email can be optional if that’s how you set it):
+
+  ```ts
+  export interface AuthedUser {
+    id: string;
+    email?: string; // <- was causing the mismatch
+    role?: string;
+    metadata?: any;
+  }
+
+  export interface AuthedRequest extends Request {
+    user?: AuthedUser;
+  }
+  ```
+
+* **google-exports DTOs**
+  Errors show your `slides/docs/sheets` services expect stricter shapes than you’re passing.
+
+  a) Brief shape:
+
+  ```ts
+  // fallback for brief without .content
+  const briefData = {
+    title: brief.title,
+    content: brief.content ?? { define: [], shift: [], deliver: [] },
+    captures: captures.map(c => ({
+      title: c.title ?? '',
+      content: c.content ?? '',
+      // ONLY include truthAnalysis fields your service expects:
+      truthAnalysis: c.truthAnalysis
+        ? {
+            fact:         c.truthAnalysis.fact,
+            observation:  c.truthAnalysis.observation,
+            insight:      c.truthAnalysis.insight,
+            humanTruth:   c.truthAnalysis.humanTruth,
+            strategicValue: c.truthAnalysis.strategicValue ?? 0,
+            viralPotential:  c.truthAnalysis.viralPotential ?? 0,
+            keywords:       c.truthAnalysis.keywords ?? [],
+          }
+        : undefined,
+    })),
+  } as const;
+  ```
+
+  b) Service return types need ids:
+  Ensure your service returns `{ id, title }` not `{ presentationId, url, title }`. If you can’t change the service, adapt the response:
+
+  ```ts
+  const slidesResultRaw = await slidesService.createPresentationFromBrief(briefData);
+  const slidesResult = { id: slidesResultRaw.presentationId, title: slidesResultRaw.title };
+
+  const docsResultRaw = await docsService.createDetailedBriefDocument(briefData);
+  const docsResult = { id: docsResultRaw.documentId, title: docsResultRaw.title };
+
+  const sheetsResultRaw = await sheetsService.createAnalysisSpreadsheet(briefData);
+  const sheetsResult = { id: sheetsResultRaw.spreadsheetId, title: sheetsResultRaw.title };
+
+  res.json({ slides: slidesResult, docs: docsResult, sheets: sheetsResult });
+  ```
+
+  c) `imageData` not on capture type
+  Guard it:
+
+  ```ts
+  const capturesWithImages = (captures ?? []).filter((c: any) => c.type === 'image' && (c as any).imageData);
+  ```
+
+  d) Extra field `lastAnalyzed` rejected in `updateCapture`
+  Only pass fields your type allows (remove `lastAnalyzed` or add it to the type in storage).
+
+* **projects.ts: content can be null**
+
+  ```ts
+  content: capture.content ?? '',
+  ```
+
+* **indexing by platform strings**
+
+  ```ts
+  const platformMultipliers: Record<string, number> = { twitter: 1.2, tiktok: 1.3, instagram: 1.1, linkedin: 1.0, youtube: 1.15, reddit: 1.05, web: 1.0 };
+  score *= platformMultipliers[content.platform || 'web'] || 1.0;
+  ```
+
+* **`never[]` / `push` errors in services**
+  Initialize arrays with explicit types:
+
+  ```ts
+  analysis.strategicInsights = [] as string[];
+  intelligence.campaignInsights = [] as Array<{ title: string; url: string; platform: string; insights: string[] }>;
+  ```
+
+* **Element `.href` on generic Element**
+
+  ```ts
+  const linkElement = el.querySelector('a');
+  const url = (linkElement as HTMLAnchorElement | null)?.href ?? linkElement?.getAttribute('href') ?? '';
+  ```
+
+* **`ignoreHTTPSErrors` not in ConnectOptions**
+  Remove it from the connect call, or if it’s Puppeteer `launch`, pass it in the right place. Quickest fix: drop that property.
+
+---
+
+6. **tsconfig + vite config**
+
+* **downlevel iteration / target**
+  In **tsconfig.json**:
+
+  ```json
+  {
+    "compilerOptions": {
+      "target": "ES2018",
+      "lib": ["ES2020", "DOM"],
+      "downlevelIteration": true,
+      "strict": true
+    }
+  }
+  ```
+
+* **Vite allowedHosts**
+  `allowedHosts` must be `true` or `string[]`, not `"all"`.
+
+  ```ts
+  export default defineConfig({
+    server: {
+      allowedHosts: true
+    }
+  });
+  ```
+
+---
+
+7. **Optional: stub Sonner instead of installing**
+   If you prefer no dependency, change **client/src/components/ui/sonner.tsx** to a no-op wrapper:
+
+```ts
+// client/src/components/ui/sonner.tsx
+export const toast = (o: { title?: string; description?: string; variant?: 'default' | 'destructive' }) => {
+  console.log(`[toast:${o.variant || 'default'}] ${o.title || ''} ${o.description || ''}`);
+};
+export const Toaster = () => null;
+export { Toaster as Sonner };
+```
+
+…and update imports that expect `Toaster as Sonner, toast`.
+
+---
+
+## After these edits
+
+Run:
+
+```bash
+npx tsc --noEmit
+```
+
+You should see a big drop. Whatever’s left will be very local (a few DTO fields out of sync or a lingering `unknown`). Send me the next (shorter!) error list and I’ll knock out the stragglers.

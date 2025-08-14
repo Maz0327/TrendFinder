@@ -1,0 +1,219 @@
+You’re landing on /auth/callback with a giant #access_token=… hash and it’s not clearing/redirecting. That means your callback page isn’t finishing the flow. Let’s make it bullet-proof by parsing the hash and setting the session manually as a fallback, then cleaning the URL and redirecting.
+
+Below is a single, copy-paste Replit Task Runbook the agent can execute. I’ve included the minimal “human” steps at the end.
+
+⸻
+
+Replit Task — Fix Google OAuth callback (force-parse hash → set session → clean URL → redirect)
+
+1) Ensure Supabase client is configured to parse URL
+
+Edit: client/src/lib/supabaseClient.ts (or wherever you create the client)
+	•	In the createClient options, make sure:
+
+auth: {
+  detectSessionInUrl: true,
+  persistSession: true,
+  autoRefreshToken: true,
+}
+
+	•	Do not remove other options. If these already exist, leave them.
+
+2) Add a site URL helper (no hardcoded localhost)
+
+Create: client/src/lib/siteUrl.ts
+
+export function getSiteUrl() {
+  // Use env if provided (deployment), else current origin (local/Replit)
+  return import.meta.env.VITE_SITE_URL || window.location.origin;
+}
+
+3) Use helper in Google sign-in
+
+Find your “Sign in with Google” call (likely client/src/pages/Login.tsx).
+
+Update it to:
+
+import { getSiteUrl } from "@/lib/siteUrl";
+import { supabase } from "@/integrations/supabase/client";
+
+const baseUrl = getSiteUrl();
+
+await supabase.auth.signInWithOAuth({
+  provider: "google",
+  options: {
+    redirectTo: `${baseUrl}/auth/callback`,
+    queryParams: { access_type: "offline", prompt: "consent" },
+  },
+});
+
+4) Replace Auth Callback page with a robust version
+
+Edit/Create: client/src/pages/AuthCallback.tsx
+
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Robust OAuth callback:
+ * 1) If session already exists, clean hash and redirect.
+ * 2) Else, if tokens are in the URL hash, force-set the session via setSession().
+ * 3) Else, wait briefly for Supabase to parse; if still nothing, bounce to /login.
+ * In all cases, we clean the URL hash fragment before leaving the page.
+ */
+export default function AuthCallback() {
+  const navigate = useNavigate();
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+
+    const next = new URLSearchParams(window.location.search).get("next") || "/";
+
+    const cleanUrl = () => {
+      const clean = window.location.pathname + window.location.search;
+      window.history.replaceState(null, "", clean);
+    };
+    const go = (to: string) => navigate(to, { replace: true });
+
+    // 1) Already have a session? Clean and go.
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data?.session) {
+        cleanUrl();
+        go(next);
+        return;
+      }
+
+      // 2) Try manual hash fallback (implicit flow tokens in fragment)
+      const hash = window.location.hash?.startsWith("#") ? window.location.hash.slice(1) : "";
+      const params = new URLSearchParams(hash);
+      const error = params.get("error");
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+
+      if (error) {
+        // If provider sent an error, clean and send to login
+        console.error("OAuth error:", error, {
+          error_code: params.get("error_code"),
+          error_description: params.get("error_description"),
+        });
+        cleanUrl();
+        go("/login");
+        return;
+      }
+
+      if (access_token && refresh_token) {
+        try {
+          // Force-set session using tokens from hash
+          const { data: setData, error: setErr } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+          if (setErr) {
+            console.error("setSession error:", setErr);
+            cleanUrl();
+            go("/login");
+            return;
+          }
+          // Success -> clean & go
+          cleanUrl();
+          go(next);
+          return;
+        } catch (e) {
+          console.error("setSession exception:", e);
+          cleanUrl();
+          go("/login");
+          return;
+        }
+      }
+
+      // 3) No session and no tokens in hash; give Supabase a moment to parse automatically.
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          cleanUrl();
+          go(next);
+        }
+      });
+
+      // Failsafe after 1.5s
+      setTimeout(async () => {
+        const recheck = await supabase.auth.getSession();
+        sub.subscription.unsubscribe();
+        if (recheck.data.session) {
+          cleanUrl();
+          go(next);
+        } else {
+          cleanUrl();
+          go("/login");
+        }
+      }, 1500);
+    });
+  }, [navigate]);
+
+  return (
+    <div className="w-full min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground">
+      Finishing sign-in…
+    </div>
+  );
+}
+
+5) Ensure the route exists and is public
+
+Edit: your router (e.g., client/src/App.tsx)
+	•	Make sure you have:
+
+import AuthCallback from "@/pages/AuthCallback";
+// ...
+<Route path="/auth/callback" element={<AuthCallback />} />
+
+	•	Ensure /auth/callback is not behind an auth guard. It must be publicly accessible so it can create the session.
+
+6) Remove any hardcoded localhost:5173 in runtime code
+	•	Search the codebase for localhost:5173 and remove it from any redirectTo or auth logic paths.
+	•	README examples can stay, just not runtime code.
+
+7) Build checks
+	•	Run npm run build → it must pass.
+	•	Start the app via your normal start command.
+
+⸻
+
+HUMAN STEPS (dashboard tweaks you must do)
+	1.	Supabase → Authentication → URL Configuration
+	•	Site URL: https://workspace.maz0327.repl.co  (exactly this domain)
+	•	Save.
+	2.	Supabase → Authentication → Providers → Google
+	•	Authorized Redirect URLs must include:
+	•	https://workspace.maz0327.repl.co/auth/callback
+	•	http://localhost:5173/auth/callback
+	•	Save.
+	3.	Google Cloud Console → Credentials → Your OAuth Client
+	•	Add Authorized redirect URIs:
+	•	https://workspace.maz0327.repl.co/auth/callback
+	•	http://localhost:5173/auth/callback
+	•	If OAuth is in Testing, ensure your Google account is a Test user.
+	4.	Environment
+	•	In Replit Secrets, set (if not already):
+	•	VITE_SITE_URL = https://workspace.maz0327.repl.co
+	•	VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY as before.
+
+⸻
+
+Smoke test (what you should see)
+	•	Go to https://workspace.maz0327.repl.co.
+	•	Click Sign in with Google.
+	•	You’ll land on /auth/callback with the long hash for a brief moment.
+	•	The page should:
+	•	detect an existing session or
+	•	parse the hash and call setSession() or
+	•	wait briefly for Supabase parsing, then
+	•	Clean the URL (no #access_token= fragment) and redirect into the app (or to /login if there’s a true error).
+
+If it still sticks on the hash URL, the most common causes are:
+	•	The /auth/callback route is accidentally wrapped in a ProtectedRoute (it must be public).
+	•	The file path for AuthCallback.tsx or the import path in the router is wrong (route never renders).
+	•	You have multiple Supabase clients; the one on the callback page isn’t the same instance, or created without detectSessionInUrl: true.
+
+This flow is resilient: it will succeed even on hosts like Replit’s domain, because we rely on VITE_SITE_URL and a manual setSession fallback.

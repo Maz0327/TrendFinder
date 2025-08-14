@@ -1,0 +1,214 @@
+Totally—let’s have the Replit Agent **verify Phase 1** before we move on. Below is a copy-pasteable, agent-friendly checklist with exact commands, file paths, and what to do if a check fails.
+
+---
+
+# Phase 1 — Verification Script (for Replit Agent)
+
+## 0) Environment sanity
+
+**Run:**
+
+```bash
+printenv | egrep 'SUPABASE_URL|SUPABASE_ANON_KEY|SUPABASE_JWT_SECRET' || true
+```
+
+* If any are missing, add them in Replit **Secrets**.
+
+---
+
+## 1) Remove stray backup file from TypeScript build
+
+**Check & rename if present:**
+
+```bash
+if [ -f server/services/brightDataBrowser-backup.ts ]; then mv server/services/brightDataBrowser-backup.ts server/services/brightDataBrowser-backup.ts.bak; fi
+```
+
+---
+
+## 2) Type check and lint
+
+**Run:**
+
+```bash
+npm run typecheck || npx tsc --noEmit
+npm run lint || npx eslint . --ext .ts,.tsx || true
+```
+
+* If errors output, stop and report the first 10 lines.
+
+---
+
+## 3) Confirm CORS is enabled on the server
+
+**Search:**
+
+```bash
+grep -n "import cors from \"cors\"" server/routes.ts
+grep -n "app.use(cors({" -n server/routes.ts
+```
+
+* If missing, **insert at the very start** of `registerRoutes(app: Express)` (before any routes):
+
+```ts
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ["GET","POST","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization","X-Requested-With","x-extension-id"]
+}));
+app.options("*", cors());
+```
+
+---
+
+## 4) Confirm Vite proxy exists for dev
+
+**Check:**
+
+```bash
+test -f client/vite.config.ts && echo "vite.config.ts exists" || echo "MISSING vite.config.ts"
+grep -n "proxy" client/vite.config.ts || true
+```
+
+* If missing, **create** `client/vite.config.ts` with:
+
+```ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: "0.0.0.0",
+    port: 5173,
+    proxy: {
+      "/api": { target: "http://localhost:3000", changeOrigin: true },
+      "/health": { target: "http://localhost:3000", changeOrigin: true },
+      "/metrics": { target: "http://localhost:3000", changeOrigin: true }
+    }
+  }
+});
+```
+
+*(Adjust `target` if your server runs on another port.)*
+
+---
+
+## 5) Verify auth middleware and protected routes
+
+**Check imports exist:**
+
+```bash
+grep -n 'from "./middleware/auth"' server/routes.ts
+```
+
+**Confirm these routes use `requireAuth`:**
+
+```bash
+grep -n 'app.get("/api/captures"' -n server/routes.ts
+grep -n 'app.get("/api/captures/recent"' -n server/routes.ts
+grep -n 'app.get("/api/captures/all"' -n server/routes.ts
+grep -n 'app.post("/api/extension/capture"' -n server/routes.ts
+```
+
+* Open `server/routes.ts` and ensure each handler signature begins like:
+
+```ts
+app.get("/api/captures", requireAuth, async (req: AuthedRequest, res) => { ... })
+```
+
+and the handler uses `req.user!.id` (not `req.session?.user?.id`).
+
+---
+
+## 6) Verify sanitizer is applied to extension captures
+
+**Check:**
+
+```bash
+grep -n 'from "./utils/sanitize"' server/routes.ts
+grep -n 'sanitizeInput' server/routes.ts
+```
+
+* In `POST /api/extension/capture`, confirm:
+
+  * `const safeContent = sanitizeInput(content);`
+  * `content: safeContent,` is used when saving
+  * AI analysis call uses `safeContent`.
+
+---
+
+## 7) Confirm the front-end sends Authorization header
+
+**Check wrapper exists:**
+
+```bash
+test -f client/src/lib/api.ts && echo "api.ts exists" || echo "MISSING api.ts"
+grep -Rnw 'apiFetch\\(' client/src | wc -l
+```
+
+* If any API calls still use `fetch("http` or `fetch('/api'` directly, replace with:
+
+```ts
+import { apiFetch } from "@/lib/api";
+// then use apiFetch(...) instead of fetch(...)
+```
+
+---
+
+## 8) Queue wiring (optional but included in Phase 1 wrap-up)
+
+**Check worker and queue files:**
+
+```bash
+test -f server/jobs/inMemoryQueue.ts && echo "queue exists" || echo "MISSING queue"
+test -f server/jobs/worker.ts && echo "worker exists" || echo "MISSING worker"
+grep -n 'startWorker' server/routes.ts
+grep -n 'app.post("/api/ai/quick-analysis"' server/routes.ts
+grep -n 'app.get("/api/jobs/' server/routes.ts
+```
+
+* Ensure `/api/ai/quick-analysis` returns a `jobId`, and `/api/jobs/:id` exists.
+
+---
+
+## 9) Smoke tests (no token + with token)
+
+**Server health:**
+
+```bash
+curl -sSf http://localhost:3000/health
+```
+
+**Protected route (expect 401 without token):**
+
+```bash
+curl -i http://localhost:3000/api/captures | head -n 5
+```
+
+**Protected route (with token):** *(replace `YOUR_TOKEN` with a valid Supabase JWT)*
+
+```bash
+curl -s -H "Authorization: Bearer YOUR_TOKEN" http://localhost:3000/api/captures | head -c 200
+```
+
+* If this fails, post the HTTP status and the first line of the response.
+
+---
+
+## 10) Final compile & run
+
+**Run:**
+
+```bash
+npm run typecheck || npx tsc --noEmit
+npm run dev
+```
+
+Open the app → Dashboard → My Captures. Confirm lists load, analysis modal opens, and extension captures can be created.
+
+---
+
+If the Replit Agent reports **any failure** on a step, paste the exact error or the failing check output here, and I’ll give you a precise patch to apply.
+
+If all checks pass, say “ready for Phase 2 script,” and I’ll give you the **Phase 2** instructions rewritten in the same agent-friendly, step-by-step format (splitting `routes.ts`, adding Zod validation per route, and standardizing logging).

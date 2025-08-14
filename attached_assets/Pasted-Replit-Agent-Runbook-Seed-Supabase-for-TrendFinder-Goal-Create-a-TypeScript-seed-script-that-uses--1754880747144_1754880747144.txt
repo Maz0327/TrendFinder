@@ -1,0 +1,294 @@
+Replit Agent Runbook: Seed Supabase for TrendFinder
+Goal: Create a TypeScript seed script that uses the Supabase service role key to insert demo data into the existing tables: users, captures, cultural_moments, dsd_briefs. Then run it.
+
+0) Preconditions
+Project uses Node ≥18 (Replit Nix images are fine). If Node is <18, switch to a Node 20 or 22 template.
+
+The file src/types/supabase.ts exists and matches the user’s pasted types (already provided).
+
+1) Create seed script
+Create a new file at scripts/seed.ts with exactly this content:
+
+ts
+Copy
+Edit
+// scripts/seed.ts
+import 'dotenv/config'
+import { createClient } from '@supabase/supabase-js'
+import type { Database, Json } from '../src/types/supabase'
+
+// --- env ---
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env')
+  process.exit(1)
+}
+
+const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false }
+})
+
+// helpers
+async function upsert<T extends keyof Database['public']['Tables']>(
+  table: T,
+  rows: Database['public']['Tables'][T]['Insert'][],
+  onConflict?: string
+) {
+  const { data, error } = await supabase
+    .from(table as string)
+    .upsert(rows as any, { onConflict, ignoreDuplicates: false })
+    .select()
+  if (error) throw new Error(`[${String(table)}] upsert failed: ${error.message}`)
+  return data
+}
+
+async function count(table: keyof Database['public']['Tables']) {
+  const { count, error } = await supabase
+    .from(table as string)
+    .select('*', { count: 'exact', head: true })
+  if (error) throw error
+  return count ?? 0
+}
+
+function nowISO() {
+  return new Date().toISOString()
+}
+
+async function run() {
+  const now = nowISO()
+
+  // 1) users
+  const demoUserId = crypto.randomUUID()
+  await upsert('users', [
+    {
+      id: demoUserId,
+      email: 'strategist@example.com',
+      username: 'demo_strategist',
+      role: 'admin',
+      onboarding_completed: true,
+      tour_completed: true,
+      progress_data: { seenIntro: true } as Json,
+      google_tokens: null,
+      created_at: now,
+      updated_at: now
+    }
+  ], 'id')
+
+  // 2) captures
+  await upsert('captures', [
+    {
+      user_id: demoUserId,
+      title: 'TikTok: “micro-treat errands” trend',
+      content: 'Users reward errands with tiny treats; UGC POV + on-screen captions.',
+      platform: 'tiktok',
+      url: 'https://www.tiktok.com/@demo/video/123',
+      tags: ['trend', 'ugc', 'pov'],
+      viral_score: 76,
+      ai_analysis: {
+        hook: '“one more task → treat”',
+        formats: ['POV', 'jump cuts'],
+        notes: 'Leverage errand → reward framing'
+      } as Json,
+      dsd_tags: ['Define: Motivation', 'Deliver: 15s Reels'],
+      dsd_section: 'define',
+      predicted_virality: 0.62,
+      actual_virality: null,
+      created_at: now,
+      updated_at: now
+    },
+    {
+      user_id: demoUserId,
+      title: 'Reddit thread: budget energy drinks',
+      content: 'Discussion about flavor vs. function; strong comments on price elasticity.',
+      platform: 'reddit',
+      url: 'https://reddit.com/r/energydrinks/comments/abc',
+      tags: ['forums', 'price', 'category-insights'],
+      viral_score: 41,
+      ai_analysis: { drivers: ['value', 'taste'], risks: ['over-sweet'] } as Json,
+      dsd_tags: ['Define: Value Sensitivity'],
+      dsd_section: 'shift',
+      predicted_virality: 0.34,
+      actual_virality: null,
+      created_at: now,
+      updated_at: now
+    }
+  ])
+
+  // 3) cultural_moments
+  await upsert('cultural_moments', [
+    {
+      title: 'Micro-Treat Momentum',
+      description: 'Normalization of small self-rewards to push through chores.',
+      intensity: 7,
+      platforms: ['tiktok', 'instagram'],
+      demographics: ['Gen Z', 'Young Millennial'],
+      duration: 'short_term_surging',
+      created_at: now,
+      updated_at: now
+    },
+    {
+      title: 'Budget Energy Talk',
+      description: 'Value-forward discourse around affordable energy drinks.',
+      intensity: 5,
+      platforms: ['reddit', 'youtube'],
+      demographics: ['Millennial', 'Blue Collar'],
+      duration: 'medium_term',
+      created_at: now,
+      updated_at: now
+    }
+  ], 'title')
+
+  // 4) dsd_briefs
+  await upsert('dsd_briefs', [
+    {
+      user_id: demoUserId,
+      client_profile_id: null,
+      title: 'Micro-Treat Launch Brief',
+      status: 'draft',
+      define_section: {
+        audience_truths: [
+          '“I need tiny wins to keep going.”',
+          'POV lo-fi content feels authentic.'
+        ],
+        cultural_context: 'Micro-treats as self-permission'
+      } as Json,
+      shift_section: {
+        brand_shift: [
+          'Reframe beverage as earned mini-reward for one more task.'
+        ],
+        strategic_levers: ['POV filming', 'on-screen captions']
+      } as Json,
+      deliver_section: {
+        ideas: [
+          '3x 15–20s scripts for Reels/TikTok',
+          'Static meme format: “errand → treat” payoff'
+        ],
+        guardrails: ['Stay lo-fi; avoid overly polished look']
+      } as Json,
+      created_at: now,
+      updated_at: now
+    }
+  ])
+
+  // summary
+  const [usersC, capturesC, momentsC, briefsC] = await Promise.all([
+    count('users'),
+    count('captures'),
+    count('cultural_moments'),
+    count('dsd_briefs')
+  ])
+
+  console.log('✅ Seed complete:', { users: usersC, captures: capturesC, cultural_moments: momentsC, dsd_briefs: briefsC })
+}
+
+run().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})
+2) Add script + dev dep
+Update package.json:
+
+Add a script:
+
+json
+Copy
+Edit
+"scripts": {
+  "seed": "tsx scripts/seed.ts"
+}
+Ensure devDependency:
+
+json
+Copy
+Edit
+"devDependencies": {
+  "tsx": "^4.19.1"
+}
+Install:
+
+bash
+Copy
+Edit
+npm i -D tsx
+If @supabase/supabase-js is missing, install it:
+
+bash
+Copy
+Edit
+npm i @supabase/supabase-js
+3) Add server-only secrets in Replit
+In Replit Secrets (not exposed to client):
+
+SUPABASE_URL = your project URL
+
+SUPABASE_SERVICE_ROLE_KEY = your service role key
+
+(Frontend should keep using VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.)
+
+4) Run the seed
+bash
+Copy
+Edit
+npm run seed
+Expected output:
+
+yaml
+Copy
+Edit
+✅ Seed complete: { users: 1, captures: 2, cultural_moments: 2, dsd_briefs: 1 }
+5) Verification (optional but recommended)
+Run quick counts to validate:
+
+ts
+Copy
+Edit
+// scripts/verify.ts (optional)
+import 'dotenv/config'
+import { createClient } from '@supabase/supabase-js'
+import type { Database } from '../src/types/supabase'
+
+const supabase = createClient<Database>(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: { persistSession: false }
+})
+
+async function main() {
+  for (const table of ['users', 'captures', 'cultural_moments', 'dsd_briefs'] as const) {
+    const { count, error } = await supabase.from(table).select('*', { count: 'exact', head: true })
+    if (error) throw error
+    console.log(table, count)
+  }
+}
+main()
+Add:
+
+json
+Copy
+Edit
+"scripts": { "verify": "tsx scripts/verify.ts" }
+Run:
+
+bash
+Copy
+Edit
+npm run verify
+Notes / Safety
+This script uses service role—never ship it to the browser. Keep it server-only.
+
+If RLS is enabled, service role bypasses it for this seed task—fine for admin ops.
+
+If you later add unique constraints that conflict with the onConflict keys above, update the onConflict argument accordingly.
+
+That’s it. Run the steps as-is and report back the seed summary numbers.
+
+
+
+
+
+
+
+
+
+
+Ask ChatGPT

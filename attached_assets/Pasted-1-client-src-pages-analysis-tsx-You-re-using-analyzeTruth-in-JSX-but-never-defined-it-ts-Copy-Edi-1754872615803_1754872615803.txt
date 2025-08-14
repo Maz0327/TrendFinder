@@ -1,0 +1,260 @@
+1) client/src/pages/analysis.tsx
+You’re using analyzeTruth in JSX but never defined it.
+
+ts
+Copy
+Edit
+// add near top-level of the component
+import { useMutation } from '@tanstack/react-query';
+import { api } from '@/lib/lovable-api'; // adjust import if different
+
+type TruthAnalysis = {/* …your fields… */};
+
+const analyzeTruth = useMutation({
+  mutationFn: (body: { content: string; projectId?: string }) =>
+    api.post<TruthAnalysis>('/api/truth-analysis/analyze', body),
+});
+Now your JSX lines with analyzeTruth.isPending will type-check.
+
+2) client/src/components/dashboard/StatsOverview.tsx
++ places where you build DashboardStats objects
+Your code uses extra fields (truthAnalyzed, hypothesesTracked, and in lovable-api.ts it reads totalCaptures, avgViralScore, engagementRate, responseTime). Add them to the type once where DashboardStats is declared (wherever your shared type lives).
+
+ts
+Copy
+Edit
+// shared types (e.g. client/src/types/dashboard.ts)
+export type DashboardStats = {
+  activeSignals: number;
+  avgViralScore?: number;
+  engagementRate?: number;
+  responseTime?: string;
+
+  // the ones StatsOverview & pages use:
+  truthAnalyzed?: number;
+  hypothesesTracked?: number;
+
+  // the ones lovable-api reads from the backend response:
+  totalCaptures?: number;
+};
+Then in StatsOverview.tsx, keep usage but be null-safe:
+
+tsx
+Copy
+Edit
+value: stats?.truthAnalyzed ?? 0,
+// …
+value: stats?.hypothesesTracked ?? 0,
+And in every place you construct stats objects (e.g. capture-tagging-enhanced, cultural-moments-enhanced, hypothesis-tracking-enhanced, lovable-dashboard, truth-analysis-enhanced), it’s OK to specify those props—they’re now part of the type.
+
+3) client/src/lib/lovable-api.ts
+You’re reading fields not on the old type. After the type change above, keep the mapping; also make sure you typed the API response.
+
+ts
+Copy
+Edit
+type DashboardStatsResponse = {
+  totalCaptures?: number;
+  avgViralScore?: number;
+  engagementRate?: number;
+  responseTime?: string;
+  // …anything else your backend returns
+};
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const response = await api.get<DashboardStatsResponse>('/api/stats');
+  return {
+    activeSignals: response.totalCaptures ?? 0,
+    avgViralScore: response.avgViralScore ?? 0,
+    engagementRate: response.engagementRate ?? 0,
+    responseTime: response.responseTime ?? 'N/A',
+  };
+}
+(If you previously called api.getStats(), change it to api.get('/api/stats') or add a wrapper with that name.)
+
+4) server/middleware/auth.ts
+Your AuthedUser.email is string | undefined, but Express’ Request["user"].email expects string.
+
+Either make it required on your server-side user type:
+
+ts
+Copy
+Edit
+export type AuthedUser = {
+  id: string;
+  email: string; // <-- required
+  role?: string;
+  metadata?: any;
+};
+Or widen your AuthedRequest to match Express’ expectation exactly:
+
+ts
+Copy
+Edit
+export interface AuthedRequest extends Request {
+  user?: { id: string; email: string; metadata?: any; role?: string };
+}
+Pick one and keep it consistent across middleware.
+
+5) server/routes/google-exports.ts
+Return { id, title } objects and guard image fields.
+
+ts
+Copy
+Edit
+// after service calls
+const slidesRaw = await slidesService.createPresentationFromBrief(briefData);
+const docsRaw   = await docsService.createDetailedBriefDocument(briefData);
+const sheetsRaw = await sheetsService.createAnalysisSpreadsheet(briefData);
+
+const slidesResult = { id: String(slidesRaw.presentationId), title: slidesRaw.title };
+const docsResult   = { id: String(docsRaw.documentId),       title: docsRaw.title };
+const sheetsResult = { id: String(sheetsRaw.spreadsheetId),  title: sheetsRaw.title };
+
+res.json({ slides: slidesResult, docs: docsResult, sheets: sheetsResult });
+Guard images & map to the DTO your sheet/slide helpers expect:
+
+ts
+Copy
+Edit
+const capturesWithImages = (captures ?? [])
+  .filter((c: any) => c?.type === 'image' && !!c?.imageData)
+  .map((c: any) => ({
+    title: c.title ?? 'Untitled',
+    content: c.content ?? '',
+    type: 'image',
+    imageData: c.imageData as string,
+  }));
+
+// pass capturesWithImages to services that want `{ title, content, type, imageData? }[]`
+6) server/routes/projects.ts
+content can be null; storage type expects string.
+
+ts
+Copy
+Edit
+content: capture.content ?? '',
+7) server/services/brightDataBrowser.ts
+Type arrays and read href safely.
+
+ts
+Copy
+Edit
+const extractedPosts: any[] = [];
+const extractedVideos: any[] = [];
+const extractedTweets: any[] = [];
+
+// wherever you read href:
+const linkElement = el.querySelector('a') as HTMLAnchorElement | null;
+const url = linkElement?.href ?? linkElement?.getAttribute('href') ?? '';
+Ensure the return statements return the typed arrays (they already will once declared as any[]).
+
+8) server/services/capture-analysis-service.ts
+Your storage type expects a structured truthAnalysis, but your value is different. Map or provide a safe default; and stringify visual analysis if the DB column is text.
+
+ts
+Copy
+Edit
+// If analysisResult.truthAnalysis is NOT already structured, build a safe one:
+updates.truthAnalysis = {
+  fact: { claims: [], sources: [], verificationStatus: 'unknown', confidence: 0 },
+  observation: { behaviorPatterns: [], audienceSignals: {}, contextualFactors: [] },
+  insight: { summary: String(analysisResult.truthAnalysis ?? ''), implications: [], recommendations: [] },
+  humanTruth: { statement: '', rationale: '' },
+};
+
+// If DB column is string (text/varchar) for visualAnalysis:
+updates.visualAnalysis = JSON.stringify(analysisResult.visualAnalysis ?? null);
+
+// metadata must be Json | undefined for storage signature
+if (updates.metadata !== undefined) {
+  updates.metadata = updates.metadata as unknown as Json | undefined;
+}
+(Adjust if you do have a strongly-typed TruthAnalysisResult; but the error shows it’s currently a string.)
+
+9) server/services/chromeExtensionService.ts
+Handle unknown error and allow string indexing.
+
+ts
+Copy
+Edit
+} catch (error) {
+  const msg = (error as Error)?.message ?? String(error);
+  throw new Error(`Failed to process captured content: ${msg}`);
+}
+
+const platformMultipliers: Record<string, number> = {
+  twitter: 1.2, tiktok: 1.3, instagram: 1.1, linkedin: 1.0, youtube: 1.15, reddit: 1.05, web: 1.0,
+};
+score *= platformMultipliers[content.platform ?? 'web'] || 1.0;
+
+const platformWeights: Record<string, number> = {
+  twitter: 60, tiktok: 70, instagram: 55, linkedin: 45, reddit: 50,
+};
+const platformWeight = platformWeights[content.platform ?? 'twitter'] || 50;
+10) server/services/google-custom-search-service.ts
+Index by string key and make campaignInsights a typed array (so .push isn’t never).
+
+ts
+Copy
+Edit
+const siteMap: Record<string, string> = {
+  reddit: 'site:reddit.com',
+  twitter: 'site:twitter.com',
+  tiktok: 'site:tiktok.com',
+  instagram: 'site:instagram.com',
+  youtube: 'site:youtube.com',
+  linkedin: 'site:linkedin.com',
+};
+
+if (options.platform && siteMap[options.platform]) {
+  searchParams.q += ` ${siteMap[options.platform]}`;
+}
+
+type InsightItem = { title: string; url: string; platform: string; insights: string[] };
+intelligence.campaignInsights = (intelligence.campaignInsights ?? []) as InsightItem[];
+
+intelligence.campaignInsights.push({
+  title: result.title,
+  url: result.link,
+  platform: options.platform ?? 'web',
+  insights: this.extractCampaignInsights(result.snippet),
+});
+11) server/services/google-vision-service.ts
+Allow assigning an object to safetyAnalysis (currently null type).
+
+Quick fix (no schema change):
+
+ts
+Copy
+Edit
+(analysis as any).safetyAnalysis = { adult, violence, racy, medical, spoof };
+(analysis as any).strategicInsights = this.generateStrategicInsights(analysis);
+(Or change its declared type to null | { adult: any; violence: any; racy: any; medical: any; spoof: any }.)
+
+12) server/services/liveBrightDataService.ts
+Type the evaluate params, locals, and safe hrefs. Also remove unsupported ignoreHTTPSErrors from ConnectOptions.
+
+ts
+Copy
+Edit
+// remove: ignoreHTTPSErrors: true
+
+const posts = await page.evaluate((limit: number) => { /* … */ });
+let foundElements: Element[] = [];
+const tweets = await page.evaluate((limit: number) => { /* … */ });
+const videos = await page.evaluate((limit: number) => { /* … */ });
+
+// where you read video.href inside evaluate:
+url: (video as unknown as HTMLAnchorElement)?.href || window.location.href,
+Do that on each line the errors flag (201, 213, 225, 300, 351, 401, 452, 465).
+
+13) vite.config.ts
+Allowed hosts should be boolean or string[].
+
+ts
+Copy
+Edit
+server: {
+  allowedHosts: true,
+}

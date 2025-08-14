@@ -1,0 +1,195 @@
+Phase 5 & Phase 6 — Final Build Plan (with Google APIs + media analysis)
+
+Phase 5 — Foundations + “Fast Lane” shipping
+
+Goal: One clean app, one backend, API-only data access, brief export working, fast media analysis path online.
+
+5.A — Architecture & Data Access
+	•	Collapse to one frontend (your main client/) → all reads/writes go through your Node/Express API.
+	•	Remove remaining direct Supabase calls in client; standardize on @services/api/*.
+	•	Shared types: keep @shared/database.types as the single source of DB types.
+	•	Auth: Supabase auth on the client; server validates JWT (supabase.auth.getUser) per request.
+
+5.B — Brief Builder Canvas v1 (authoring-first)
+	•	Block model: Slide → Blocks (image, text, sticky, source ref).
+	•	Autosave (local draft + debounced server save).
+	•	Slide history snapshots (server-side saves with version, created_at, actor).
+	•	“Insert from Captures” picker (search/filter by project, platform, tags).
+	•	“AI Arrange (Beta)” button: server creates a first layout based on selected captures.
+
+5.C — Google Slides/Drive Export (MVP)
+	•	Google OAuth (user-delegated) with scopes:
+	•	presentations and drive.file.
+	•	Export flow:
+	1.	Choose template (or default).
+	2.	Server maps Canvas JSON → Slides batchUpdate (create text boxes, place images).
+	3.	Create file in user’s Drive; return URL + export PDF link.
+	•	Token persistence (use existing google_tokens); refresh automatically.
+
+5.D — Media Analysis “Fast Lane” (server-managed, optional)
+	•	Vertex AI Gemini (service account): send short clips (≤5 min) or selected frames to get time-coded scene summaries + JSON.
+	•	Store JSON alongside capture (ai_analysis), keep provenance (model, timestamps, frame urls).
+
+5.E — Projects & Feeds
+	•	Projects as first-class scope throughout UI.
+	•	User RSS-like feeds (done), keep simple UI to add/disable.
+
+5.F — Heartbeat (basic)
+	•	CRON (server) pings: re-run stale feed fetchers, integrity checks, queue stuck-job alert.
+
+⸻
+
+Phase 6 — Power features
+
+Goal: Deep strategic layer + collaboration + the advanced capture pipeline.
+
+6.A — Truth Analysis & Strategy Layer (restored + upgraded)
+	•	Truth Analysis 5-layer pipeline (Fact → Observation → Insight → Human Truth → Cultural Moment) via server LLM calls.
+	•	Strategic Insights + Actions + Competitive Intel synthesis (model ensembling OK).
+	•	Cohort Builder v2 (behavioral segments with confidence).
+
+6.B — Brief Builder Canvas v2
+	•	Real-time collaboration (presence cursors), comments per block, per-slide.
+	•	Rich block types (quote w/ attribution, callout, KPI chips).
+	•	Slide templates library (brandable).
+
+6.C — Media Analysis “Deep Lane”
+	•	WhisperX for diarized transcripts (A/V alignment), detector stack for objects/OCR/actions, VLM stitching with grounding rules.
+	•	Evidence bundle persisted (shots, frames, transcripts, model IDs, confidence).
+
+6.D — Chrome Extension (advanced capture)
+	•	Precision screenshot (drag bounding box) + notes + source URL.
+	•	Screen recording with user-drawn crop (video only, no social UI overlays).
+	•	Direct upload to server → capture record + queued analysis (fast or deep lane).
+	•	Offline queue (retry on reconnect).
+
+6.E — System Gap (observability)
+	•	Ops dashboard: queues, job durations, error rates, API latencies.
+	•	“Yellow tile” alerts when signal coverage dips for critical sources.
+
+⸻
+
+✅ Replit Task Block #1 — “Finish consolidation + wire Google export scaffolding”
+
+Paste the block below into Replit Tasks. It pauses at human steps.
+
+⸻
+
+TASK NAME: P5-Block-1 — Consolidate data access, add API endpoints, scaffold Google Slides/Drive export
+
+GOAL: Remove remaining direct Supabase calls from the client, route them through our Node API, and scaffold Google Slides/Drive export (no UI change yet).
+
+⸻
+
+Step 0 — Preconditions (HUMAN)
+	•	Confirm these env vars exist in Replit Secrets:
+	•	VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+	•	SUPABASE_SERVICE_ROLE_KEY
+	•	GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+	•	GOOGLE_REDIRECT_URI (your app’s …/auth/callback)
+	•	GOOGLE_SERVICE_ACCOUNT_JSON_B64 (optional for later: Vertex/Slides automation; Base64-encoded JSON)
+	•	Confirm @shared/database.types is the types source.
+	•	Click Continue when ready.
+
+⸻
+
+Step 1 — Replace remaining direct Supabase calls with API services
+	1.	Create/ensure server routes that mirror the client hooks (CRUD, project-scoped):
+	•	GET /api/projects
+	•	POST /api/projects
+	•	GET /api/captures?projectId=&q=&platform=&tags=&page=&pageSize=
+	•	POST /api/captures (create from extension or manual)
+	•	PATCH /api/captures/:id (status, tags, pin, etc.)
+	•	GET /api/moments?projectId=&q=&sort=intensity
+	•	POST /api/moments
+	•	PATCH /api/moments/:id
+	•	GET /api/briefs?projectId=
+	•	POST /api/briefs (create empty brief or from selection)
+	•	PATCH /api/briefs/:id (title/status/sections)
+	•	PATCH /api/briefs/:id/canvas (save Canvas JSON, versioned)
+	•	GET /api/feeds?projectId=
+	•	POST /api/feeds
+	•	PATCH /api/feeds/:id/toggle
+	•	DELETE /api/feeds/:id
+	2.	Implement handlers using Supabase admin client (service role) on the server:
+	•	Validate user via Authorization: Bearer <JWT> → supabase.auth.getUser (reject if invalid).
+	•	Enforce project ownership on queries (user_id match).
+	•	Return typed payloads (use @shared/database.types).
+	3.	Refactor client files to call /api/* instead of Supabase:
+	•	client/src/hooks/useBriefs.ts
+	•	client/src/hooks/useCaptures.ts
+	•	client/src/hooks/useMoments.ts
+	•	client/src/services/feeds.ts
+	•	Create a tiny client/src/services/api.ts with api.get/post/patch/delete wrappers (adds auth header, handles errors).
+	•	Update hooks to use React Query + api.* calls.
+
+Verification:
+	•	npm run verify (should pass typecheck/build).
+	•	Open:
+	•	Captures list loads via /api/captures
+	•	Moments load via /api/moments
+	•	Briefs list loads via /api/briefs
+	•	Feeds list shows via /api/feeds
+	•	Continue if green.
+
+⸻
+
+Step 2 — Scaffold Google Slides/Drive export (server only)
+	1.	Create server/services/google/oauth.ts:
+	•	getOAuth2Client(userId)
+	•	loads tokens from DB (users.google_tokens), sets credentials.
+	•	handles refresh (“setCredentials” + save refresh if changed).
+	2.	Create server/services/google/drive.ts:
+	•	ensureProjectFolder(oauth, projectId) → finds/creates a Drive folder "Content Radar – <ProjectName>" and returns folderId.
+	3.	Create server/services/google/slides.ts:
+	•	createBriefFromCanvas({ oauth, projectId, title, canvasJson, templateId? }):
+	•	Create Slides file in the project folder.
+	•	batchUpdate to add text boxes & place images per canvasJson (stub the mapping now; return fileId, url).
+	4.	Add route POST /api/briefs/:id/export/slides:
+	•	Auth → load brief + canvas JSON → call the service → persist returned drive_file_id & slides_url on brief.
+	•	Return { slidesUrl, fileId }.
+
+Verification:
+	•	Create a dummy brief with simple Canvas JSON (one text block, one image URL).
+	•	Call POST /api/briefs/:id/export/slides (use Thunder Client or a small test script in scripts/test-export.ts).
+	•	Expect a created Slides file in Drive & slidesUrl in response.
+
+HUMAN STOP (if Google returns auth error):
+	•	Ensure consent screen is published and scopes added:
+	•	https://www.googleapis.com/auth/presentations
+	•	https://www.googleapis.com/auth/drive.file
+	•	Verify GOOGLE_REDIRECT_URI matches the current app domain exactly.
+	•	Re-run the test and continue.
+
+⸻
+
+Step 3 — Feature flags + env guardrails
+	•	Add client/src/flags.ts (or reuse) with:
+	•	export const FEATURES = { BRIEF_EXPORT: true, FAST_MEDIA_ANALYSIS: false }
+	•	On the server, log a warning if Google env is missing when export is invoked.
+
+Verification: Toggle flag off → export button in UI should hide (if already wired), and the route returns 400 with actionable message.
+
+⸻
+
+Step 4 — Health & smoke tests
+	•	Add scripts/smoke.ts (Node) to:
+	•	Ping /api/projects with a test JWT.
+	•	Create a brief → set minimal Canvas JSON → call export route (if FLAGS allow).
+	•	Print PASS/FAIL with reasons.
+	•	npm run verify again.
+
+⸻
+
+Step 5 — Hand-off & Notes (HUMAN)
+	•	Tell me if you want Phase 5 Block 2 to:
+	•	a) Add the AI Arrange endpoint (server calls LLM to place blocks), or
+	•	b) Start the Fast Lane Gemini endpoint for quick visual summaries.
+
+⸻
+
+DONE CRITERIA for Block #1
+	•	No client files call Supabase directly (those four have been refactored).
+	•	New API endpoints exist and return data correctly.
+	•	Slides/Drive export route exists and works for a simple canvas.
+	•	Typecheck/build pass.

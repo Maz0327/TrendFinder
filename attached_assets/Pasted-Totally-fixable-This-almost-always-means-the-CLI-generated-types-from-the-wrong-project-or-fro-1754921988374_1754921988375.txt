@@ -1,0 +1,188 @@
+Totally fixable. This almost always means the CLI generated types from the **wrong project** (or from a DB URL that doesn’t have your new tables yet). I’ll give the Replit agent step-by-step commands to (a) verify the target, (b) regenerate types from the correct project, and (c) sanity-check that the new file actually includes `cultural_moments` and `dsd_briefs`.
+
+---
+
+# Replit Agent — Fix Supabase Types Missing Tables
+
+## 0) Preconditions
+
+* Work in project root.
+* Stop if any command fails; print the failing command and error.
+
+---
+
+## 1) Verify we’re pointing at the right Supabase project
+
+```bash
+# Show the current ref used for types gen
+echo "VITE_SUPABASE_PROJECT_REF=$VITE_SUPABASE_PROJECT_REF"
+
+# List available projects the CLI can see (requires `supabase login` already done)
+npx supabase projects list || echo "WARN: could not list projects (not fatal)"
+```
+
+* If `VITE_SUPABASE_PROJECT_REF` is blank or doesn’t match the intended project, **stop** and print:
+
+  > Environment variable VITE\_SUPABASE\_PROJECT\_REF is missing or incorrect. Please set it to the project ref that contains the cultural\_moments and dsd\_briefs tables, then rerun.
+
+---
+
+## 2) Regenerate types from the correct project
+
+```bash
+# Ensure output directory exists
+mkdir -p client/src/types
+
+# Regenerate types from the remote project (PUBLIC schema)
+npx supabase gen types typescript \
+  --project-id "$VITE_SUPABASE_PROJECT_REF" \
+  --schema public \
+  > client/src/types/supabase.generated.ts
+```
+
+---
+
+## 3) Sanity-check the generated file actually includes the missing tables
+
+```bash
+set -e
+if ! grep -q "cultural_moments" client/src/types/supabase.generated.ts ; then
+  echo "ERROR: cultural_moments is still missing from generated types."
+  MISSING_CM=1
+else
+  MISSING_CM=0
+fi
+
+if ! grep -q "dsd_briefs" client/src/types/supabase.generated.ts ; then
+  echo "ERROR: dsd_briefs is still missing from generated types."
+  MISSING_DB=1
+else
+  MISSING_DB=0
+fi
+
+if [ "$MISSING_CM" -eq 0 ] && [ "$MISSING_DB" -eq 0 ]; then
+  echo "OK: Both cultural_moments and dsd_briefs are present in types."
+fi
+```
+
+If either is **still missing**, proceed to Step 4A (preferred) or 4B (fallback).
+
+---
+
+## 4A) (Preferred) Regenerate using a direct DB URL (bypasses project ref)
+
+**Requires a secret** named `SUPABASE_DB_URL` (Postgres connection string to your project; you can copy it from Supabase → Project Settings → Database → Connection string → “URI”).
+If `SUPABASE_DB_URL` is not set, skip to 4B.
+
+```bash
+if [ -z "$SUPABASE_DB_URL" ]; then
+  echo "No SUPABASE_DB_URL set; skipping DB-URL path."
+else
+  npx supabase gen types typescript \
+    --db-url "$SUPABASE_DB_URL" \
+    --schema public \
+    > client/src/types/supabase.generated.ts
+
+  if grep -q "cultural_moments" client/src/types/supabase.generated.ts \
+     && grep -q "dsd_briefs" client/src/types/supabase.generated.ts ; then
+    echo "OK: Types now include cultural_moments and dsd_briefs via DB URL."
+  else
+    echo "ERROR: Even DB URL generation did not include the tables. Investigate schema visibility."
+    exit 1
+  fi
+fi
+```
+
+---
+
+## 4B) (Fallback) Confirm schema visibility quickly
+
+> Only run if 4A was not possible and 2) still missed tables.
+
+* Print next steps and stop:
+
+  ```
+  echo "The remote project types still miss cultural_moments/dsd_briefs.
+  Likely causes:
+   - VITE_SUPABASE_PROJECT_REF points to a different project than the one with your tables
+   - The tables are not in the 'public' schema
+   - The project you’re targeting hasn’t run the migrations that create these tables
+
+  Please verify the correct project ref and that both tables exist under schema 'public' in the target project.
+  "
+  exit 1
+  ```
+
+---
+
+## 5) Update imports to the generated types
+
+Project-wide replace any imports of old types with the new file:
+
+* From any of:
+
+  * `@/types/supabase`
+  * `./types/supabase`
+  * `src/types/supabase`
+* To:
+
+  ```ts
+  import type { Database } from "@/types/supabase.generated";
+  ```
+
+**Command (safe, idempotent):**
+
+```bash
+SEARCH1='@/types/supabase'
+SEARCH2='./types/supabase'
+SEARCH3='src/types/supabase'
+REPL='@/types/supabase.generated'
+
+grep -rl --include=\*.{ts,tsx,js,jsx} "$SEARCH1" client server 2>/dev/null | xargs -r sed -i "s|$SEARCH1|$REPL|g"
+grep -rl --include=\*.{ts,tsx,js,jsx} "$SEARCH2" client server 2>/dev/null | xargs -r sed -i "s|$SEARCH2|$REPL|g"
+grep -rl --include=\*.{ts,tsx,js,jsx} "$SEARCH3" client server 2>/dev/null | xargs -r sed -i "s|$SEARCH3|$REPL|g"
+```
+
+---
+
+## 6) Lint/typecheck
+
+```bash
+# Ignore generated file in eslint
+echo "client/src/types/supabase.generated.ts" >> .eslintignore 2>/dev/null || true
+
+# Typecheck
+npx tsc --noEmit || true
+```
+
+* If errors remain that reference the **old** schema (e.g. complaining about `briefs` instead of `dsd_briefs`), print them and stop. That indicates app code is still using the legacy table names; we’ll fix those next after confirming the correct types are present.
+
+---
+
+## 7) Report back
+
+Print a compact summary:
+
+* The `VITE_SUPABASE_PROJECT_REF` value (mask except first/last 3 chars)
+* Whether `cultural_moments` and `dsd_briefs` were found in the generated file
+* Count of files whose imports were rewritten
+* Result of `npx tsc --noEmit` (success or error)
+
+Example:
+
+```bash
+REF_MASKED="${VITE_SUPABASE_PROJECT_REF:0:3}****${VITE_SUPABASE_PROJECT_REF: -3}"
+echo "Project ref: $REF_MASKED"
+grep -c "import type { Database } from \"@/types/supabase.generated\";" -r client server | awk '{print "Updated import count (lines):", $1}'
+```
+
+---
+
+### Why this fixes your issue
+
+Your earlier output showed the generator pulling tables like `briefs` (old) instead of `dsd_briefs` (new). That happens when:
+
+* The CLI is pointed at the wrong project, or
+* It doesn’t have visibility into the schema you just migrated.
+
+By forcing the correct **project ref** or using a direct **DB URL**, then verifying with `grep` that `cultural_moments` and `dsd_briefs` are present in the generated file, we guarantee the types match your live schema and the TS errors stop cascading.

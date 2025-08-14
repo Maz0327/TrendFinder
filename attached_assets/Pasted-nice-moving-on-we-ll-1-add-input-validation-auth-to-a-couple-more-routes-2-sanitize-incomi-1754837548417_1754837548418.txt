@@ -1,0 +1,353 @@
+nice — moving on. we’ll (1) add input validation + auth to a couple more routes, (2) sanitize incoming content, and (3) offload `/api/ai/quick-analysis` to a tiny in-memory job queue (no DB changes), plus a job status endpoint. I’ll give you exact file paths and paste-ready code.
+
+---
+
+## Step 1 — Add a sanitizer and use it on extension captures
+
+### 1A) Create the sanitizer utility
+
+**Create file:** `server/utils/sanitize.ts`
+**Paste EXACTLY:**
+
+```ts
+import DOMPurify from "isomorphic-dompurify";
+
+export function sanitizeInput(input: string): string {
+  return DOMPurify.sanitize(input, {
+    ALLOWED_ATTR: ["href", "src", "alt"],
+    ALLOWED_TAGS: [
+      "a","b","i","em","strong","p","br","ul","ol","li","img","span","div","blockquote","code","pre"
+    ],
+  });
+}
+```
+
+**Replit shell (install):**
+
+```bash
+npm i isomorphic-dompurify
+```
+
+### 1B) Use sanitizer in the extension capture route
+
+**Open:** `server/routes.ts`
+**Add this import at the top with other imports (do not remove anything):**
+
+```ts
+import { sanitizeInput } from "./utils/sanitize";
+```
+
+**Find your `POST /api/extension/capture` handler (the one we updated earlier).**
+**In its body, REPLACE the current `content` use with sanitized content:**
+
+Find:
+
+```ts
+const { projectId, content, url, platform, type, priority } = req.body as z.infer<typeof extensionCaptureSchema>;
+```
+
+Immediately **after** that line, ADD:
+
+```ts
+const safeContent = sanitizeInput(content);
+```
+
+Then **change** both places that pass `content` to use `safeContent` instead:
+
+* In `storage.createCapture({ ... })`, change `content,` → `content: safeContent,`
+* In the analysis call, change:
+
+  ```ts
+  const analysis = await aiAnalyzer.analyzeContent("Extension Capture", content, platform || "web");
+  ```
+
+  to:
+
+  ```ts
+  const analysis = await aiAnalyzer.analyzeContent("Extension Capture", safeContent, platform || "web");
+  ```
+
+Leave everything else as-is.
+
+---
+
+## Step 2 — Protect & validate PATCH/DELETE on captures
+
+We’ll add JWT auth and simple validation, and make sure the user owns the capture they update/delete.
+
+### 2A) Update `PATCH /api/captures/:id`
+
+**Open:** `server/routes.ts`
+**FIND the entire existing handler for `app.patch("/api/captures/:id", ...`**
+**REPLACE it with EXACTLY this:**
+
+```ts
+app.patch("/api/captures/:id", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    // basic shape validation to avoid arbitrary writes
+    const updates = (req.body ?? {}) as {
+      notes?: string;
+      customCopy?: string;
+      tags?: string[];
+    };
+
+    // ensure user owns capture
+    const capture = await storage.getCaptureById(id);
+    if (!capture) {
+      return res.status(404).json({ error: "Capture not found" });
+    }
+    if (capture.userId !== req.user!.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const updatedCapture = await storage.updateCapture(id, {
+      workspaceNotes: updates.notes,
+      content: typeof updates.customCopy === "string" ? sanitizeInput(updates.customCopy) : undefined,
+      tags: Array.isArray(updates.tags) ? updates.tags : undefined,
+    });
+
+    res.json(updatedCapture);
+  } catch (error) {
+    console.error("Error updating capture:", error);
+    res.status(500).json({ error: "Failed to update capture" });
+  }
+});
+```
+
+### 2B) Update `DELETE /api/captures/:id`
+
+**FIND the entire existing handler for `app.delete("/api/captures/:id", ...`**
+**REPLACE it with EXACTLY this:**
+
+```ts
+app.delete("/api/captures/:id", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    const capture = await storage.getCaptureById(id);
+    if (!capture) {
+      return res.status(404).json({ error: "Capture not found" });
+    }
+    if (capture.userId !== req.user!.id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    await storage.deleteCapture(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting capture:", error);
+    res.status(500).json({ error: "Failed to delete capture" });
+  }
+});
+```
+
+---
+
+## Step 3 — Offload `/api/ai/quick-analysis` to a tiny in-memory queue + add job status API
+
+This avoids DB changes. You’ll enqueue a job and get a `jobId` back. A background worker will complete the job. You can poll `/api/jobs/:id` to get results.
+
+### 3A) Create the in-memory queue
+
+**Create file:** `server/jobs/inMemoryQueue.ts`
+**Paste EXACTLY:**
+
+```ts
+import { v4 as uuid } from "uuid";
+
+type JobStatus = "queued" | "processing" | "done" | "failed";
+
+export type JobRecord = {
+  id: string;
+  type: string;
+  payload: any;
+  status: JobStatus;
+  result?: any;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+const queue: JobRecord[] = [];
+
+export function enqueue(type: string, payload: any): JobRecord {
+  const job: JobRecord = {
+    id: uuid(),
+    type,
+    payload,
+    status: "queued",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  queue.push(job);
+  return job;
+}
+
+export function takeNextQueued(): JobRecord | null {
+  const idx = queue.findIndex((j) => j.status === "queued");
+  if (idx === -1) return null;
+  queue[idx].status = "processing";
+  queue[idx].updatedAt = Date.now();
+  return queue[idx];
+}
+
+export function markDone(id: string, result: any) {
+  const job = queue.find((j) => j.id === id);
+  if (job) {
+    job.status = "done";
+    job.result = result;
+    job.updatedAt = Date.now();
+  }
+}
+
+export function markFailed(id: string, error: string) {
+  const job = queue.find((j) => j.id === id);
+  if (job) {
+    job.status = "failed";
+    job.error = error;
+    job.updatedAt = Date.now();
+  }
+}
+
+export function getJob(id: string): JobRecord | undefined {
+  return queue.find((j) => j.id === id);
+}
+```
+
+**Replit shell (install uuid if needed):**
+
+```bash
+npm i uuid
+```
+
+### 3B) Create the worker that processes jobs
+
+**Create file:** `server/jobs/worker.ts`
+**Paste EXACTLY:**
+
+```ts
+import { takeNextQueued, markDone, markFailed } from "./inMemoryQueue";
+import { AIAnalyzer } from "../services/aiAnalyzer";
+
+const ai = new AIAnalyzer();
+
+export function startWorker() {
+  setInterval(async () => {
+    const job = takeNextQueued();
+    if (!job) return;
+
+    try {
+      if (job.type === "ai.analyze") {
+        const { title, content, platform } = job.payload;
+        const result = await ai.analyzeContent(title, content, platform);
+        markDone(job.id, result);
+      } else {
+        markFailed(job.id, `Unknown job type: ${job.type}`);
+      }
+    } catch (err: any) {
+      markFailed(job.id, err?.message || "Job failed");
+    }
+  }, 1000);
+}
+```
+
+### 3C) Wire the worker up
+
+**Open:** `server/routes.ts`
+**At the top with imports, ADD:**
+
+```ts
+import { startWorker } from "./jobs/worker";
+import { enqueue, getJob } from "./jobs/inMemoryQueue";
+```
+
+**Inside `registerRoutes` (near the top, after services are created), ADD this line once:**
+
+```ts
+startWorker();
+```
+
+### 3D) Modify `/api/ai/quick-analysis` to enqueue
+
+**FIND the existing handler for `app.post("/api/ai/quick-analysis", ...`**
+**REPLACE the entire handler with EXACTLY:**
+
+```ts
+app.post("/api/ai/quick-analysis", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { content, type = "quick", context, platform = "web" } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: "Content is required for analysis" });
+    }
+
+    const job = enqueue("ai.analyze", {
+      title: "Quick Analysis",
+      content,
+      platform,
+    });
+
+    return res.json({
+      success: true,
+      jobId: job.id,
+      message: "Analysis job enqueued",
+      type,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("AI analysis enqueue error:", error);
+    res.status(500).json({
+      error: "Failed to enqueue analysis",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+```
+
+### 3E) Add job status endpoint
+
+**In the same `server/routes.ts` file, ADD this new route (anywhere with other `/api` routes):**
+
+```ts
+app.get("/api/jobs/:id", requireAuth, async (req: AuthedRequest, res) => {
+  const job = getJob(req.params.id);
+  if (!job) {
+    return res.status(404).json({ error: "Job not found" });
+  }
+  res.json({
+    id: job.id,
+    type: job.type,
+    status: job.status,
+    result: job.result ?? null,
+    error: job.error ?? null,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+  });
+});
+```
+
+---
+
+## Step 4 — Test & verify
+
+**Replit shell:**
+
+```bash
+npm run typecheck || npx tsc --noEmit
+npm run dev
+```
+
+**Sanity checks:**
+
+1. The app loads; Captures endpoints work (no 401s if your front-end sends the JWT).
+2. `POST /api/extension/capture` still works; content is sanitized.
+3. `POST /api/ai/quick-analysis` returns `{ jobId }`.
+4. `GET /api/jobs/<jobId>` shows `status: "done"` and `result` after \~1–3 seconds.
+
+If anything errors, paste the exact file, line, and error text, and I’ll give you a precise fix. When these pass, we can:
+
+* Convert a couple more POST/PATCH routes to `validateBody`.
+* Add one or two front-end spots to use the new `/api/jobs/:id` status for a loading UI (optional).
+* Then hop into Phase 4 tests or Phase 6 UI polish—your call.

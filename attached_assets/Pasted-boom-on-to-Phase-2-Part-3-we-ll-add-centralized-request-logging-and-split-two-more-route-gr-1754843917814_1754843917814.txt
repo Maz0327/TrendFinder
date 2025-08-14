@@ -1,0 +1,313 @@
+boom — on to **Phase 2 – Part 3**. we’ll add centralized request logging and split two more route groups, all in small, agent-friendly chunks.
+
+---
+
+# Phase 2 – Part 3 (agent-ready)
+
+## Step 0 — Install HTTP logger middleware
+
+**Replit shell:**
+
+```bash
+npm i pino-http uuid
+```
+
+---
+
+## Step 1 — Add request-id + HTTP logger middleware
+
+**Create file:** `server/middleware/requestId.ts`
+**PASTE EXACTLY:**
+
+```ts
+import type { Request, Response, NextFunction } from "express";
+import { v4 as uuid } from "uuid";
+
+export function requestId(req: Request, res: Response, next: NextFunction) {
+  const id = (req.headers["x-request-id"] as string) || uuid();
+  (req as any).requestId = id;
+  res.setHeader("x-request-id", id);
+  next();
+}
+```
+
+**Create file:** `server/middleware/httpLogger.ts`
+**PASTE EXACTLY:**
+
+```ts
+import pinoHttp from "pino-http";
+import { logger } from "../logger";
+
+export const httpLogger = pinoHttp({
+  logger,
+  customProps: (req, _res) => ({
+    requestId: (req as any).requestId,
+  }),
+  serializers: {
+    req(req) {
+      return {
+        method: req.method,
+        url: req.url,
+        requestId: (req as any).requestId,
+      };
+    },
+    res(res) {
+      return {
+        statusCode: res.statusCode,
+      };
+    },
+  },
+});
+```
+
+**Wire them up in `server/routes.ts`:**
+
+1. **At top imports, ADD:**
+
+```ts
+import { requestId } from "./middleware/requestId";
+import { httpLogger } from "./middleware/httpLogger";
+```
+
+2. **At the very beginning of `registerRoutes(app: Express)` (before CORS and before any routes), ADD these two lines in this order:**
+
+```ts
+app.use(requestId);
+app.use(httpLogger);
+```
+
+---
+
+## Step 2 — Split `/api/ai/*` endpoints into a router
+
+**Create file:** `server/routes/ai.ts`
+**PASTE EXACTLY:**
+
+```ts
+import { Router, Response } from "express";
+import { requireAuth } from "../middleware/auth";
+import { z } from "zod";
+import { validateBody, ValidatedRequest } from "../middleware/validate";
+import { AIAnalyzer } from "../services/aiAnalyzer";
+
+export const aiRouter = Router();
+const aiAnalyzer = new AIAnalyzer();
+
+const aiAnalyzeSchema = z.object({
+  content: z.string().min(1),
+  type: z.string().optional(),
+  platform: z.string().optional(),
+});
+
+aiRouter.post("/ai/analyze", requireAuth, validateBody(aiAnalyzeSchema), async (req: ValidatedRequest<z.infer<typeof aiAnalyzeSchema>>, res: Response) => {
+  try {
+    const { content, type, platform } = req.validated!.body!;
+    const analysis = {
+      summary: `Strategic analysis of ${type || "content"}: ${content.substring(0, 100)}...`,
+      sentiment: Math.random() > 0.6 ? "positive" : Math.random() > 0.3 ? "neutral" : "negative",
+      viralScore: Math.floor(Math.random() * 40) + 60,
+      strategicValue: Math.floor(Math.random() * 5) + 6,
+      keyInsights: [
+        "Strong engagement potential detected",
+        "Aligns with current trending topics",
+        "Recommended for strategic amplification",
+      ],
+      recommendations: [
+        `Optimize for ${platform || "social media"} platform`,
+        "Consider cross-platform distribution",
+        "Monitor performance metrics closely",
+      ],
+      targetAudience: { primary: "Digital natives", secondary: "Content creators", engagement: "High" },
+    };
+    res.json(analysis);
+  } catch (error) {
+    console.error("Error in AI analysis:", error);
+    res.status(500).json({ error: "Failed to analyze content" });
+  }
+});
+
+const hookGenSchema = z.object({
+  content: z.string().min(1),
+  platform: z.string().optional(),
+  targetAudience: z.string().optional(),
+  tone: z.string().optional(),
+});
+
+aiRouter.post("/ai/hook-generator", requireAuth, validateBody(hookGenSchema), async (req: ValidatedRequest<z.infer<typeof hookGenSchema>>, res: Response) => {
+  try {
+    const { content, platform, targetAudience, tone } = req.validated!.body!;
+    const hooks = [
+      `🔥 You won't believe what ${targetAudience || "people"} are saying about this...`,
+      `STOP scrolling! This ${platform || "content"} insight will change everything`,
+      `The secret that ${targetAudience || "everyone"} doesn't want you to know`,
+      `Why ${content.substring(0, 30)}... is trending everywhere`,
+      `This simple trick is breaking the internet right now`,
+      `${targetAudience || "People"} are going crazy over this new discovery`,
+      `Warning: This ${platform || "content"} hack is too powerful`,
+      `The ${tone || "authentic"} truth about what's happening`,
+      `Everyone is talking about this, but here's what they missed`,
+      `This changes everything we thought we knew about ${platform || "content"}`,
+    ];
+    res.json({
+      hooks: hooks.slice(0, 5),
+      metadata: {
+        platform: platform || "general",
+        targetAudience: targetAudience || "general",
+        tone: tone || "engaging",
+        optimizedFor: "maximum engagement",
+      },
+      performance: {
+        expectedCTR: `${Math.floor(Math.random() * 5) + 3}%`,
+        viralPotential: Math.floor(Math.random() * 30) + 70,
+        audienceMatch: Math.floor(Math.random() * 20) + 80,
+      },
+    });
+  } catch (error) {
+    console.error("Error generating hooks:", error);
+    res.status(500).json({ error: "Failed to generate hooks" });
+  }
+});
+
+export default aiRouter;
+```
+
+**Mount it in `server/routes.ts`:**
+
+1. **Add import:**
+
+```ts
+import aiRouter from "./routes/ai";
+```
+
+2. **Inside `registerRoutes` where you mounted other routers, ADD:**
+
+```ts
+app.use("/api", aiRouter);
+```
+
+**Remove the original handlers from `server/routes.ts`:**
+
+* `POST /api/ai/analyze`
+* `POST /api/ai/hook-generator`
+
+(delete those whole blocks; the router now serves them)
+
+---
+
+## Step 3 — Split `/api/bright-data/*` endpoints into a router
+
+**Create file:** `server/routes/brightData.ts`
+**PASTE EXACTLY:**
+
+```ts
+import { Router, Response } from "express";
+import { requireAuth } from "../middleware/auth";
+import { z } from "zod";
+import { validateBody, ValidatedRequest } from "../middleware/validate";
+import { FixedBrightDataService } from "../services/fixedBrightDataService";
+import { LiveBrightDataService } from "../services/liveBrightDataService";
+
+export const brightDataRouter = Router();
+const fixedBrightData = new FixedBrightDataService();
+const liveBrightData = new LiveBrightDataService();
+
+const brightFetchSchema = z.object({
+  platform: z.string().min(1),
+  keywords: z.array(z.string()).optional().default([]),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+brightDataRouter.post("/bright-data/fetch", requireAuth, validateBody(brightFetchSchema), async (req: ValidatedRequest<z.infer<typeof brightFetchSchema>>, res: Response) => {
+  try {
+    const { platform, keywords, limit } = req.validated!.body!;
+    const data = await fixedBrightData.fetchPlatformData(platform, keywords, limit);
+    res.json({
+      success: true,
+      platform,
+      count: data.length,
+      data,
+      method: data[0]?.metadata?.source || "unknown",
+    });
+  } catch (error) {
+    console.error("Error fetching via fixed Bright Data:", error);
+    res.status(500).json({
+      error: "Failed to fetch data",
+      details: error instanceof Error ? error.message : "Unknown error",
+      platform: (req.validated?.body as any)?.platform,
+    });
+  }
+});
+
+const brightLiveSchema = z.object({
+  platform: z.string().min(1),
+  keywords: z.array(z.string()).optional().default([]),
+  limit: z.number().int().min(1).max(50).optional().default(20),
+});
+
+brightDataRouter.post("/bright-data/live", requireAuth, validateBody(brightLiveSchema), async (req: ValidatedRequest<z.infer<typeof brightLiveSchema>>, res: Response) => {
+  try {
+    const { platform, keywords, limit } = req.validated!.body!;
+    const result = await liveBrightData.fetchLiveData(platform, keywords, limit);
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching live data:", error);
+    res.status(500).json({
+      error: "Failed to fetch live data",
+      details: error instanceof Error ? error.message : "Unknown error",
+      platform: (req.validated?.body as any)?.platform,
+    });
+  }
+});
+
+export default brightDataRouter;
+```
+
+**Mount it in `server/routes.ts`:**
+
+1. **Add import:**
+
+```ts
+import brightDataRouter from "./routes/brightData";
+```
+
+2. **Inside `registerRoutes` where routers are mounted, ADD:**
+
+```ts
+app.use("/api", brightDataRouter);
+```
+
+**Remove the original handlers from `server/routes.ts`:**
+
+* `POST /api/bright-data/fetch`
+* `POST /api/bright-data/live`
+
+(delete those blocks)
+
+---
+
+## Step 4 — Typecheck and run
+
+**Replit shell:**
+
+```bash
+npm run typecheck || npx tsc --noEmit
+npm run dev
+```
+
+**Quick tests:**
+
+* POST `/api/ai/analyze` with `{ "content": "hello world" }` → JSON
+* POST `/api/ai/hook-generator` with `{ "content":"topic" }` → hooks
+* POST `/api/bright-data/fetch` with `{ "platform":"reddit" }` → JSON
+* POST `/api/bright-data/live` with `{ "platform":"twitter" }` → JSON
+* Check server logs — you should see pretty pino logs with `requestId`
+
+---
+
+## What’s next (Phase 2 – Part 4)
+
+* Split `/api/intelligence/*` and `/api/content/*` similarly.
+* Add a tiny “problem details” response helper to standardize `error/code/details`.
+* (Optional) add a `config.ts` for ports, env flags, feature flags.
+
+Say **“done Part 3”** when this compiles and the four endpoints above work. Then I’ll hand you **Part 4** in the same copy-paste format.

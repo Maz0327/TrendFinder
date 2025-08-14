@@ -1,0 +1,343 @@
+Got it—I’ll give Replit a precise, step‑by‑step patch plan (code included) to (1) unify Supabase auth/client, (2) fix routing/providers, and (3) apply an Apple‑inspired polish pass. I’ll also bake in modern UI guidelines so the result looks clean and professional.
+
+⸻
+
+Replit: Apply These Changes Exactly
+
+0) Branch & safety
+	1.	Create a working branch:
+
+git checkout -b chore/unify-client-auth-polish
+
+
+	2.	Ensure deps are installed:
+
+npm install
+
+
+
+⸻
+
+1) Unify the Supabase client (one source of truth)
+
+Goal: Remove the duplicated client in content-radar/ and use client/src/lib/supabaseClient.ts everywhere.
+	1.	Delete the duplicate client:
+	•	If it exists, remove content-radar/lib/supabase.ts.
+	2.	Mass‑update imports in content-radar/**/*.{ts,tsx}:
+	•	Replace:
+
+import { supabase } from "@/integrations/supabase/client"
+// or
+import { supabase } from "../../lib/supabase"
+// or similar
+
+
+	•	With:
+
+import { supabase } from "@/lib/supabaseClient"
+
+
+	3.	Verify no remaining references to a second Supabase client:
+
+git grep -n "content-radar/lib/supabase" || true
+git grep -n "@/integrations/supabase/client" || true
+
+
+
+⸻
+
+2) Wire a real Login page + protected routes
+
+2.1 Create a ProtectedRoute
+
+File: client/src/components/routing/ProtectedRoute.tsx
+
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useSupabaseUser } from "@/hooks/useSupabaseUser";
+
+export default function ProtectedRoute() {
+  const { user, isLoading } = useSupabaseUser();
+  const location = useLocation();
+
+  if (isLoading) return null; // or a spinner
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return <Outlet />;
+}
+
+2.2 Implement real login logic (magic link or password)
+
+File: content-radar/pages/auth/LoginPage.tsx (create if missing or replace content)
+
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useNavigate, useLocation } from "react-router-dom";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [pwd, setPwd] = useState("");
+  const [loading, setLoading] = useState(false);
+  const nav = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname || "/";
+
+  async function handleMagicLink() {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+    setLoading(false);
+    if (error) alert(error.message);
+    else alert("Check your email for a login link.");
+  }
+
+  async function handlePassword() {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pwd });
+    setLoading(false);
+    if (error) alert(error.message);
+    else nav(from, { replace: true });
+  }
+
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="w-full max-w-sm glass-card p-6 rounded-2xl">
+        <h1 className="text-xl font-semibold mb-4">Sign in</h1>
+        <div className="space-y-3">
+          <Input placeholder="you@example.com" type="email" value={email} onChange={e=>setEmail(e.target.value)} />
+          <Input placeholder="Password (optional)" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} />
+          <div className="flex gap-2">
+            <Button className="flex-1" disabled={loading || !email} onClick={handleMagicLink}>Magic link</Button>
+            <Button variant="secondary" className="flex-1" disabled={loading || !email || !pwd} onClick={handlePassword}>Password</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+⸻
+
+3) Ensure a single provider tree and a single router
+
+3.1 Root providers
+
+File: client/src/main.tsx — ensure one <BrowserRouter> and wrap global providers once:
+
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import App from "./App";
+import { ProjectProvider } from "@/context/ProjectContext";
+import { SupabaseUserProvider } from "@/context/SupabaseUserContext"; // if you have one
+import "./index.css";
+
+const qc = new QueryClient();
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <QueryClientProvider client={qc}>
+        <SupabaseUserProvider>
+          <ProjectProvider>
+            <App />
+          </ProjectProvider>
+        </SupabaseUserProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+3.2 Centralize routes (no nested routers)
+
+File: client/src/App.tsx — mount both legacy and content‑radar pages behind a single router:
+
+import { Routes, Route, Navigate } from "react-router-dom";
+import AppLayout from "../content-radar/layout/AppLayout"; // uses project switcher + nav
+import ProtectedRoute from "@/components/routing/ProtectedRoute";
+
+// Content Radar pages
+import CapturesInbox from "@/pages/captures-inbox";         // or content-radar/pages/...
+import MomentsRadar from "@/pages/moments-radar";
+import BriefBuilderV2 from "@/pages/brief-builder-v2";
+import FeedsPage from "@/pages/feeds";                       // client/src/pages/feeds.tsx
+import LoginPage from "../content-radar/pages/auth/LoginPage";
+
+export default function App() {
+  return (
+    <AppLayout>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Navigate to="/captures-inbox" replace />} />
+          <Route path="/captures-inbox" element={<CapturesInbox />} />
+          <Route path="/moments-radar" element={<MomentsRadar />} />
+          <Route path="/brief-builder-v2" element={<BriefBuilderV2 />} />
+          <Route path="/feeds" element={<FeedsPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AppLayout>
+  );
+}
+
+Note: If your actual page file paths differ (e.g., living under content-radar/pages), import from there. The important part is: one router, one layout, protected routes wrap the app sections.
+
+⸻
+
+4) Design polish: Apple‑inspired, modern, subtle
+
+4.1 Tailwind theme extension
+
+File: tailwind.config.ts — extend (do not delete existing config):
+
+theme: {
+  extend: {
+    colors: {
+      // semantic tokens
+      background: "rgb(var(--bg) / <alpha-value>)",
+      foreground: "rgb(var(--fg) / <alpha-value>)",
+      muted: "rgb(var(--muted) / <alpha-value>)",
+      card: "rgb(var(--card) / <alpha-value>)",
+      border: "rgb(var(--border) / <alpha-value>)",
+      accent: "rgb(var(--accent) / <alpha-value>)",
+    },
+    boxShadow: {
+      soft: "0 1px 2px rgba(0,0,0,0.06), 0 10px 20px rgba(0,0,0,0.06)",
+    },
+    borderRadius: {
+      xl: "1rem",
+      "2xl": "1.25rem",
+    },
+    backdropBlur: {
+      xs: "2px",
+    },
+    transitionTimingFunction: {
+      smooth: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+    },
+  }
+}
+
+4.2 Global CSS variables + glass card utility
+
+File: client/src/index.css — add (keep what you have; append these):
+
+:root {
+  --bg: 12 12 12;
+  --fg: 235 235 235;
+  --muted: 160 160 160;
+  --card: 22 22 22;
+  --border: 255 255 255;
+  --accent: 99 102 241; /* indigo-ish */
+}
+
+body { background: rgb(var(--bg)); color: rgb(var(--fg)); }
+
+.apple-blur {
+  @apply backdrop-blur-md bg-[rgb(22_22_22/0.6)] border border-[rgb(255_255_255/0.08)];
+}
+
+.glass-card {
+  @apply bg-[rgb(22_22_22/0.6)] backdrop-blur-md border border-[rgb(255_255_255/0.08)] shadow-soft;
+}
+
+a.active { @apply text-white; }
+
+4.3 Add subtle page transitions (Framer Motion)
+
+Install if not present:
+
+npm i framer-motion
+
+File: client/src/components/layout/PageFade.tsx
+
+import { motion } from "framer-motion";
+
+export default function PageFade({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: "easeOut" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+Wrap top‑level page content with <PageFade>...</PageFade>.
+
+4.4 Header cleanup (already mostly there)
+
+File: content-radar/layout/AppLayout.tsx
+	•	Ensure header has apple-blur background (it does in your copy).
+	•	Keep ProjectSwitcher on the left; add active state for nav links by using NavLink with isActive.
+
+Example nav snippet tweak:
+
+import { NavLink, Link } from "react-router-dom";
+const NavBtn = ({ to, children }: any) => (
+  <NavLink to={to} className={({isActive}) =>
+    `px-3 py-1.5 rounded-md text-sm transition ${isActive ? 'bg-white/10 text-white' : 'text-[rgb(var(--muted))] hover:text-white hover:bg-white/5'}`
+  }>
+    {children}
+  </NavLink>
+);
+
+4.5 Toasts for actions
+
+If you already have a toast system, use it. Otherwise:
+
+npm i sonner
+
+File: client/src/main.tsx add:
+
+import { Toaster } from "sonner";
+// inside render tree, near App:
+<Toaster richColors position="bottom-right" />
+
+Then in actions:
+
+import { toast } from "sonner";
+toast.success("Feed added");
+
+
+⸻
+
+5) Project context sanity
+	•	Ensure ProjectProvider wraps App (we already did in main.tsx).
+	•	ProjectSwitcher should not crash when no project is selected; keep value={currentProjectId ?? ""}.
+
+⸻
+
+6) Verify, format, commit
+
+npm run typecheck
+npm run build
+npm run lint --fix || true
+git add -A
+git commit -m "Unify Supabase client, real auth, protected routes, single provider tree; Apple-inspired polish pass"
+
+
+⸻
+
+Design research → what this polish aims for (summary)
+	•	Apple‑inspired: high contrast dark surfaces, translucent headers (blur), generous spacing, quiet shadows, smooth micro‑transitions (~200–250ms), rounded corners (12–20px).
+	•	Hierarchy: clear page headers (title + short description + quick actions), cards that separate content, consistent grid spacing (8/12/16).
+	•	Motion: subtle fade/slide for page transitions; no distracting infinite animations.
+	•	Focus styles: accessible focus rings, large hit targets.
+	•	Empty states: helpful, not blank—add short guidance text + primary action.
+
+This pass implements those principles without overhauling your component library.
+
+⸻
+
+After this PR lands
+	•	If you want me to, I can generate a follow‑up patch to consolidate the Lovable pages into client/src/pages/ and delete content-radar/ entirely, keeping the polished layout. That’s optional and can wait until you’re happy with the look.
+
+Want me to proceed and include the exact file edits as a git patch (so you can apply with git am)?

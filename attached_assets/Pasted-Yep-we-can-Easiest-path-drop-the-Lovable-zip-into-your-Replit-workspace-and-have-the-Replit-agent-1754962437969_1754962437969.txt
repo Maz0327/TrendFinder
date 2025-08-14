@@ -1,0 +1,267 @@
+Yep, we can. Easiest path: drop the Lovable zip into your Replit workspace and have the Replit agent do a controlled swap-in while keeping our backend/services intact. Here’s a single, copy‑paste prompt for the Replit agent to follow exactly.
+
+⸻
+
+Replit Agent — Replace Frontend with Lovable UI (Safe Merge)
+
+Goal: Import the provided Lovable UI zip, integrate it as the new frontend, patch the missing bits (context, auth hook, minimal UI components), wire routes, keep our Supabase types and services, and remove the old UI.
+
+Ground rules
+	•	Do not touch server code or Supabase SQL.
+	•	Keep shared/database.types.ts as the single source of truth for DB types.
+	•	Use VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY envs.
+	•	If anything breaks, abort and restore the backup branch.
+
+⸻
+
+0) Prep & backup
+	1.	Create a safety branch and commit current state:
+
+git checkout -b feat/lovable-import
+git add -A && git commit -m "chore: checkpoint before Lovable UI import"
+
+
+	2.	Confirm envs exist (do not print values):
+
+test -n "$VITE_SUPABASE_URL" && echo OK_SUPABASE_URL || echo MISSING_SUPABASE_URL
+test -n "$VITE_SUPABASE_ANON_KEY" && echo OK_SUPABASE_ANON || echo MISSING_SUPABASE_ANON
+
+
+
+⸻
+
+1) Add Lovable UI as isolated module
+	1.	Upload the provided zip (radar-brief-flow-main.zip) to /home/runner/workspace/ (already uploaded by the user).
+	2.	Extract into a temporary folder and then copy the content‑radar module into our repo:
+
+rm -rf /tmp/lovable && mkdir -p /tmp/lovable
+unzip -qo "/home/runner/workspace/radar-brief-flow-main.zip" -d /tmp/lovable
+# find the inner folder name reliably:
+LOVABLE_ROOT=$(find /tmp/lovable -maxdepth 2 -type d -name "content-radar" | head -n1)
+if [ -z "$LOVABLE_ROOT" ]; then echo "ERROR: content-radar folder not found in zip"; exit 1; fi
+rm -rf content-radar
+cp -R "$LOVABLE_ROOT" ./content-radar
+
+
+	3.	Ensure directory structure:
+
+content-radar/
+  components/
+  context/
+  hooks/
+  layout/
+  lib/
+  pages/
+  services/
+  (…)
+
+
+
+⸻
+
+2) Fix aliases & types
+	1.	Ensure @shared alias points to shared (don’t change if already correct):
+	•	In vite.config.ts, verify:
+
+resolve: {
+  alias: {
+    '@': fileURLToPath(new URL('./client/src', import.meta.url)),
+    '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
+  }
+}
+
+
+	•	If @ targets a different base, leave as-is; do not break imports in existing code.
+
+	2.	Make sure shared types exist and are referenced:
+	•	Confirm shared/database.types.ts exists and includes captures, cultural_moments, dsd_briefs, projects, user_feeds.
+	•	If any are missing, add them now without removing existing shapes.
+
+⸻
+
+3) Patch missing components/hooks used by Lovable
+
+Create minimal internal components so the module runs without shadcn right away:
+
+A) Minimal Button
+	•	Create content-radar/components/ui/button.tsx:
+
+import * as React from "react";
+import clsx from "clsx";
+
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "default" | "ghost" | "outline";
+  size?: "sm" | "md";
+  asChild?: boolean;
+  className?: string;
+};
+
+export function Button({
+  variant = "default",
+  size = "md",
+  className,
+  ...props
+}: ButtonProps) {
+  const base = "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm transition focus:outline-none";
+  const variants = {
+    default: "bg-white/10 hover:bg-white/15 border border-white/10",
+    ghost: "hover:bg-white/10",
+    outline: "border border-white/15 hover:bg-white/10",
+  };
+  const sizes = { sm: "h-8", md: "h-10" };
+  return <button className={clsx(base, variants[variant], sizes[size], className)} {...props} />;
+}
+
+B) Minimal SidebarProvider
+	•	Create content-radar/components/ui/sidebar.tsx:
+
+import * as React from "react";
+export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+C) ProjectContext
+	•	Create content-radar/context/ProjectContext.tsx:
+
+import React, { createContext, useContext, useState } from "react";
+
+type ProjectCtx = {
+  currentProjectId: string | null;
+  setProjectId: (id: string | null) => void;
+};
+
+const Ctx = createContext<ProjectCtx | undefined>(undefined);
+
+export function ProjectProvider({ children }: { children: React.ReactNode }) {
+  const [currentProjectId, setProjectId] = useState<string | null>(null);
+  return <Ctx.Provider value={{ currentProjectId, setProjectId }}>{children}</Ctx.Provider>;
+}
+
+export function useProject() {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error("useProject must be used within ProjectProvider");
+  return ctx;
+}
+
+D) useSupabaseUser
+	•	Create content-radar/hooks/useSupabaseUser.ts:
+
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+
+export function useSupabaseUser() {
+  const [user, setUser] = useState<Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => mounted && setUser(data.user ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) => setUser(sess?.user ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  return { user };
+}
+
+E) Fix imports inside Lovable layout
+	•	In content-radar/layout/AppLayout.tsx, replace:
+
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+
+with
+
+import { SidebarProvider } from "../components/ui/sidebar";
+import { Button } from "../components/ui/button";
+
+
+
+⸻
+
+4) Supabase client alignment
+	1.	Verify content-radar/lib/supabase.ts uses:
+
+import { createClient } from "@supabase/supabase-js";
+const url = import.meta.env.VITE_SUPABASE_URL || "https://demo.supabase.co";
+const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || "demoanon";
+export const supabase = createClient(url, anon);
+
+
+	2.	Do not change the env names. Our deployment will supply real values.
+
+⸻
+
+5) Wire routes (host app)
+	1.	In the existing app router (e.g., client/src/main.tsx or client/src/App.tsx), add routes without removing current ones yet:
+
+import AppLayout from "../../content-radar/layout/AppLayout"; // adjust relative path from your router file
+import LoginPage from "../../content-radar/pages/auth/LoginPage";
+import Inbox from "../../content-radar/pages/captures/Inbox";
+import Radar from "../../content-radar/pages/moments/Radar";
+import BuilderV2 from "../../content-radar/pages/briefs/BuilderV2";
+import FeedsPage from "../../content-radar/pages/feeds/FeedsPage";
+import { ProjectProvider } from "../../content-radar/context/ProjectContext";
+
+// Example with react-router
+// Ensure <ProjectProvider> wraps routes using AppLayout
+// Pseudocode:
+/*
+<ProjectProvider>
+  <Routes>
+    <Route element={<AppLayout />}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/captures-inbox" element={<Inbox />} />
+      <Route path="/moments-radar" element={<Radar />} />
+      <Route path="/brief-builder-v2" element={<BuilderV2 />} />
+      <Route path="/feeds" element={<FeedsPage />} />
+    </Route>
+  </Routes>
+</ProjectProvider>
+*/
+
+
+	2.	If there is a duplicate src/layout/AppLayout.tsx, remove it or ignore it to avoid confusion:
+
+git rm -f src/layout/AppLayout.tsx 2>/dev/null || true
+
+
+
+⸻
+
+6) Install deps & build
+	1.	Ensure clsx exists for the minimal Button:
+
+npm i clsx
+
+
+	2.	Typecheck & build:
+
+npm run typecheck || npx tsc --noEmit
+npm run build
+
+
+
+⸻
+
+7) Swap to new UI (optional after validation)
+
+Once /captures-inbox, /moments-radar, /brief-builder-v2, and /feeds render correctly with real data:
+	1.	Remove the old UI pages/components that are now redundant (only if build stays green):
+
+# Example: keep anything shared; remove only obsolete pages
+git rm -r client/src/pages/old-dashboard 2>/dev/null || true
+git rm -r client/src/components/old-* 2>/dev/null || true
+
+
+	2.	Run:
+
+npm run typecheck && npm run build
+
+
+
+⸻
+
+8) Commit & PR
+
+git add -A
+git commit -m "feat(ui): integrate Lovable Content Radar module, add minimal UI, ProjectContext, routes, and env support"
+git push -u origin feat/lovable-import
+
+If anything fails at any step, stop, report the failing command + error, and do not delete existing UI. If the module builds but routes 404, print a short note with which file the router lives in and what import path adjustments are needed.

@@ -1,0 +1,239 @@
+cool—let’s keep it rolling. next, we’ll (1) finish protecting the other captures routes, (2) add rate-limiting, and (3) make the front-end automatically send the JWT so you don’t get 401s.
+
+---
+
+## Step 1 — Protect 2 more routes with JWT
+
+### A) `GET /api/captures/recent`
+
+**Open:** `server/routes.ts`
+**FIND this whole handler and REPLACE it exactly:**
+
+```ts
+app.get("/api/captures/recent", async (req, res) => {
+  try {
+    if (!req.session?.user?.id) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    const limit = parseInt(req.query.limit as string) || 10;
+    const captures = await db.getUserCaptures(req.session.user.id);
+    
+    const recentCaptures = captures
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })
+      .slice(0, limit);
+    
+    res.json(recentCaptures);
+  } catch (error) {
+    console.error("Error fetching recent captures:", error);
+    res.status(500).json({ error: "Failed to fetch recent captures" });
+  }
+});
+```
+
+**REPLACE WITH:**
+
+```ts
+import { requireAuth, AuthedRequest } from "./middleware/auth";
+
+app.get("/api/captures/recent", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const userId = req.user!.id;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const captures = await db.getUserCaptures(userId);
+
+    const recentCaptures = captures
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })
+      .slice(0, limit);
+
+    res.json(recentCaptures);
+  } catch (error) {
+    console.error("Error fetching recent captures:", error);
+    res.status(500).json({ error: "Failed to fetch recent captures" });
+  }
+});
+```
+
+### B) `GET /api/captures/all`
+
+**FIND this handler and REPLACE it exactly:**
+
+```ts
+app.get("/api/captures/all", async (req, res) => {
+  try {
+    if (!req.session?.user?.id) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    const captures = await db.getUserCaptures(req.session.user.id);
+    res.json(captures);
+  } catch (error) {
+    console.error("Error fetching user captures:", error);
+    res.status(500).json({ error: "Failed to fetch captures" });
+  }
+});
+```
+
+**REPLACE WITH:**
+
+```ts
+app.get("/api/captures/all", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const userId = req.user!.id;
+    const captures = await db.getUserCaptures(userId);
+    res.json(captures);
+  } catch (error) {
+    console.error("Error fetching user captures:", error);
+    res.status(500).json({ error: "Failed to fetch captures" });
+  }
+});
+```
+
+---
+
+## Step 2 — Add rate limiting for public endpoints
+
+**Open:** `server/routes.ts`
+**At the top (with other imports), ADD:**
+
+```ts
+import rateLimit from "express-rate-limit";
+```
+
+**Inside `registerRoutes` near the top, ADD this EXACT block once:**
+
+```ts
+const publicLimiter = rateLimit({
+  windowMs: 60_000,   // 1 minute
+  limit: 60,          // 60 requests/min
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply to all public testing routes
+app.use("/api/public", publicLimiter);
+// (Optional) Also protect scraping/AI heavy routes:
+app.use("/api/bright-data", publicLimiter);
+app.use("/api/ai", publicLimiter);
+```
+
+No other changes required for this step.
+
+---
+
+## Step 3 — Make the front-end send the Supabase JWT automatically
+
+If your front-end fetches `/api/*` without an `Authorization` header, the new protected routes will 401. We’ll add a small fetch wrapper that attaches the token to every request.
+
+### A) Create a tiny API wrapper
+
+**Create file:** `client/src/lib/api.ts`
+**PASTE EXACTLY:**
+
+```ts
+// Minimal API wrapper that adds Authorization header if a Supabase token is present.
+// If you already have a Supabase client, you can swap the token getter below.
+
+async function getSupabaseToken(): Promise<string | null> {
+  try {
+    // Common places to look (adjust if you already store differently)
+    const raw = localStorage.getItem("sb-access-token") || localStorage.getItem("supabase.auth.token");
+    if (raw) {
+      // supabase.auth.token often stores a JSON object; try parse then fallback
+      try {
+        const obj = JSON.parse(raw);
+        // v2 session shape: { currentSession: { access_token: "..." }, ... }
+        const token =
+          obj?.currentSession?.access_token ||
+          obj?.access_token ||
+          obj?.accessToken ||
+          null;
+        return token || null;
+      } catch {
+        return raw;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const token = await getSupabaseToken();
+  const headers = new Headers(init.headers || {});
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  headers.set("Content-Type", headers.get("Content-Type") || "application/json");
+  return fetch(input, { ...init, headers });
+}
+```
+
+### B) Use the wrapper where you call your API
+
+Anywhere you currently do:
+
+```ts
+fetch("/api/captures")
+```
+
+**Change to:**
+
+```ts
+import { apiFetch } from "@/lib/api";
+
+apiFetch("/api/captures")
+```
+
+Anywhere you POST JSON:
+
+```ts
+apiFetch("/api/extension/capture", {
+  method: "POST",
+  body: JSON.stringify({ content: "Hello", platform: "web" })
+});
+```
+
+> You don’t need to edit every file right now. Start with places that call `/api/captures`, the dashboard data fetch, and the extension capture flow. If you tell me where your API calls live, I’ll point to specific lines.
+
+---
+
+## Step 4 — Quick sanity checks
+
+1. **Re-run type check**
+
+```bash
+npm run typecheck || npx tsc --noEmit
+```
+
+2. **Run the app**
+
+```bash
+npm run dev
+```
+
+3. **Test**
+
+* Open Dashboard / My Captures → should load (no 401).
+* Try creating a capture (extension or UI) → should succeed.
+
+If you see a 401 anywhere, tell me which request (URL) and I’ll give the exact front-end spot to swap `fetch` → `apiFetch`.
+
+---
+
+### Ready for the next move after this:
+
+* Convert another couple of routes to `requireAuth` (same pattern).
+* Add input validation to a few POST/PATCH endpoints using the `validateBody` helper.
+* Then we’ll wire up the simple sanitizer for content and (optionally) the job-queue offload for `/api/ai/quick-analysis`.
+
+Say “go” when these three steps are done, and we’ll keep marching.

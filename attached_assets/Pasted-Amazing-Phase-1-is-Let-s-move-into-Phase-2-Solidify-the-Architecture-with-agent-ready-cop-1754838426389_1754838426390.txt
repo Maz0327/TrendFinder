@@ -1,0 +1,328 @@
+Amazing. Phase 1 is ✅. Let’s move into **Phase 2 – Solidify the Architecture** with agent-ready, copy-paste steps. We’ll do this incrementally so nothing breaks:
+
+* Add structured logging
+* Split a small, safe subset of routes out of `server/routes.ts` into dedicated routers:
+
+  * `/api/captures*`
+  * `/api/extension/active-project` and `/api/extension/capture`
+* Keep the exact same behavior (auth, sanitization, analysis), just cleaner structure.
+
+If anything fails at any step, stop and tell me the exact error text and file/line — I’ll patch it.
+
+---
+
+# Phase 2 – Part 1 (Agent-ready steps)
+
+## Step 0 — Install logging deps
+
+**Replit shell:**
+
+```bash
+npm i pino pino-pretty
+```
+
+---
+
+## Step 1 — Create a logger
+
+**Create file:** `server/logger.ts`
+**PASTE EXACTLY:**
+
+```ts
+import pino from "pino";
+
+const isDev = process.env.NODE_ENV !== "production";
+
+export const logger = pino({
+  level: process.env.LOG_LEVEL || "info",
+  transport: isDev
+    ? { target: "pino-pretty", options: { colorize: true, translateTime: "SYS:standard" } }
+    : undefined,
+  base: undefined,
+});
+```
+
+---
+
+## Step 2 — Create a captures router
+
+**Create folder:** `server/routes` (if it doesn’t exist)
+**Create file:** `server/routes/captures.ts`
+**PASTE EXACTLY:**
+
+```ts
+import { Router, Response } from "express";
+import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { sanitizeInput } from "../utils/sanitize";
+import { storage as db } from "../storage";
+
+export const capturesRouter = Router();
+
+// GET /api/captures
+capturesRouter.get("/captures", requireAuth, async (req: AuthedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const captures = await db.getUserCaptures(userId);
+    res.json(captures);
+  } catch (error) {
+    console.error("Error fetching user captures:", error);
+    res.status(500).json({ error: "Failed to fetch captures" });
+  }
+});
+
+// GET /api/captures/recent
+capturesRouter.get("/captures/recent", requireAuth, async (req: AuthedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const captures = await db.getUserCaptures(userId);
+
+    const recentCaptures = captures
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })
+      .slice(0, limit);
+
+    res.json(recentCaptures);
+  } catch (error) {
+    console.error("Error fetching recent captures:", error);
+    res.status(500).json({ error: "Failed to fetch recent captures" });
+  }
+});
+
+// GET /api/captures/all
+capturesRouter.get("/captures/all", requireAuth, async (req: AuthedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const captures = await db.getUserCaptures(userId);
+    res.json(captures);
+  } catch (error) {
+    console.error("Error fetching user captures:", error);
+    res.status(500).json({ error: "Failed to fetch captures" });
+  }
+});
+
+// PATCH /api/captures/:id
+capturesRouter.patch("/captures/:id", requireAuth, async (req: AuthedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const updates = (req.body ?? {}) as {
+      notes?: string;
+      customCopy?: string;
+      tags?: string[];
+    };
+
+    const capture = await db.getCaptureById(id);
+    if (!capture) return res.status(404).json({ error: "Capture not found" });
+    if (capture.userId !== req.user!.id) return res.status(403).json({ error: "Forbidden" });
+
+    const updated = await db.updateCapture(id, {
+      workspaceNotes: updates.notes,
+      content: typeof updates.customCopy === "string" ? sanitizeInput(updates.customCopy) : undefined,
+      tags: Array.isArray(updates.tags) ? updates.tags : undefined,
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Error updating capture:", error);
+    res.status(500).json({ error: "Failed to update capture" });
+  }
+});
+
+// DELETE /api/captures/:id
+capturesRouter.delete("/captures/:id", requireAuth, async (req: AuthedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const capture = await db.getCaptureById(id);
+    if (!capture) return res.status(404).json({ error: "Capture not found" });
+    if (capture.userId !== req.user!.id) return res.status(403).json({ error: "Forbidden" });
+
+    await db.deleteCapture(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting capture:", error);
+    res.status(500).json({ error: "Failed to delete capture" });
+  }
+});
+```
+
+---
+
+## Step 3 — Create an extension router
+
+**Create file:** `server/routes/extension.ts`
+**PASTE EXACTLY:**
+
+```ts
+import { Router, Response } from "express";
+import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { storage } from "../storage";
+import { AIAnalyzer } from "../services/aiAnalyzer";
+import { productionMonitor } from "../monitoring/productionMonitor";
+import { sanitizeInput } from "../utils/sanitize";
+import { z } from "zod";
+
+const aiAnalyzer = new AIAnalyzer();
+
+export const extensionRouter = Router();
+
+// GET /api/extension/active-project
+extensionRouter.get("/extension/active-project", requireAuth, async (req: AuthedRequest, res: Response) => {
+  try {
+    const projects = await storage.getProjects(req.user!.id);
+    const activeProject = projects.find((p: any) => p.status === "active") || projects[0];
+
+    if (!activeProject) {
+      return res.status(404).json({ error: "No projects found" });
+    }
+
+    res.json({
+      success: true,
+      project: {
+        id: activeProject.id,
+        name: activeProject.name,
+        description: activeProject.description,
+      },
+    });
+  } catch (error) {
+    console.error("Extension active project error:", error);
+    res.status(500).json({ error: "Failed to get active project" });
+  }
+});
+
+const extensionCaptureSchema = z.object({
+  projectId: z.string().uuid().optional(),
+  content: z.string().min(1),
+  url: z.string().url().optional(),
+  platform: z.string().optional(),
+  type: z.string().optional().default("extension"),
+  priority: z.enum(["low", "normal", "high"]).optional().default("normal"),
+});
+
+// POST /api/extension/capture
+extensionRouter.post("/extension/capture", requireAuth, async (req: AuthedRequest, res: Response) => {
+  try {
+    const parsed = extensionCaptureSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid input", details: parsed.error.errors });
+    }
+    const { projectId, content, url, platform, type, priority } = parsed.data;
+
+    // Track extension request
+    const extensionId = req.headers["x-extension-id"] as string | undefined;
+    if (extensionId) productionMonitor.trackExtensionRequest(extensionId);
+
+    const safeContent = sanitizeInput(content);
+    const userId = req.user!.id;
+    const fallbackProjectId = (await storage.getProjects(userId))[0]?.id;
+
+    const capture = await storage.createCapture({
+      userId,
+      projectId: projectId || fallbackProjectId,
+      type: type || "extension",
+      content: safeContent,
+      url,
+      platform: platform || "web",
+      title: `Extension Capture - ${new Date().toLocaleString()}`,
+      priority,
+      analysisStatus: "pending",
+    });
+
+    if (safeContent.length > 50) {
+      try {
+        const analysis = await aiAnalyzer.analyzeContent("Extension Capture", safeContent, platform || "web");
+        await storage.updateCapture(capture.id, { viralScore: analysis.viralScore, analysisStatus: "completed" });
+      } catch (e) {
+        console.warn("Analysis failed for extension capture:", e);
+      }
+    }
+
+    res.json({
+      success: true,
+      capture: { id: capture.id, title: capture.title, createdAt: capture.createdAt },
+    });
+  } catch (error) {
+    console.error("Extension capture error:", error);
+
+    const extensionId = req.headers["x-extension-id"] as string | undefined;
+    if (extensionId) {
+      productionMonitor.trackExtensionRequest(extensionId, error instanceof Error ? error.message : "Unknown error");
+    }
+
+    res.status(500).json({
+      error: "Failed to create capture",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+```
+
+---
+
+## Step 4 — Mount the new routers
+
+**Open:** `server/routes.ts`
+
+1. **At the top with imports, ADD:**
+
+```ts
+import { capturesRouter } from "./routes/captures";
+import { extensionRouter } from "./routes/extension";
+import { logger } from "./logger";
+```
+
+2. **Inside `registerRoutes(app: Express)` (after middlewares like CORS, before other routes), ADD:**
+
+```ts
+// Mount modular routers
+app.use("/api", capturesRouter);
+app.use("/api", extensionRouter);
+
+// example log on startup
+logger.info("Mounted captures and extension routers");
+```
+
+3. **REMOVE the original handlers for these exact endpoints from `server/routes.ts`:**
+
+* `GET /api/captures`
+* `GET /api/captures/recent`
+* `GET /api/captures/all`
+* `PATCH /api/captures/:id`
+* `DELETE /api/captures/:id`
+* `GET /api/extension/active-project`
+* `POST /api/extension/capture`
+
+> Delete the full route blocks for those paths (do not delete any unrelated routes). The new routers serve the same paths and behavior.
+
+---
+
+## Step 5 — Typecheck and run
+
+**Replit shell:**
+
+```bash
+npm run typecheck || npx tsc --noEmit
+npm run dev
+```
+
+**Browser sanity:**
+
+* Dashboard → Captures list loads.
+* Edit a capture (notes/tags) → save works.
+* Use extension capture or POST `/api/extension/capture` → returns success.
+
+If anything fails, paste the error here and I’ll give a precise fix.
+
+---
+
+## What’s next (after this succeeds)
+
+* **Phase 2 – Part 2:** Add Zod validation to a few more POST/PATCH routes (signals, briefs, intelligence fetch).
+* **Phase 2 – Part 3:** Centralize error handler to use `logger` consistently and return a standard JSON shape.
+* **Phase 2 – Part 4:** (Optional) Split more route groups (`/api/ai/*`, `/api/bright-data/*`, `/api/analytics/*`) the same way.
+
+Say “**done Part 1**” when the routers are mounted and working, and I’ll hand you **Part 2** with exact, agent-friendly patches for validation + error handling.

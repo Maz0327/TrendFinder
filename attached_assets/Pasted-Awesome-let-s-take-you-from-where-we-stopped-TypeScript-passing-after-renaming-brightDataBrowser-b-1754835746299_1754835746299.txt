@@ -1,0 +1,603 @@
+Awesome—let’s take you from where we stopped (TypeScript passing after renaming `brightDataBrowser-backup.ts`) through the rest of the plan, step by step. I’ll keep it super concrete: file paths, commands, and paste-in code where needed.
+
+---
+
+# Phase 1 (wrap-up): Finish Stabilization
+
+## 1) Re-run type check and lint
+
+**Command (Replit shell):**
+
+```bash
+npm run typecheck || npx tsc --noEmit
+npm run lint || npx eslint . --ext .ts,.tsx
+```
+
+* If anything else errors, paste the first 10 error lines here and I’ll give line-by-line fixes.
+
+## 2) Remove/ignore any other “backup” TS files
+
+* In Replit file tree, if you see any other `*-backup.ts` or `*.old.ts`, **rename** to `.bak` (example: `foo.ts.bak`).
+
+---
+
+# Phase 2: Solidify the Architecture
+
+## 3) Split routes into modules
+
+### 3a) Create `server/routes/index.ts` (router composer)
+
+**Create file:** `server/routes/index.ts`
+**Paste full content:**
+
+```ts
+import { Router } from "express";
+import { registerProjectRoutes } from "./projects";
+import { registerBriefRoutes } from "./briefs";
+import googleExportsRouter from "./google-exports";
+import { setupSettingsRoutes } from "./settings";
+import { setupAnnotationsRoutes } from "./annotations";
+import { setupAnalyticsRoutes } from "./analytics";
+import { setupSearchRoutes } from "./search";
+
+export function buildApiRouter() {
+  const router = Router();
+
+  // Existing modules (keep these as-is)
+  registerProjectRoutes(router as any);
+  registerBriefRoutes(router as any);
+  router.use("/google", googleExportsRouter);
+
+  // Lovable UI routes
+  setupSettingsRoutes(router as any);
+  setupAnnotationsRoutes(router as any);
+  setupAnalyticsRoutes(router as any);
+  setupSearchRoutes(router as any);
+
+  return router;
+}
+```
+
+### 3b) Mount this router in `server/routes.ts`
+
+**Open file:** `server/routes.ts`
+**Find this line (near the top of registerRoutes):**
+
+```ts
+// Register project and capture routes
+registerProjectRoutes(app);
+registerBriefRoutes(app);
+
+// Register Google exports routes
+app.use("/api/google", googleExportsRouter);
+```
+
+**Replace those three lines with exactly:**
+
+```ts
+import { buildApiRouter } from "./routes/index";
+
+// Mount all API sub-routers under /api
+app.use("/api", buildApiRouter());
+```
+
+**Keep all other lines untouched.**
+
+> This change centralizes API mounting. All existing module files remain the same.
+
+---
+
+## 4) Add Zod validation helper (apply to many routes later)
+
+### 4a) Create `server/middleware/validate.ts`
+
+**Create file:** `server/middleware/validate.ts`
+**Paste full content:**
+
+```ts
+import { z, ZodSchema } from "zod";
+import { Request, Response, NextFunction } from "express";
+
+export function validateBody<T>(schema: ZodSchema<T>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid input", details: parsed.error.errors });
+    }
+    req.body = parsed.data;
+    next();
+  };
+}
+
+export function validateQuery<T>(schema: ZodSchema<T>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const parsed = schema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid query", details: parsed.error.errors });
+    }
+    req.query = parsed.data as any;
+    next();
+  };
+}
+
+export const zod = z;
+```
+
+### 4b) Example: apply to `/api/extension/capture` (we already did body schema).
+
+When you touch more routes (POST/PATCH), use:
+
+```ts
+import { validateBody, zod as z } from "./middleware/validate";
+
+const schema = z.object({
+  content: z.string().min(1),
+  projectId: z.string().uuid().optional(),
+  url: z.string().url().optional(),
+  platform: z.string().optional(),
+  type: z.string().optional(),
+  priority: z.string().optional(),
+});
+
+app.post("/api/extension/capture", validateBody(schema), async (req, res) => {
+  // req.body is validated & typed here
+});
+```
+
+**Only add this to routes as you touch them—no mass edits right now.**
+
+---
+
+## 5) Standardize authentication (middleware)
+
+This swaps `req.session?.user?.id` for `req.user.id` using a Supabase JWT sent via `Authorization: Bearer <token>`.
+
+### 5a) Create `server/middleware/auth.ts`
+
+**Create file:** `server/middleware/auth.ts`
+**Paste full content:**
+
+```ts
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+
+export interface AuthedRequest extends Request {
+  user?: { id: string; email?: string };
+}
+
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || "";
+
+export function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+
+  if (!token) return res.status(401).json({ error: "Not authenticated" });
+
+  try {
+    const payload = jwt.verify(token, SUPABASE_JWT_SECRET) as any;
+    // Supabase JWT typically includes sub (user id) and email
+    req.user = { id: payload.sub, email: payload.email };
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+}
+```
+
+> If you’re not ready to switch the whole app to JWT yet, **do not** apply this globally. Use it on a couple of routes to start (e.g., `/api/captures`, `/api/client-profiles`): replace the `if (!req.session?.user?.id)` checks with `requireAuth` middleware and read `req.user!.id`.
+
+### 5b) Example change in a route
+
+**Open file:** `server/routes.ts`
+**Find any route that begins like this:**
+
+```ts
+app.get("/api/captures", async (req, res) => {
+  if (!req.session?.user?.id) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  // ...
+});
+```
+
+**Replace the first line with:**
+
+```ts
+import { requireAuth, AuthedRequest } from "./middleware/auth";
+
+app.get("/api/captures", requireAuth, async (req: AuthedRequest, res) => {
+  const userId = req.user!.id;
+  // ...
+});
+```
+
+**Delete** the `if (!req.session?.user?.id)` block inside the handler.
+
+> Do this gradually, not everywhere at once.
+
+---
+
+## 6) Centralized logging + error handling
+
+### 6a) Create `server/logger.ts`
+
+**Create file:** `server/logger.ts`
+**Paste full content:**
+
+```ts
+import pino from "pino";
+export const logger = pino({ level: process.env.LOG_LEVEL || "info" });
+```
+
+### 6b) Create `server/middleware/errorHandler.ts`
+
+**Create file:** `server/middleware/errorHandler.ts`
+**Paste full content:**
+
+```ts
+import { Request, Response, NextFunction } from "express";
+import { logger } from "../logger";
+
+export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
+  const errorId = Date.now().toString();
+  logger.error({ err, errorId, path: req.path, method: req.method }, "Unhandled error");
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Internal server error", errorId });
+  }
+}
+```
+
+### 6c) Register the error handler at the **bottom** of `server/routes.ts`
+
+**At the very end of the file, just before creating the `httpServer`:**
+
+```ts
+import { errorHandler } from "./middleware/errorHandler";
+
+// ... all routes above
+
+app.use(errorHandler);
+```
+
+---
+
+# Phase 3: Scalability & Reliability
+
+## 7) Job offloading (simple “queue” table + worker)
+
+### 7a) Create a minimal job model (in Supabase SQL or via code)
+
+**Table `jobs` (one-time SQL in Supabase):**
+
+```sql
+create table if not exists jobs (
+  id uuid primary key default gen_random_uuid(),
+  type text not null,
+  payload jsonb not null,
+  status text not null default 'queued',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+```
+
+### 7b) Create `server/jobs/queue.ts`
+
+**Create file:** `server/jobs/queue.ts`
+**Paste full content:**
+
+```ts
+import { storage } from "../storage";
+
+export type JobType = "ai.analyze" | "ai.truth" | "brief.generate";
+
+export async function enqueueJob(type: JobType, payload: any) {
+  return storage.createJob({ type, payload });
+}
+
+export async function markJobStatus(id: string, status: "queued"|"processing"|"done"|"failed", result?: any) {
+  return storage.updateJob(id, { status, result });
+}
+```
+
+> Add corresponding `createJob` / `updateJob` methods in your storage layer to insert/update the `jobs` table.
+
+### 7c) Create a tiny worker loop (runs in same process for now)
+
+**Create file:** `server/jobs/worker.ts`
+**Paste full content:**
+
+```ts
+import { storage } from "../storage";
+import { markJobStatus } from "./queue";
+import { AIAnalyzer } from "../services/aiAnalyzer";
+
+const ai = new AIAnalyzer();
+
+export async function startWorker() {
+  setInterval(async () => {
+    const job = await storage.takeNextQueuedJob(); // implement: selects 1 queued job FOR UPDATE SKIP LOCKED
+    if (!job) return;
+    try {
+      await markJobStatus(job.id, "processing");
+      let result: any = null;
+
+      if (job.type === "ai.analyze") {
+        const { title, content, platform } = job.payload;
+        result = await ai.analyzeContent(title, content, platform);
+      }
+      // add other job types here...
+
+      await markJobStatus(job.id, "done", result);
+    } catch (err) {
+      await markJobStatus(job.id, "failed", { message: (err as Error).message });
+    }
+  }, 2000);
+}
+```
+
+### 7d) Start the worker from `server/routes.ts` (top-level)
+
+**At the top near other service initializations:**
+
+```ts
+import { startWorker } from "./jobs/worker";
+startWorker(); // non-blocking interval worker
+```
+
+### 7e) Convert one heavy endpoint to enqueue
+
+**Example—replace in `/api/ai/quick-analysis` handler body:**
+
+```ts
+import { enqueueJob } from "./jobs/queue";
+
+const job = await enqueueJob("ai.analyze", { title: "Quick Analysis", content, platform: "web" });
+return res.json({ success: true, jobId: job.id });
+```
+
+**Keep** the rest of the handler intact; just return `jobId` immediately.
+
+> Later, add a `/api/jobs/:id` route to fetch job status and results.
+
+---
+
+## 8) Add rate limiting
+
+### 8a) Install & wire up
+
+**Command (Replit shell):**
+
+```bash
+npm i express-rate-limit
+```
+
+**In `server/routes.ts` (top of registerRoutes):**
+
+```ts
+import rateLimit from "express-rate-limit";
+
+const publicLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 60, // 60 req/min
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/api/public", publicLimiter);
+```
+
+> You can add stricter limits on scraping/AI routes if needed.
+
+---
+
+# Phase 4: Testing & CI
+
+## 9) Add Vitest + React Testing Library
+
+### 9a) Install
+
+**Command:**
+
+```bash
+npm i -D vitest @vitest/ui @testing-library/react @testing-library/jest-dom jsdom ts-node
+```
+
+### 9b) Create `vitest.config.ts` at repo root
+
+**Create file:** `vitest.config.ts`
+**Paste full content:**
+
+```ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: ["./vitest.setup.ts"],
+  },
+});
+```
+
+### 9c) Create `vitest.setup.ts` at repo root
+
+**Create file:** `vitest.setup.ts`
+**Paste full content:**
+
+```ts
+import "@testing-library/jest-dom";
+```
+
+### 9d) Example server unit test
+
+**Create file:** `server/services/__tests__/aiAnalyzer.test.ts`
+**Paste full content:**
+
+```ts
+import { describe, it, expect } from "vitest";
+import { AIAnalyzer } from "../aiAnalyzer";
+
+describe("AIAnalyzer", () => {
+  it("analyzes content", async () => {
+    const ai = new AIAnalyzer();
+    const res = await ai.analyzeContent("Test", "Hello world", "web");
+    expect(res).toBeTruthy();
+  });
+});
+```
+
+### 9e) Add scripts to `package.json`
+
+**Open:** `package.json`
+**Add or merge into `"scripts"`:**
+
+```json
+"scripts": {
+  "test": "vitest --run",
+  "test:ui": "vitest --ui",
+  "typecheck": "tsc --noEmit"
+}
+```
+
+### 9f) Create GitHub Actions CI
+
+**Create file:** `.github/workflows/ci.yml`
+**Paste full content:**
+
+```yaml
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+```
+
+---
+
+# Phase 5: Security & Privacy
+
+## 10) Sanitize captured HTML/text server-side
+
+**Install:**
+
+```bash
+npm i isomorphic-dompurify
+```
+
+**Create `server/utils/sanitize.ts`:**
+
+```ts
+import DOMPurify from "isomorphic-dompurify";
+
+export function sanitizeInput(input: string) {
+  return DOMPurify.sanitize(input, { ALLOWED_ATTR: ["href", "src", "alt"], ALLOWED_TAGS: ["a","b","i","em","strong","p","br","ul","ol","li","img"] });
+}
+```
+
+**Use it in capture endpoints (in `server/routes.ts`), just before create/save:**
+
+```ts
+import { sanitizeInput } from "./utils/sanitize";
+const safeContent = sanitizeInput(content);
+```
+
+**Replace** usages of `content` with `safeContent` when writing to DB.
+
+## 11) Secrets
+
+* In Replit, open **Secrets** and ensure:
+
+  * `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`
+  * `OPENAI_API_KEY`, any BrightData/Gemini keys you use
+* **Do not** commit keys to GitHub.
+
+---
+
+# Phase 6: UX & Feature Enhancements
+
+## 12) React error boundary
+
+**Create file:** `client/src/components/common/ErrorBoundary.tsx`
+**Paste full content:**
+
+```tsx
+import React from "react";
+
+type State = { hasError: boolean };
+export class ErrorBoundary extends React.Component<React.PropsWithChildren, State> {
+  state: State = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(err: any) { console.error("UI Error:", err); }
+  render() {
+    if (this.state.hasError) return <div>Something went wrong. Please refresh.</div>;
+    return this.props.children;
+  }
+}
+```
+
+**Wrap top-level app (e.g., `client/src/main.tsx` or `App.tsx`):**
+
+```tsx
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
+// ...
+<ErrorBoundary>
+  <App />
+</ErrorBoundary>
+```
+
+## 13) Lazy-load large pages
+
+**Example change inside your router file:**
+
+```tsx
+import React, { Suspense, lazy } from "react";
+const MyCaptures = lazy(() => import("./pages/my-captures"));
+const Dashboard = lazy(() => import("./pages/lovable-dashboard"));
+
+<Suspense fallback={<div>Loading…</div>}>
+  {/* your routes here */}
+</Suspense>
+```
+
+## 14) Improve empty/loading states
+
+* Where lists render, check for `items.length === 0` and show a friendly message.
+* Keep your current “No analysis results yet” pattern; apply consistently.
+
+---
+
+## Final checkpoint
+
+1. Run:
+
+```bash
+npm run typecheck
+npm test
+```
+
+2. Start the app:
+
+```bash
+npm run dev
+```
+
+3. Click through Dashboard → My Captures → Analysis modal.
+   If anything breaks or you see red in the console, copy the exact error (file + line) here and I’ll give you paste-ready fixes.
+
+When you finish these, we’ll pick 1–2 endpoints and convert them fully to:
+
+* JWT auth (`requireAuth`)
+* Zod validation
+* Job offloading (enqueue + job status)
+
+…then repeat for the rest of your routes in small, safe steps.

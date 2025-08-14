@@ -1,0 +1,227 @@
+nice!! since Replit finished the work, let’s lock it in with a tight verification pass and then roll straight into Phase 5/6. below is a single QA + handoff runbook you can paste into Replit Tasks. it includes commands, expected results, and brief human checks so we catch any regressions fast.
+
+⸻
+
+✅ Post-Build QA & Handoff Runbook (paste into Replit Tasks)
+
+0) Context
+	•	This runbook verifies the unified app (single React app, single Node API, Supabase via API only), the new Brief Builder canvas, autosave, feeds/tokens, and removes any leftovers from the old “second app” approach.
+
+⸻
+
+1) Typecheck + Build + Lint
+
+Agent — run:
+
+echo "== Typecheck ==" && npx tsc --noEmit || true
+echo "== Lint ==" && npm run -s lint || true
+echo "== Build ==" && npm run -s build || true
+
+PASS criteria
+	•	Typecheck: PASS
+	•	Lint: no errors (warnings ok)
+	•	Build: PASS
+
+If fail: print the exact error lines and patch.
+
+⸻
+
+2) Repo hygiene — ensure “one app only”
+
+Agent — run (read-only scan):
+
+echo "== Search for old v2 embedding =="
+grep -Rni "content-radar" -n || true
+grep -Rni "app-v2" -n || true
+grep -Rni "SupabaseClient" client/src || true
+grep -Rni "useSupabaseUser" client/src || true
+echo "== Routes =="
+grep -Rni "moments" client/src || true
+grep -Rni "briefs" client/src || true
+
+PASS criteria
+	•	No imports/mounting of a second app (e.g., content-radar, /app-v2).
+	•	No direct supabase.from(... table calls in the web app (auth is fine). Data must go through our /api/* services.
+	•	Routes for /captures, /moments, /briefs, /briefs/:id, /settings/* exist.
+
+If fail: remove leftover routes/components and rewire through services.
+
+⸻
+
+3) Environment sanity
+
+Agent — run (show masked):
+
+echo "== ENV =="
+echo "VITE_SITE_URL=$VITE_SITE_URL"
+echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL:0:22}..."
+echo "VITE_SUPABASE_ANON_KEY=(set? $([ -n "$VITE_SUPABASE_ANON_KEY" ] && echo yes || echo no))"
+echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:+present}"
+echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:+present}"
+echo "GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}"
+echo "GOOGLE_API_KEY=${GOOGLE_API_KEY:+present}"
+
+PASS criteria
+	•	Variables exist (present/yes). Redirect must match your deploy URL (local or Replit external preview).
+
+⸻
+
+4) Database quick checks (via API)
+
+Agent — run:
+
+echo "== API health =="
+curl -sS -f http://localhost:3000/api/health || echo "health failed"
+echo
+echo "== Projects =="
+curl -sS -f http://localhost:3000/api/projects || echo "projects failed"
+echo
+echo "== Captures page 1 =="
+curl -sS -f "http://localhost:3000/api/captures?page=1&pageSize=10" || echo "captures failed"
+echo
+echo "== Briefs =="
+curl -sS -f http://localhost:3000/api/briefs || echo "briefs failed"
+
+PASS criteria
+	•	All endpoints return 200 JSON with proper shapes (no stack traces or HTML).
+
+If fail: log server error, show recent commits touching routes, and patch.
+
+⸻
+
+5) Frontend smoke (headless sanity)
+
+Agent — run:
+
+echo "== Vite config check =="
+grep -Rni "allowedHosts" vite.config.ts || true
+
+	•	Confirm allowedHosts: true (or valid) for Replit external preview.
+
+Agent — start dev server in background:
+
+# If not already running:
+npm run dev >/tmp/dev.log 2>&1 & sleep 3
+echo "Dev server started (log: /tmp/dev.log)"
+
+HUMAN STOP 1 — UI Smoke (2–3 min)
+	•	Open your Replit External Preview URL.
+	•	Confirm:
+	•	Header visible with Project Switcher, nav to Captures / Moments / Briefs / Settings.
+	•	Command-K opens command palette.
+	•	No hydration/TS errors in console.
+
+Click Continue when done.
+
+⸻
+
+6) Captures Inbox verification
+
+Agent — (optionally seed minimal demo captures if empty):
+
+node scripts/dev/seed-min-captures.js || true
+
+HUMAN STOP 2 — Captures checks
+	•	/captures: search works, grid/list toggles, tag cloud filters.
+	•	Click a capture → right drawer opens: can edit title/notes, add/remove tags, change project.
+	•	Pagination / infinite scroll behaves.
+
+Click Continue when done.
+
+⸻
+
+7) Briefs library + Brief Builder Canvas
+
+HUMAN STOP 3 — Briefs
+	•	/briefs: create a brief (“New Brief”) → navigates to /briefs/:id.
+	•	In canvas:
+	•	Add slide, duplicate, reorder; insert capture (from modal) as an image element.
+	•	Edit text blocks, add a sticky note.
+	•	Watch autosave indicator change (Saving… → Saved).
+	•	Refresh the page — confirm changes persist.
+	•	Try navigating away with unsaved edits — confirm unsaved guard prompt.
+	•	Click Export to Slides — expect either a real URL or a clear toast error if Slides isn’t fully configured yet.
+
+Click Continue when done.
+
+⸻
+
+8) Settings — Extension Tokens & Feeds
+
+HUMAN STOP 4 — Tokens
+	•	/settings/extensions: Create a token (plaintext shown once), copy, and see it in the list with created/last used. Revoke it.
+(We’ll paste this token into the Chrome extension later.)
+
+HUMAN STOP 5 — Feeds
+	•	/settings/feeds: Add a feed URL (e.g., https://feeds.a.dj.com/rss/RSSMarketsMain.xml), toggle active, delete.
+	•	Scope to a project and confirm it appears in that project context.
+
+Click Continue when done.
+
+⸻
+
+9) OAuth & session stability
+
+Agent — ensure auth listener consolidation is present
+(verify we only have a single auth provider and no racey double-inits)
+
+grep -Rni "onAuthStateChange" client/src || true
+grep -Rni "supabase.auth" client/src | grep -v "signIn" | grep -v "signOut" || true
+
+HUMAN STOP 6 — OAuth
+	•	Sign out, sign in via Google again on the External Preview URL.
+	•	Confirm you land back in the app as authenticated (no “Current user: null” flicker loops).
+	•	Reload the page; session persists.
+
+Click Continue when done.
+
+⸻
+
+10) Remove dead code / legacy references
+
+Agent — run:
+
+echo "== Legacy refs =="
+grep -Rni "content-radar" || true
+grep -Rni "app-v2" || true
+
+	•	If anything turns up, delete/refactor those files, update imports, and rerun typecheck/build.
+
+⸻
+
+11) Tagging + autosave telemetry
+
+Agent — enable minimal logs (if not already) and print server autosave logs for last 5 mins:
+
+tail -n 200 server/logs/app.log | grep -i autosave || true
+
+PASS criteria
+	•	Brief PATCH logs appear on canvas edits (or whatever logging we implemented).
+	•	No 4xx/5xx on autosave route.
+
+⸻
+
+12) Final gate
+
+Agent — run:
+
+npm run -s verify || true
+
+Expected: PASS.
+
+If everything above is green:
+	•	Tag the repo:
+
+git add -A && git commit -m "QA: unified app verified" || true
+git tag -f v-unified-pass && git push -f --tags
+
+
+⸻
+
+After QA — What’s next?
+	•	If green, we can kick off Phase 5 (Moments Radar intelligence + Truth Analysis batch) and Phase 6 (AI brief assembly + Slides export hardening).
+	•	If something failed, the runbook already leaves breadcrumbs (logs, grep hits, failing routes) so we can fix in-place quickly.
+
+⸻
+
+Want me to package a matching Lovable UI prompt again now that this is verified? Or we roll straight into Phase 5/6 tasks.

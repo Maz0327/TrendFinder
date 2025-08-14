@@ -1,0 +1,332 @@
+Got it — the logs you pasted line up with a classic “dueling auth flows” problem: multiple places are trying to initialize/read/update Supabase auth at the same time, so sometimes you look “logged in” and sometimes you look “null”. Let’s lock this down with a single, clean flow the Replit agent can implement.
+
+Below is a precise set of edits for the Replit agent. There’s one tiny human step at the end to double-check OAuth redirect URLs in Supabase.
+
+⸻
+
+Replit Agent — Consolidate Supabase Auth Flow (Single Source of Truth)
+
+Goal
+	•	Use one Supabase client.
+	•	Centralize auth state in one React context.
+	•	Provide a dedicated /auth/callback route so Supabase can parse the #access_token fragment and hydrate the session before the rest of the app runs.
+	•	Remove all duplicate onAuthStateChange listeners in hooks/components.
+
+⸻
+
+1) Ensure a single Supabase client
+
+Create/overwrite client/src/integrations/supabase/client.ts:
+
+// client/src/integrations/supabase/client.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+
+// If you're still getting "#access_token=..." in the URL fragment, keep flowType: 'implicit'.
+// If you've moved to code flow (no fragment, has `?code=`), change to 'pkce'.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'implicit',
+  },
+});
+
+Then search the repo for other createClient(...) calls and remove them. All code should import:
+
+import { supabase } from '@/integrations/supabase/client';
+
+
+⸻
+
+2) Centralize auth in a provider
+
+Add client/src/context/AuthContext.tsx:
+
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+type AuthStatus = 'loading' | 'authed' | 'anon';
+
+type AuthContextValue = {
+  status: AuthStatus;
+  user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null;
+  session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] | null;
+  signOut: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue>({
+  status: 'loading',
+  user: null,
+  session: null,
+  signOut: async () => {},
+});
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [session, setSession] = useState<AuthContextValue['session']>(null);
+  const [user, setUser] = useState<AuthContextValue['user']>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    // 1) Hydrate from current URL fragment or existing storage
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session ?? null);
+      setUser(data.session?.user ?? null);
+      setStatus(data.session ? 'authed' : 'anon');
+    });
+
+    // 2) Single global listener
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (!mounted) return;
+      setSession(s);
+      setUser(s?.user ?? null);
+      setStatus(s ? 'authed' : 'anon');
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const value = useMemo<AuthContextValue>(() => ({
+    status,
+    user,
+    session,
+    signOut: () => supabase.auth.signOut(),
+  }), [status, user, session]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => useContext(AuthContext);
+
+
+⸻
+
+3) Add /auth/callback route to let Supabase parse the URL
+
+Add client/src/components/auth/AuthCallback.tsx:
+
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+
+export default function AuthCallback() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Simply touching getSession() after redirect gives Supabase a chance
+    // to parse the URL fragment `#access_token=...` and persist the session.
+    supabase.auth.getSession().finally(() => {
+      // Bounce to home (or a stored returnTo)
+      navigate('/', { replace: true });
+    });
+  }, [navigate]);
+
+  return <div className="p-6 text-sm opacity-70">Completing sign-in…</div>;
+}
+
+
+⸻
+
+4) Gate protected pages with a single guard
+
+Add client/src/components/auth/RequireAuth.tsx:
+
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+
+export default function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { status, user } = useAuth();
+  const location = useLocation();
+
+  if (status === 'loading') {
+    return <div className="p-6 text-sm opacity-70">Loading…</div>;
+  }
+  if (status === 'anon' || !user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+  return <>{children}</>;
+}
+
+
+⸻
+
+5) Mount the provider and the routes
+	•	Wrap your app with AuthProvider.
+	•	Register the callback route.
+	•	Wrap protected routes with RequireAuth.
+
+If you’re using client/src/main.tsx + client/src/App.tsx, do:
+
+Edit client/src/main.tsx (or wherever the router mounts):
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from '@/context/AuthContext';
+import App from './App';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
+
+Edit client/src/App.tsx (or your router file):
+
+import { Routes, Route } from 'react-router-dom';
+import AuthCallback from '@/components/auth/AuthCallback';
+import RequireAuth from '@/components/auth/RequireAuth';
+import AppLayout from '@/components/AppLayout'; // your shell
+import LoginPage from '@/pages/login';
+import HomePage from '@/pages/home';
+// …other imports
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/login" element={<LoginPage />} />
+
+      <Route path="/" element={
+        <RequireAuth>
+          <AppLayout>
+            <HomePage />
+          </AppLayout>
+        </RequireAuth>
+      } />
+
+      {/* Example protected routes */}
+      <Route path="/captures-inbox" element={
+        <RequireAuth>
+          <AppLayout>{/* <CapturesInbox /> */}</AppLayout>
+        </RequireAuth>
+      } />
+
+      <Route path="/moments-radar" element={
+        <RequireAuth>
+          <AppLayout>{/* <MomentsRadar /> */}</AppLayout>
+        </RequireAuth>
+      } />
+
+      <Route path="/brief-builder-v2" element={
+        <RequireAuth>
+          <AppLayout>{/* <BriefBuilderV2 /> */}</AppLayout>
+        </RequireAuth>
+      } />
+    </Routes>
+  );
+}
+
+If you’re using HashRouter, switch to BrowserRouter. Fragment (#...) appears already due to OAuth implicit flow; we don’t want two fragments.
+
+⸻
+
+6) Remove duplicate auth listeners/checks
+	•	Search and delete any supabase.auth.onAuthStateChange(...) from hooks and pages. Only the provider should own the listener.
+	•	Remove ad-hoc supabase.auth.getUser() / getSession() checks in UI components used to gate render. Use useAuth() instead.
+
+⸻
+
+7) Make Google sign-in use the correct redirect
+
+Wherever you trigger Google login (e.g., LoginPage), ensure this exact pattern:
+
+// client/src/pages/login.tsx (example)
+import { supabase } from '@/integrations/supabase/client';
+
+const siteUrl = import.meta.env.VITE_SITE_URL?.replace(/\/$/, '') || window.location.origin;
+const redirectTo = `${siteUrl}/auth/callback`;
+
+await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    redirectTo,
+    queryParams: {
+      // optional: prompt: 'select_account',
+      // optional: access_type: 'offline',
+    },
+  },
+});
+
+
+⸻
+
+8) Quick diagnostics (optional, remove later)
+
+Add this temporary probe to ensure hydration is consistent:
+
+// client/src/components/auth/AuthDebug.tsx
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+
+export default function AuthDebug() {
+  const { status, user } = useAuth();
+  useEffect(() => {
+    console.log('[AuthDebug] href', window.location.href);
+    supabase.auth.getSession().then(r => console.log('[AuthDebug] getSession', !!r.data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((e, s) => {
+      console.log('[AuthDebug] onAuthStateChange', e, !!s);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  return <div className="fixed bottom-2 right-2 text-[10px] opacity-40 bg-muted px-2 py-1 rounded">
+    {status} · {user?.email ?? 'anon'}
+  </div>;
+}
+
+Mount it once in AppLayout (temporarily).
+
+⸻
+
+9) Human step — verify OAuth redirect URIs
+
+In Supabase Dashboard → Authentication → URL Configuration:
+	•	Site URL: set to your real domain (no trailing slash), e.g.
+https://workspace.maz0327.repl.co
+	•	Additional Redirect URLs: include each of these (one per line):
+	•	https://workspace.maz0327.repl.co/auth/callback
+	•	Your external preview domain (if used) + /auth/callback
+e.g. https://9da16f68-dcce-4acd-8cde-46ac6b4f4c14-00-2w51nsvsmhvio.kirk.replit.dev/auth/callback
+	•	Local dev (if you use it):
+http://localhost:5173/auth/callback
+
+In your Replit Secrets (or .env):
+	•	VITE_SITE_URL = https://workspace.maz0327.repl.co (no trailing slash)
+	•	VITE_SUPABASE_URL = your project REST URL
+	•	VITE_SUPABASE_ANON_KEY = your anon key
+
+You don’t need to change Google Cloud Console right now as long as you already added both your domain and the Supabase callback (the https://<project>.supabase.co/auth/v1/callback) there — which you did earlier.
+
+⸻
+
+10) Sanity test sequence
+	1.	Open a new private window (no cached session).
+	2.	Hit /login → click “Sign in with Google”.
+	3.	You should land on /auth/callback momentarily, then get redirected to /.
+	4.	The AuthDebug tag should show authed · your@email.
+	5.	Refresh the page — still authed.
+	6.	Click Sign out → should flip to anon. Sign back in.
+
+If anything still flickers:
+	•	Confirm there is no other Supabase client.
+	•	Confirm you’re using BrowserRouter.
+	•	Confirm only one onAuthStateChange (the one in the provider).
+	•	Confirm VITE_SITE_URL matches the domain you’re actually using.
+
+⸻
+
+This will remove the race conditions and stop the “sometimes user, sometimes null” behavior. Once it’s solid, remove AuthDebug.

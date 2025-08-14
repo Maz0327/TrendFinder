@@ -1,0 +1,132 @@
+Good news: that URL with #access_token=…&refresh_token=… means Google → Supabase worked and Supabase redirected back to your app using the implicit (hash) flow. Nothing’s “wrong”—you just need a tiny /auth/callback page that absorbs the tokens from the hash, stores the session, and then routes the user into the app.
+
+I’ll write this as a quick Replit Runbook for the agent.
+
+⸻
+
+Replit Runbook — Handle Supabase OAuth callback (implicit hash flow)
+
+Goal
+
+Implement /auth/callback so Supabase can parse the tokens in the URL hash and persist the session, then navigate the user into the app.
+
+1) Ensure Supabase client is set to detect the session in URL (agent)
+
+Open client/src/lib/supabaseClient.ts (or equivalent) and make sure:
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true, // IMPORTANT for hash flow
+  },
+});
+
+2) Create Auth Callback page (agent)
+
+Create client/src/pages/AuthCallback.tsx with:
+
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabaseClient';
+
+export default function AuthCallback() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let timeout: number;
+
+    (async () => {
+      // 1) This triggers supabase-js to parse the hash and persist the session
+      const { data, error } = await supabase.auth.getSession();
+
+      // 2) Clean the hash from the URL (security & aesthetics)
+      if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+
+      // 3) Navigate the user
+      if (!error && data?.session) {
+        // You can redirect to a stored "returnTo" if you keep one, or default dashboard
+        timeout = window.setTimeout(() => navigate('/'), 50);
+      } else {
+        // If something failed, send back to login
+        timeout = window.setTimeout(() => navigate('/login'), 50);
+      }
+    })();
+
+    return () => window.clearTimeout(timeout);
+  }, [navigate]);
+
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center text-sm text-muted-foreground">
+      Finishing sign-in…
+    </div>
+  );
+}
+
+3) Wire the route (agent)
+
+Open your router (e.g., client/src/main.tsx or client/src/App.tsx—where routes are defined) and add:
+
+import AuthCallback from '@/pages/AuthCallback';
+
+// inside your <Routes>
+<Route path="/auth/callback" element={<AuthCallback />} />
+
+4) Confirm the sign-in call passes redirectTo (agent)
+
+Where you call supabase.auth.signInWithOAuth, ensure you pass the same callback:
+
+const baseUrl = (import.meta as any).env?.VITE_SITE_URL || window.location.origin;
+
+await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    redirectTo: `${baseUrl}/auth/callback`,
+    queryParams: { access_type: 'offline', prompt: 'consent' },
+  },
+});
+
+For local dev, .env should include:
+
+VITE_SITE_URL=http://localhost:5173
+
+5) Test (agent)
+	•	npm run dev (or your start script)
+	•	Visit the app, click Sign in with Google
+	•	You’ll land on /auth/callback briefly, the session will be stored, the hash stripped, then you’re redirected into the app as an authenticated user.
+
+6) (Optional) Prefer PKCE (code flow) later
+
+Right now you’re using implicit (hash) flow (that’s what you saw). If you want no tokens in the URL at all, you can switch to PKCE by adding flowType: 'pkce':
+
+await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    redirectTo: `${baseUrl}/auth/callback`,
+    queryParams: { access_type: 'offline', prompt: 'consent' },
+    flowType: 'pkce',
+  },
+});
+
+And in AuthCallback.tsx, use:
+
+await supabase.auth.exchangeCodeForSession(window.location.href);
+history.replaceState(null, '', window.location.pathname);
+navigate('/');
+
+(Only do this after everything works with implicit; PKCE requires the same Google/Supabase settings but returns ?code= instead of tokens in the hash.)
+
+⸻
+
+Why your URL looked like that
+
+Supabase’s auth server (GoTrue) returned the session as a URL hash fragment (#access_token=…). The Supabase JS client will parse and persist it if detectSessionInUrl: true and you call getSession() once on the callback page. After that, your app will have the user in supabase.auth.getUser() / onAuthStateChange.
+
+If anything still feels off after you add this callback route, tell me what you see and I’ll tweak the handler.

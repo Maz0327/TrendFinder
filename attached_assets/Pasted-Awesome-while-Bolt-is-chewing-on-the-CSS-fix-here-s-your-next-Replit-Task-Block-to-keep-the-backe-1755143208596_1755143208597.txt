@@ -1,0 +1,466 @@
+Awesome — while Bolt is chewing on the CSS fix, here’s your next Replit Task Block to keep the backend + wiring moving and to eliminate the remaining direct Supabase calls. This will also add the missing tags flow and stabilize API shapes for the new UI.
+
+⸻
+
+🛠️ Replit Task Block — API Consolidation + Tags + Client Refactor (No Direct Supabase)
+
+Goal: Replace all remaining client-side Supabase calls with our server API, add full tag support, and keep auth/project context consistent.
+
+Scope
+	•	Server: add/extend /api/captures, /api/briefs, /api/moments, /api/feeds
+	•	Server: tag management, pagination, filters, CORS
+	•	DB: add tags to dsd_briefs if missing; ensure indexes
+	•	Client: refactor useBriefs.ts, useCaptures.ts, useMoments.ts, services/feeds.ts to use API
+	•	Keep Google export scaffolding as-is
+
+⸻
+
+0) Prep
+	1.	Create a working branch
+
+git checkout -b chore/api-consolidation-tags
+
+	2.	Echo env (read-only)
+
+echo "SITE: $VITE_SITE_URL"
+echo "API: $VITE_API_URL"
+echo "SUPABASE_URL: ${VITE_SUPABASE_URL:0:25}..."
+echo "ANON_KEY present? $([ -n "$VITE_SUPABASE_ANON_KEY" ] && echo yes || echo no)"
+
+	3.	Confirm server runs
+
+npm run -s build >/dev/null 2>&1 || true
+npm run -s dev:server >/dev/null 2>&1 & sleep 2; lsof -i :5000 || true
+
+
+⸻
+
+1) Database — add missing tags on briefs (idempotent)
+
+Create migration at supabase/migrations/2025XXXXXX_add_brief_tags.sql:
+
+-- add tags to dsd_briefs if missing
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'dsd_briefs'
+      and column_name = 'tags'
+  ) then
+    alter table public.dsd_briefs
+      add column tags text[] not null default '{}'::text[];
+  end if;
+end $$;
+
+-- helpful indexes
+create index if not exists idx_captures_tags on public.captures using gin (tags);
+create index if not exists idx_briefs_tags on public.dsd_briefs using gin (tags);
+
+-- ensure updated_at trigger exists (harmless if already there)
+create or replace function public.touch_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end$$;
+
+drop trigger if exists trg_dsd_briefs_touch_updated_at on public.dsd_briefs;
+create trigger trg_dsd_briefs_touch_updated_at
+before update on public.dsd_briefs
+for each row execute function public.touch_updated_at();
+
+HUMAN STOP: Go to Supabase SQL Editor → run the migration SQL above (or psql if you prefer). Reply “done” when applied.
+
+⸻
+
+2) Server — CORS + Auth guard reuse
+	•	Ensure CORS allows your Replit/Bolt origins:
+
+Edit server/index.ts (or your main server bootstrap):
+
+import cors from "cors";
+
+const allow = [
+  process.env.VITE_SITE_URL,                 // e.g., https://workspace.XXX.repl.co
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (allow.some(a => a && origin.startsWith(a))) return cb(null, true);
+    return cb(null, false);
+  },
+  credentials: true,
+}));
+
+	•	Reuse existing Supabase auth middleware (from your Google export scaffold). If it doesn’t exist, add server/middleware/auth.ts:
+
+import type { Request, Response, NextFunction } from "express";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // server-side
+);
+
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+
+  if (!token) return res.status(401).json({ error: "Missing bearer token" });
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) return res.status(401).json({ error: "Invalid token" });
+
+  (req as any).user = { id: data.user.id, email: data.user.email };
+  next();
+}
+
+
+⸻
+
+3) Server — API endpoints (uniform, paginated, tag-aware)
+
+Create or update routers (Express). If not present, add server/routes/api.ts and mount under /api.
+
+3a. Captures
+
+server/routes/captures.ts:
+
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth";
+import { z } from "zod";
+import { storage } from "../services/storage"; // your existing storage service
+
+const r = Router();
+r.use(requireAuth);
+
+// GET /api/captures?projectId=&platform=&q=&tags=tag1,tag2&page=1&pageSize=20
+r.get("/", async (req, res) => {
+  const userId = (req as any).user.id as string;
+  const { projectId, platform, q, tags, page = "1", pageSize = "20" } = req.query as Record<string,string>;
+  const tagList = tags ? tags.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+  const { rows, total } = await storage.listCaptures({
+    userId, projectId, platform, q, tags: tagList,
+    page: parseInt(page), pageSize: parseInt(pageSize)
+  });
+  res.json({ rows, total, page: Number(page), pageSize: Number(pageSize) });
+});
+
+// PATCH /api/captures/:id/tags { add?: string[], remove?: string[] }
+r.patch("/:id/tags", async (req, res) => {
+  const userId = (req as any).user.id as string;
+  const id = req.params.id;
+  const body = z.object({
+    add: z.array(z.string()).optional(),
+    remove: z.array(z.string()).optional()
+  }).parse(req.body);
+
+  const updated = await storage.updateCaptureTags({ id, userId, add: body.add ?? [], remove: body.remove ?? [] });
+  res.json(updated);
+});
+
+export default r;
+
+Implement storage methods in server/services/storage.ts (or equivalent) to query Supabase/Postgres via your existing DAL/ORM. Keep pagination + tag filtering server-side.
+
+3b. Briefs
+
+server/routes/briefs.ts:
+
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth";
+import { z } from "zod";
+import { storage } from "../services/storage";
+
+const r = Router();
+r.use(requireAuth);
+
+// GET /api/briefs?projectId=&q=&tags=&page=&pageSize=
+r.get("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const { projectId, q, tags, page="1", pageSize="20" } = req.query as Record<string,string>;
+  const tagList = tags ? tags.split(",").map(s=>s.trim()).filter(Boolean) : [];
+  const result = await storage.listBriefs({ userId, projectId, q, tags: tagList, page: +page, pageSize: +pageSize });
+  res.json(result);
+});
+
+// GET /api/briefs/:id
+r.get("/:id", async (req, res) => {
+  const userId = (req as any).user.id;
+  const brief = await storage.getBrief({ id: req.params.id, userId });
+  if (!brief) return res.status(404).json({ error: "Not found" });
+  res.json(brief);
+});
+
+// POST /api/briefs  { title, projectId?, define_section?, shift_section?, deliver_section? }
+r.post("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const create = z.object({
+    title: z.string().min(1),
+    projectId: z.string().uuid().nullable().optional(),
+    define_section: z.any().optional(),
+    shift_section: z.any().optional(),
+    deliver_section: z.any().optional(),
+    tags: z.array(z.string()).optional(),
+  }).parse(req.body);
+
+  const brief = await storage.createBrief({ userId, ...create });
+  res.status(201).json(brief);
+});
+
+// PATCH /api/briefs/:id  (partial update: sections/title/status/tags)
+r.patch("/:id", async (req, res) => {
+  const userId = (req as any).user.id;
+  const patch = z.object({
+    title: z.string().optional(),
+    status: z.string().optional(),
+    define_section: z.any().optional(),
+    shift_section: z.any().optional(),
+    deliver_section: z.any().optional(),
+    tags: z.array(z.string()).optional(),
+  }).parse(req.body);
+
+  const brief = await storage.updateBrief({ id: req.params.id, userId, patch });
+  res.json(brief);
+});
+
+// PATCH /api/briefs/:id/tags { add?: string[], remove?: string[] }
+r.patch("/:id/tags", async (req, res) => {
+  const userId = (req as any).user.id;
+  const { add = [], remove = [] } = z.object({
+    add: z.array(z.string()).optional(),
+    remove: z.array(z.string()).optional()
+  }).parse(req.body);
+
+  const brief = await storage.updateBriefTags({ id: req.params.id, userId, add, remove });
+  res.json(brief);
+});
+
+export default r;
+
+3c. Moments
+
+server/routes/moments.ts:
+
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth";
+import { z } from "zod";
+import { storage } from "../services/storage";
+
+const r = Router();
+r.use(requireAuth);
+
+// GET /api/moments?projectId=&q=&page=&pageSize=
+r.get("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const { projectId, q, page="1", pageSize="20" } = req.query as Record<string,string>;
+  const result = await storage.listMoments({ userId, projectId, q, page:+page, pageSize:+pageSize });
+  res.json(result);
+});
+
+// POST /api/moments { title, description, intensity, platforms?, demographics?, duration?, projectId? }
+r.post("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const body = z.object({
+    title: z.string().min(1),
+    description: z.string().min(1),
+    intensity: z.number().int().min(0).max(100),
+    platforms: z.array(z.string()).optional(),
+    demographics: z.array(z.string()).optional(),
+    duration: z.string().optional(),
+    projectId: z.string().uuid().nullable().optional(),
+  }).parse(req.body);
+  const moment = await storage.createMoment({ userId, ...body });
+  res.status(201).json(moment);
+});
+
+export default r;
+
+3d. Feeds
+
+server/routes/feeds.ts:
+
+import { Router } from "express";
+import { requireAuth } from "../middleware/auth";
+import { z } from "zod";
+import { storage } from "../services/storage";
+
+const r = Router();
+r.use(requireAuth);
+
+// GET /api/feeds?projectId=
+r.get("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const { projectId } = req.query as Record<string,string>;
+  const rows = await storage.listUserFeeds({ userId, projectId });
+  res.json(rows);
+});
+
+// POST /api/feeds { feed_url, title?, projectId? }
+r.post("/", async (req, res) => {
+  const userId = (req as any).user.id;
+  const body = z.object({
+    feed_url: z.string().url(),
+    title: z.string().optional(),
+    projectId: z.string().uuid().nullable().optional()
+  }).parse(req.body);
+  const row = await storage.createUserFeed({ userId, ...body });
+  res.status(201).json(row);
+});
+
+// PATCH /api/feeds/:id/toggle
+r.patch("/:id/toggle", async (req, res) => {
+  const userId = (req as any).user.id;
+  const row = await storage.toggleUserFeed({ id: req.params.id, userId });
+  res.json(row);
+});
+
+// DELETE /api/feeds/:id
+r.delete("/:id", async (req, res) => {
+  const userId = (req as any).user.id;
+  await storage.deleteUserFeed({ id: req.params.id, userId });
+  res.status(204).end();
+});
+
+export default r;
+
+Mount routes in server/index.ts:
+
+import captures from "./routes/captures";
+import briefs from "./routes/briefs";
+import moments from "./routes/moments";
+import feeds from "./routes/feeds";
+
+app.use("/api/captures", captures);
+app.use("/api/briefs", briefs);
+app.use("/api/moments", moments);
+app.use("/api/feeds", feeds);
+
+Note: Implement storage.* calls against your Postgres/Supabase via your existing DAL. Keep everything scoped by userId and (optionally) projectId.
+
+⸻
+
+4) Client — API wrapper + refactor hooks
+
+4a. Add a tiny API wrapper
+
+Create client/src/api/http.ts:
+
+export async function apiFetch<T>(
+  path: string,
+  opts: RequestInit = {},
+  projectId?: string | null
+): Promise<T> {
+  const base = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const token = localStorage.getItem("sb-access-token") || sessionStorage.getItem("sb-access-token");
+
+  const headers = new Headers(opts.headers || {});
+  headers.set("Content-Type", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (projectId) headers.set("X-Project-ID", projectId);
+
+  const res = await fetch(`${base}${path}`, { ...opts, headers, credentials: "include" });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+If your access token lives in a different place (Supabase client), grab it via your auth util and set it here.
+
+4b. Refactor hooks/services to use API (replace direct Supabase)
+	•	client/src/hooks/useCaptures.ts
+	•	client/src/hooks/useBriefs.ts
+	•	client/src/hooks/useMoments.ts
+	•	client/src/services/feeds.ts
+
+Example (captures):
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/api/http";
+import { useProject } from "@/context/ProjectProvider";
+
+export function useCaptures(params?: { q?: string; platform?: string; tags?: string[]; page?: number; pageSize?: number }) {
+  const { currentProjectId } = useProject();
+  const key = ["captures", currentProjectId, params];
+
+  const list = useQuery({
+    queryKey: key,
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      if (params?.q) qs.set("q", params.q);
+      if (params?.platform) qs.set("platform", params.platform);
+      if (params?.tags?.length) qs.set("tags", params.tags.join(","));
+      if (params?.page) qs.set("page", String(params.page));
+      if (params?.pageSize) qs.set("pageSize", String(params.pageSize));
+      return apiFetch<{ rows: any[]; total: number }>(`/api/captures?${qs.toString()}`, {}, currentProjectId);
+    },
+  });
+
+  const qc = useQueryClient();
+  const updateTags = useMutation({
+    mutationFn: (p: { id: string; add?: string[]; remove?: string[] }) =>
+      apiFetch(`/api/captures/${p.id}/tags`, { method: "PATCH", body: JSON.stringify({ add: p.add, remove: p.remove }) }, currentProjectId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: key })
+  });
+
+  return { list, updateTags };
+}
+
+Mirror the pattern for briefs (including /api/briefs/:id, /api/briefs/:id/tags) and moments. For feeds, use /api/feeds endpoints you added.
+
+⸻
+
+5) Verification
+
+npm run -s typecheck || true
+npm run -s build || true
+
+# quick ping
+curl -i $VITE_API_URL/api/captures
+curl -i $VITE_API_URL/api/briefs
+curl -i $VITE_API_URL/api/moments
+curl -i $VITE_API_URL/api/feeds
+
+HUMAN STOP (Manual test):
+	•	Sign in via the app
+	•	Open “Captures”, “Briefs”, “Moments”, “Feeds”
+	•	Confirm lists load (no Supabase client errors in the browser console)
+	•	Add/remove tags on a capture & brief; filter by tags; paginate
+
+If all good, continue.
+
+⸻
+
+6) Commit & PR
+
+git add -A
+git commit -m "API consolidation: replace direct Supabase calls; add tags; add captures/briefs/moments/feeds endpoints; client refactor"
+git push -u origin chore/api-consolidation-tags
+
+
+⸻
+
+7) Optional hardening (do if time allows)
+	•	Add simple rate limiting on /api/* (e.g., express-rate-limit)
+	•	Add ETag + Cache-Control: private, max-age=30 on list endpoints
+	•	Log X-Request-Id and include it in errors for easier debugging
+
+⸻
+
+Success Criteria
+	•	No client files call Supabase directly (only the server does)
+	•	Tags add/remove & filtering works for both captures and briefs
+	•	Auth applied on all /api/* routes, server injects userId
+	•	UI loads via new API endpoints without CORS/auth issues
+
+⸻
+
+Reply when this block is done, and I’ll give you the next one (brief canvas autosave + draft model + Google export end-to-end UI hook-up).
