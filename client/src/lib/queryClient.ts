@@ -3,7 +3,7 @@ import { QueryClient } from "@tanstack/react-query";
 
 const API_BASE =
   (typeof window !== "undefined" && (window as any).__API_BASE__) ||
-  "";
+  "/api";
 
 // Core fetch that always sends JSON and returns parsed JSON
 export async function apiRequest<T = any>(

@@ -11,3 +11,9 @@ build/
 # Replit artifacts
 .replit
 *.replit
+
+# Cleanup: Legacy folders and heavy assets
+attached_assets/
+content-radar/
+*.zip
+*.tar.gz

@@ -39,3 +39,6 @@ export function getDisabledFeatures(): FeatureFlag[] {
     .filter(([, enabled]) => !enabled)
     .map(([flag]) => flag as FeatureFlag);
 }
+
+// Backward-compat alias
+export const FLAGS = FEATURES;

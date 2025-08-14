@@ -48,3 +48,17 @@ Preferred communication style: Simple, everyday language.
 - **Bright Data Browser**: For real browser automation on JavaScript-heavy sites.
 - **Google API Ecosystem**: Integration for Google Slides, Docs, Sheets, Drive, Vision, NLP, Custom Search, BigQuery (including OAuth).
 - **Google Cloud AI**: Google Vision and NLP for advanced content analysis.
+
+## Recent Changes
+
+**August 14, 2025 - Repository Cleanup & Hardening Complete**
+- **Legacy Asset Cleanup**: Removed content-radar/ and attached_assets/ folders, updated .gitignore for heavy assets ✅
+- **API Standardization**: Updated all client API configurations to use relative /api endpoints instead of hardcoded localhost ✅
+- **Tailwind v3 Maintained**: Confirmed v3.4.10 setup intact, no changes needed (preparing for Bolt UI integration) ✅
+- **Feature Flag Compatibility**: Added FLAGS = FEATURES alias for backward compatibility across imports ✅
+- **Environment Organization**: Removed duplicate .env.new, maintained .env.example as canonical template ✅
+- **Testing Infrastructure**: Created comprehensive scripts/smoke.ts for build validation and health checks ✅
+- **Build Verification**: Confirmed TypeScript compilation and production builds working (8.02s build time) ✅
+- **Zero Breaking Changes**: All functionality, design, and integrations preserved exactly ✅
+
+**Task Block #7 Complete: Brief Canvas Backend (pages/blocks, autosave, snapshots, publish)**

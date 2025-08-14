@@ -3,7 +3,7 @@ export async function apiFetch<T>(
   opts: RequestInit = {},
   projectId?: string | null
 ): Promise<T> {
-  const base = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const base = import.meta.env.VITE_API_URL || "/api";
   const token = localStorage.getItem("sb-access-token") || sessionStorage.getItem("sb-access-token");
 
   const headers = new Headers(opts.headers || {});
