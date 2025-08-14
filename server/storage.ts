@@ -123,6 +123,27 @@ export interface IStorage {
   
   // Search and Filtering
   searchCaptures(query: string, filters?: any): Promise<Capture[]>;
+  
+  // Enhanced captures list with analysis data (Task Block #6)
+  listCapturesWithAnalysis(params: {
+    userId: string;
+    projectId?: string;
+    platform?: string;
+    q?: string;
+    tags?: string[];
+    label?: string;
+    analyzed?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+    page: number;
+    pageSize: number;
+  }): Promise<{ 
+    rows: any[], 
+    total: number, 
+    lastModified?: Date 
+  }>;
+  
+  getCaptureWithAnalysis(id: string): Promise<any | undefined>;
   getPendingCaptures(): Promise<Capture[]>;
   
   // Job Management
@@ -995,6 +1016,157 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Task Block #6: Enhanced captures list with analysis data
+  async listCapturesWithAnalysis(params: {
+    userId: string;
+    projectId?: string;
+    platform?: string;
+    q?: string;
+    tags?: string[];
+    label?: string;
+    analyzed?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+    page: number;
+    pageSize: number;
+  }): Promise<{ rows: any[], total: number, lastModified?: Date }> {
+    try {
+      // Base query with LEFT JOIN to capture_latest_analysis view
+      let baseQuery = `
+        SELECT DISTINCT
+          c.id, c.project_id, c.user_id, c.title, c.content, c.url, c.platform,
+          c.screenshot_url, c.summary, c.tags, c.metadata, c.truth_analysis,
+          c.analysis_status, c.google_analysis, c.status, c.created_at, c.updated_at,
+          cla.analysis_id, cla.provider, cla.mode, cla.status as analysis_status_latest,
+          cla.summary as analysis_summary, cla.labels as analysis_labels, 
+          cla.analyzed_at,
+          GREATEST(c.updated_at, cla.analyzed_at) as last_modified
+        FROM captures c
+        LEFT JOIN capture_latest_analysis cla ON c.id = cla.capture_id
+        WHERE c.user_id = $1
+      `;
+      
+      let countQuery = `
+        SELECT COUNT(DISTINCT c.id)
+        FROM captures c
+        LEFT JOIN capture_latest_analysis cla ON c.id = cla.capture_id
+        WHERE c.user_id = $1
+      `;
+
+      const values: any[] = [params.userId];
+      let paramCount = 1;
+
+      // Apply filters
+      if (params.projectId) {
+        baseQuery += ` AND c.project_id = $${++paramCount}`;
+        countQuery += ` AND c.project_id = $${paramCount}`;
+        values.push(params.projectId);
+      }
+
+      if (params.platform) {
+        baseQuery += ` AND c.platform = $${++paramCount}`;
+        countQuery += ` AND c.platform = $${paramCount}`;
+        values.push(params.platform);
+      }
+
+      if (params.q) {
+        baseQuery += ` AND (c.title ILIKE $${++paramCount} OR c.content ILIKE $${paramCount} OR c.tags::text ILIKE $${paramCount})`;
+        countQuery += ` AND (c.title ILIKE $${paramCount} OR c.content ILIKE $${paramCount} OR c.tags::text ILIKE $${paramCount})`;
+        values.push(`%${params.q}%`);
+      }
+
+      if (params.tags && params.tags.length > 0) {
+        baseQuery += ` AND c.tags @> $${++paramCount}`;
+        countQuery += ` AND c.tags @> $${paramCount}`;
+        values.push(JSON.stringify(params.tags));
+      }
+
+      if (params.label) {
+        baseQuery += ` AND EXISTS (
+          SELECT 1 FROM jsonb_array_elements(cla.labels) l
+          WHERE lower(coalesce(l->>'name','')) = lower($${++paramCount})
+        )`;
+        countQuery += ` AND EXISTS (
+          SELECT 1 FROM jsonb_array_elements(cla.labels) l  
+          WHERE lower(coalesce(l->>'name','')) = lower($${paramCount})
+        )`;
+        values.push(params.label);
+      }
+
+      if (params.analyzed !== undefined) {
+        if (params.analyzed) {
+          baseQuery += ` AND cla.analysis_id IS NOT NULL`;
+          countQuery += ` AND cla.analysis_id IS NOT NULL`;
+        } else {
+          baseQuery += ` AND cla.analysis_id IS NULL`;
+          countQuery += ` AND cla.analysis_id IS NULL`;
+        }
+      }
+
+      if (params.dateFrom) {
+        baseQuery += ` AND c.created_at >= $${++paramCount}`;
+        countQuery += ` AND c.created_at >= $${paramCount}`;
+        values.push(params.dateFrom);
+      }
+
+      if (params.dateTo) {
+        baseQuery += ` AND c.created_at <= $${++paramCount}`;
+        countQuery += ` AND c.created_at <= $${paramCount}`;
+        values.push(params.dateTo);
+      }
+
+      // Get total count
+      const countResult = await this.client.query(countQuery, values);
+      const total = parseInt(countResult.rows[0].count);
+
+      // Add ordering and pagination  
+      baseQuery += ` ORDER BY c.created_at DESC LIMIT $${++paramCount} OFFSET $${++paramCount}`;
+      values.push(params.pageSize, (params.page - 1) * params.pageSize);
+
+      const result = await this.client.query(baseQuery, values);
+
+      // Calculate lastModified across the page
+      let lastModified: Date | undefined;
+      if (result.rows.length > 0) {
+        const maxLastModified = Math.max(
+          ...result.rows.map(row => new Date(row.last_modified || row.created_at).getTime())
+        );
+        lastModified = new Date(maxLastModified);
+      }
+
+      // Map rows with enriched analysis data
+      const rows = result.rows.map(row => ({
+        id: row.id,
+        project_id: row.project_id,
+        user_id: row.user_id,
+        title: row.title,
+        content: row.content,
+        url: row.url,
+        platform: row.platform,
+        screenshot_url: row.screenshot_url,
+        summary: row.summary,
+        tags: row.tags || [],
+        metadata: row.metadata || {},
+        status: row.status,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        latest_analysis: row.analysis_id ? {
+          status: row.analysis_status_latest,
+          summary: row.analysis_summary,
+          labels: row.analysis_labels || [],
+          analyzed_at: row.analyzed_at,
+          provider: row.provider,
+          mode: row.mode
+        } : null
+      }));
+
+      return { rows, total, lastModified };
+    } catch (error) {
+      console.error("❌ Error in listCapturesWithAnalysis:", error);
+      return { rows: [], total: 0 };
+    }
+  }
+
   async updateCaptureTags(params: {
     id: string;
     userId: string;
@@ -1601,6 +1773,62 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     } catch (error) {
       console.error("❌ Error fetching capture:", error);
+      return undefined;
+    }
+  }
+
+  // Task Block #6: Enhanced capture detail with analysis data
+  async getCaptureWithAnalysis(id: string): Promise<any | undefined> {
+    try {
+      const result = await this.client.query(`
+        SELECT 
+          c.id, c.project_id, c.user_id, c.title, c.content, c.url, c.platform,
+          c.screenshot_url, c.summary, c.tags, c.metadata, c.truth_analysis,
+          c.analysis_status, c.google_analysis, c.status, c.created_at, c.updated_at,
+          cla.analysis_id, cla.provider, cla.mode, cla.status as analysis_status_latest,
+          cla.summary as analysis_summary, cla.labels as analysis_labels, 
+          cla.analyzed_at,
+          (SELECT COUNT(*) FROM capture_analyses WHERE capture_id = c.id) as analysis_count,
+          (SELECT COUNT(*) > 0 FROM capture_analyses WHERE capture_id = c.id AND mode = 'deep') as has_deep_analysis
+        FROM captures c
+        LEFT JOIN capture_latest_analysis cla ON c.id = cla.capture_id
+        WHERE c.id = $1
+        LIMIT 1
+      `, [id]);
+      
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          project_id: row.project_id,
+          user_id: row.user_id,
+          title: row.title,
+          content: row.content,
+          url: row.url,
+          platform: row.platform,
+          screenshot_url: row.screenshot_url,
+          summary: row.summary,
+          tags: row.tags || [],
+          metadata: row.metadata || {},
+          status: row.status,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          latest_analysis: row.analysis_id ? {
+            status: row.analysis_status_latest,
+            summary: row.analysis_summary,
+            labels: row.analysis_labels || [],
+            analyzed_at: row.analyzed_at,
+            provider: row.provider,
+            mode: row.mode
+          } : null,
+          analysis_count: parseInt(row.analysis_count) || 0,
+          has_deep_analysis: row.has_deep_analysis || false
+        };
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error("❌ Error fetching capture with analysis:", error);
       return undefined;
     }
   }

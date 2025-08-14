@@ -7,7 +7,19 @@ This project is a Strategic Intelligence platform utilizing the DSD Signal Drop 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
-**August 14, 2025 - Task Block #5 Complete: Capture ↔️ Media Analysis Integration**
+**August 14, 2025 - Task Block #6 Complete: Read-Model Enhancements for Captures**
+- **Database View**: Created capture_latest_analysis view with proper indexing for fast read queries ✅
+- **Enhanced API Routes**: Updated /api/captures list and detail endpoints with analysis data integration ✅
+- **Advanced Filtering**: Added query parameters: q, label, analyzed, projectId, date_from, date_to for comprehensive filtering ✅
+- **HTTP Caching**: Implemented ETag and Last-Modified headers with 304 Not Modified support for performance ✅
+- **Analysis Integration**: Each capture now includes latest_analysis with status, summary, labels, and metadata ✅
+- **Storage Layer**: Enhanced listCapturesWithAnalysis and getCaptureWithAnalysis methods with LEFT JOIN optimization ✅
+- **Response Format**: Standardized API response format with analysis_count and has_deep_analysis fields ✅
+- **Smoke Test Suite**: Created scripts/smoke-captures-readmodel.ts for comprehensive endpoint validation ✅
+- **Performance Optimization**: Database query optimization with proper indexing and view-based reads ✅
+- **Complete Read-Model**: UI-ready API providing analysis insights without additional round-trips ✅
+
+**Previous - Task Block #5 Complete: Capture ↔️ Media Analysis Integration**
 - **Capture Analyses Table**: Created capture_analyses schema in shared/supabase-schema.ts with proper TypeScript types and validation ✅
 - **Database Migration**: Applied capture_analyses table with RLS policies, indexes, and proper foreign key relationships ✅
 - **Analysis Service Layer**: Implemented server/services/analysisService.ts with upload-and-analyze, re-analyze, and status endpoints ✅
