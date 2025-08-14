@@ -16,6 +16,39 @@ const AnalyzeBody = z.object({
   assetId: z.string().uuid().optional(),
 });
 
+// Test endpoint for simple analysis
+router.post('/test', async (req, res) => {
+  try {
+    const { type, data, filename } = req.body;
+    const size = Buffer.byteLength(data || '', 'base64');
+    const maxSyncSize = parseInt(process.env.ANALYSIS_MAX_SYNC_IMAGE_BYTES || '5242880');
+    
+    if (size <= maxSyncSize) {
+      // Quick analysis
+      const provider = getMediaProvider();
+      const result = await provider.analyze({
+        sourcePath: `data:image/png;base64,${data}`,
+        kind: 'image',
+        mode: 'quick',
+        userId: '550e8400-e29b-41d4-a716-446655440000', // test user
+        hint: 'Test analysis'
+      });
+      return res.json({ mode: 'sync', result, size });
+    } else {
+      // Queue for deep analysis
+      return res.status(202).json({ 
+        mode: 'queued', 
+        jobId: 'test-job-123', 
+        message: 'File too large, queued for background processing',
+        size 
+      });
+    }
+  } catch (error: any) {
+    console.error('Analysis test error:', error);
+    res.status(500).json({ error: error.message || 'Analysis failed' });
+  }
+});
+
 router.post('/api/media/analyze/quick', requireAuth, async (req: AuthedRequest, res) => {
   const user = req.user!;
   const body = AnalyzeBody.parse(req.body || {});

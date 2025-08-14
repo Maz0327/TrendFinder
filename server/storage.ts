@@ -159,6 +159,11 @@ export class DatabaseStorage implements IStorage {
     
     this.client.connect().then(() => {
       console.log("✅ Connected using DATABASE_URL");
+      console.log(`📊 Media Analysis Provider: ${process.env.MEDIA_PROVIDER || 'not set'}`);
+      console.log(`🔧 Background Workers: ${process.env.ENABLE_WORKERS || 'false'}`);
+      console.log(`📦 Storage Bucket: ${process.env.SUPABASE_STORAGE_BUCKET || 'not set'}`);
+      console.log(`🏷️  Auto-tag Analysis: ${process.env.AUTO_TAG_FROM_ANALYSIS || 'false'}`);
+      console.log(`📏 Sync File Limit: ${process.env.ANALYSIS_MAX_SYNC_IMAGE_BYTES || '5MB'} bytes`);
       
       // Test with a simple user creation and retrieval
       this.initializeTestUser();
