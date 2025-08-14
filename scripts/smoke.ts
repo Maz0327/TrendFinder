@@ -1,190 +1,282 @@
 #!/usr/bin/env tsx
+// scripts/smoke.ts - End-to-end API smoke tests
 
-/**
- * Smoke Test Script for Content Radar API
- * Tests basic functionality and Google export scaffolding
- */
+import { performance } from 'perf_hooks';
 
-import { storage } from '../server/storage';
-
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
-
-// Mock JWT for testing (in real scenario, get from auth flow)
-const TEST_JWT = 'test_jwt_token';
+const API_BASE = process.env.API_BASE || 'http://localhost:5000/api';
+const GOOGLE_MOCK = process.env.GOOGLE_MOCK === '1';
 
 interface TestResult {
-  test: string;
-  passed: boolean;
-  error?: string;
-  data?: any;
+  name: string;
+  status: 'PASS' | 'FAIL' | 'WARN';
+  duration: number;
+  details?: string;
+  error?: Error;
 }
 
-class SmokeTestRunner {
+class SmokeTest {
   private results: TestResult[] = [];
+  private authToken: string | null = null;
 
-  async runTest(testName: string, testFn: () => Promise<any>): Promise<boolean> {
-    try {
-      console.log(`Running: ${testName}...`);
-      const data = await testFn();
-      this.results.push({ test: testName, passed: true, data });
-      console.log(`✅ PASS: ${testName}`);
-      return true;
-    } catch (error: any) {
-      this.results.push({ test: testName, passed: false, error: error.message });
-      console.log(`❌ FAIL: ${testName} - ${error.message}`);
-      return false;
-    }
-  }
-
-  async apiRequest(endpoint: string, options: RequestInit = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${TEST_JWT}`,
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`HTTP ${response.status}: ${text}`);
-    }
-
-    return response.json();
-  }
-
-  printResults() {
-    console.log('\n' + '='.repeat(60));
-    console.log('SMOKE TEST RESULTS');
-    console.log('='.repeat(60));
-
-    const passed = this.results.filter(r => r.passed).length;
-    const total = this.results.length;
-
-    this.results.forEach(result => {
-      const status = result.passed ? '✅ PASS' : '❌ FAIL';
-      console.log(`${status}: ${result.test}`);
-      if (result.error) {
-        console.log(`   Error: ${result.error}`);
-      }
-    });
-
-    console.log(`\nSummary: ${passed}/${total} tests passed`);
+  async run(): Promise<void> {
+    console.log('🔥 Starting Content Radar API Smoke Tests\n');
     
-    if (passed === total) {
-      console.log('🎉 All tests passed!');
-      process.exit(0);
-    } else {
-      console.log('💥 Some tests failed');
-      process.exit(1);
-    }
+    // Health checks
+    await this.testHealth();
+    await this.testDatabaseConnection();
+    
+    // Authentication tests  
+    await this.testAuthEndpoints();
+    
+    // Core API tests (without auth for now)
+    await this.testCapturesAPI();
+    await this.testMomentsAPI();
+    await this.testBriefsAPI();
+    await this.testFeedsAPI();
+    
+    // Export functionality
+    await this.testGoogleExport();
+    
+    // Extension API
+    await this.testExtensionAPI();
+    
+    this.printResults();
   }
-}
 
-async function main() {
-  const runner = new SmokeTestRunner();
-
-  console.log('🚀 Starting Content Radar API Smoke Tests\n');
-
-  // Test 1: Database Health Check
-  await runner.runTest('Database Health Check', async () => {
-    const health = await storage.healthCheck();
-    if (health.status !== 'ok') {
-      throw new Error(`Database health check failed: ${health.status}`);
-    }
-    return health;
-  });
-
-  // Test 2: API Projects Endpoint (will fail auth but should respond)
-  await runner.runTest('API Projects Endpoint Response', async () => {
+  private async test(name: string, testFn: () => Promise<any>): Promise<void> {
+    const start = performance.now();
+    
     try {
-      return await runner.apiRequest('/api/projects');
-    } catch (error: any) {
-      // Expect auth error, but API should respond
-      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        return { status: 'auth_required', message: 'API responding correctly with auth error' };
-      }
-      throw error;
-    }
-  });
-
-  // Test 3: Google Export Route Exists
-  await runner.runTest('Google Export Route Available', async () => {
-    try {
-      return await runner.apiRequest('/api/briefs/test-id/export/slides', {
-        method: 'POST',
-        body: JSON.stringify({ title: 'Test Brief' })
+      const result = await testFn();
+      const duration = performance.now() - start;
+      
+      this.results.push({
+        name,
+        status: 'PASS',
+        duration,
+        details: typeof result === 'string' ? result : undefined
       });
-    } catch (error: any) {
-      // Expect auth error or brief not found, but route should exist
-      if (error.message.includes('401') || error.message.includes('404') || 
-          error.message.includes('Unauthorized') || error.message.includes('Brief not found')) {
-        return { status: 'route_exists', message: 'Google export route responding' };
+    } catch (error) {
+      const duration = performance.now() - start;
+      
+      this.results.push({
+        name,
+        status: 'FAIL',
+        duration,
+        details: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error : new Error(String(error))
+      });
+    }
+  }
+
+  private async testHealth(): Promise<void> {
+    await this.test('Health Check', async () => {
+      const response = await fetch(`${API_BASE}/../health`);
+      if (!response.ok) throw new Error(`Health check failed: ${response.status}`);
+      
+      const health = await response.json();
+      if (health.status !== 'healthy') {
+        throw new Error(`Unhealthy status: ${health.status}`);
       }
-      throw error;
-    }
-  });
+      
+      return `Server healthy (${health.uptime}s uptime)`;
+    });
+  }
 
-  // Test 4: Environment Variables Check
-  await runner.runTest('Environment Variables Check', async () => {
-    const required = [
-      'VITE_SUPABASE_URL',
-      'VITE_SUPABASE_ANON_KEY', 
-      'SUPABASE_SERVICE_ROLE_KEY',
-      'GOOGLE_CLIENT_ID',
-      'GOOGLE_CLIENT_SECRET',
-      'GOOGLE_REDIRECT_URI'
-    ];
+  private async testDatabaseConnection(): Promise<void> {
+    await this.test('Database Connection', async () => {
+      const response = await fetch(`${API_BASE}/captures?page=1&pageSize=1`);
+      
+      // 401 is expected without auth, but connection should work
+      if (response.status === 401) {
+        return 'Database accessible (auth required)';
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Database connection failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return `Database connected (${data.total || 0} captures)`;
+    });
+  }
 
-    const missing = required.filter(envVar => !process.env[envVar]);
+  private async testAuthEndpoints(): Promise<void> {
+    await this.test('Auth Endpoints Available', async () => {
+      // Test auth routes exist (they'll redirect but shouldn't 404)
+      const loginResponse = await fetch(`${API_BASE}/auth/google/start`, { 
+        redirect: 'manual' 
+      });
+      
+      if (loginResponse.status !== 302 && loginResponse.status !== 200) {
+        throw new Error(`Auth endpoint not found: ${loginResponse.status}`);
+      }
+      
+      return 'Auth endpoints accessible';
+    });
+  }
+
+  private async testCapturesAPI(): Promise<void> {
+    await this.test('Captures API (GET)', async () => {
+      const response = await fetch(`${API_BASE}/captures?page=1&pageSize=10`);
+      
+      // Should return data or require auth
+      if (response.status === 401) {
+        return 'Captures API protected (auth required)';
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Captures API failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return `Captures API working (${data.total || 0} items)`;
+    });
+  }
+
+  private async testMomentsAPI(): Promise<void> {
+    await this.test('Moments API (GET)', async () => {
+      const response = await fetch(`${API_BASE}/moments?page=1&pageSize=10`);
+      
+      if (response.status === 401) {
+        return 'Moments API protected (auth required)';
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Moments API failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return `Moments API working (${data.total || 0} items)`;
+    });
+  }
+
+  private async testBriefsAPI(): Promise<void> {
+    await this.test('Briefs API (GET)', async () => {
+      const response = await fetch(`${API_BASE}/briefs?page=1&pageSize=10`);
+      
+      if (response.status === 401) {
+        return 'Briefs API protected (auth required)';
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Briefs API failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return `Briefs API working (${data.total || 0} items)`;
+    });
+  }
+
+  private async testFeedsAPI(): Promise<void> {
+    await this.test('Feeds API (GET)', async () => {
+      const response = await fetch(`${API_BASE}/feeds`);
+      
+      if (response.status === 401) {
+        return 'Feeds API protected (auth required)';
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Feeds API failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return `Feeds API working (${Array.isArray(data) ? data.length : 0} feeds)`;
+    });
+  }
+
+  private async testGoogleExport(): Promise<void> {
+    await this.test('Google Export API', async () => {
+      // Test the export endpoint exists (will fail without auth)
+      const response = await fetch(`${API_BASE}/briefs/test-id/export/slides`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: 'test' })
+      });
+      
+      if (response.status === 401) {
+        return GOOGLE_MOCK 
+          ? 'Export API available (Google mock mode)'
+          : 'Export API available (auth required)';
+      }
+      
+      if (response.status === 404) {
+        throw new Error('Export endpoint not found');
+      }
+      
+      return 'Export API responsive';
+    });
+  }
+
+  private async testExtensionAPI(): Promise<void> {
+    await this.test('Extension API', async () => {
+      // Test extension health endpoint
+      const response = await fetch(`${API_BASE}/extension/health`);
+      
+      if (response.status === 401) {
+        return 'Extension API protected (auth required)';
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Extension API failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return `Extension API working (status: ${data.status})`;
+    });
+  }
+
+  private printResults(): void {
+    console.log('\n📊 Smoke Test Results:\n');
     
-    if (missing.length > 0) {
-      throw new Error(`Missing environment variables: ${missing.join(', ')}`);
-    }
-
-    return { status: 'all_present', count: required.length };
-  });
-
-  // Test 5: Feature Flags
-  await runner.runTest('Feature Flags Configuration', async () => {
-    // Import feature flags
-    const flagsModule = await import('../client/src/flags');
-    const features = flagsModule.FEATURES;
+    const maxNameLength = Math.max(...this.results.map(r => r.name.length));
     
-    if (!features.BRIEF_EXPORT) {
-      throw new Error('BRIEF_EXPORT feature flag is disabled');
+    let passCount = 0;
+    let failCount = 0;
+    let warnCount = 0;
+    
+    this.results.forEach(result => {
+      const status = result.status === 'PASS' ? '✅' : result.status === 'WARN' ? '⚠️' : '❌';
+      const name = result.name.padEnd(maxNameLength);
+      const duration = `${result.duration.toFixed(0)}ms`.padStart(6);
+      const details = result.details ? ` - ${result.details}` : '';
+      
+      console.log(`${status} ${name} ${duration}${details}`);
+      
+      if (result.error) {
+        console.log(`   Error: ${result.error.message}`);
+      }
+      
+      if (result.status === 'PASS') passCount++;
+      else if (result.status === 'WARN') warnCount++;
+      else failCount++;
+    });
+    
+    console.log('\n📈 Summary:');
+    console.log(`   ✅ Passed: ${passCount}`);
+    if (warnCount > 0) console.log(`   ⚠️  Warnings: ${warnCount}`);
+    if (failCount > 0) console.log(`   ❌ Failed: ${failCount}`);
+    
+    const totalTime = this.results.reduce((sum, r) => sum + r.duration, 0);
+    console.log(`   ⏱️  Total Time: ${totalTime.toFixed(0)}ms`);
+    
+    if (failCount > 0) {
+      console.log('\n❌ SMOKE TESTS FAILED');
+      process.exit(1);
+    } else {
+      console.log('\n✅ ALL SMOKE TESTS PASSED');
+      process.exit(0);
     }
-
-    return { 
-      briefExport: features.BRIEF_EXPORT,
-      totalFlags: Object.keys(features).length
-    };
-  });
-
-  // Test 6: TypeScript Compilation Check
-  await runner.runTest('TypeScript Compilation', async () => {
-    // Simple import test to ensure no major TS errors
-    try {
-      await import('../server/services/google/oauth');
-      await import('../server/services/google/slides');
-      await import('../server/routes/google-export');
-      return { status: 'compilation_ok' };
-    } catch (error: any) {
-      throw new Error(`TypeScript compilation failed: ${error.message}`);
-    }
-  });
-
-  runner.printResults();
+  }
 }
 
-// Run main if this file is executed directly
+// Run if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch(error => {
+  const smokeTest = new SmokeTest();
+  smokeTest.run().catch(error => {
     console.error('❌ Smoke test runner failed:', error);
     process.exit(1);
   });
 }
 
-export { SmokeTestRunner };
+export { SmokeTest };

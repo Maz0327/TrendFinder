@@ -1,0 +1,168 @@
+Amazing—this is exactly what we wanted. With the unified API in place (auth, CORS, pagination, tags, search), we’re ready to wire the UI to it, remove any lingering direct Supabase calls, and finish the Brief Builder loop (autosave + export).
+
+Below is the next copy-paste runbook for Replit, followed by a tiny human checklist.
+
+⸻
+
+🔧 REPLIT TASK BLOCK #4 — Wire UI to Unified API, Remove Direct Supabase Calls, Add Autosave + Export Hooks
+
+Goal:
+	1.	Ensure all client data access goes through our server API (no direct Supabase calls).
+	2.	Add Brief Canvas autosave + optimistic drafts.
+	3.	Expose “Export to Google Slides” action in the UI using the already-built server route.
+	4.	Add end-to-end smoke tests.
+
+⸻
+
+0) Project context & guardrails
+	•	Use the current branch (do not create a new repo).
+	•	Keep all changes incremental and idempotent.
+	•	Preserve existing env usage and feature flags.
+
+⸻
+
+1) Find and quarantine any lingering direct Supabase calls
+
+Actions
+	1.	Search for imports like from '@supabase/supabase-js', supabase.from(, createClient in the client codebase.
+	2.	For each occurrence, refactor to call our client services that hit the server API (e.g., client/src/services/*.ts), not Supabase directly.
+	3.	If a service is missing an API wrapper, create it (GET/POST/PUT/DELETE) and type it against our shared response models.
+
+Concrete commands
+
+rg "from '@supabase/supabase-js'|createClient|supabase\.from\(" -n client || true
+
+Refactor targets (examples):
+	•	client/src/hooks/useBriefs.ts
+	•	client/src/hooks/useCaptures.ts
+	•	client/src/hooks/useMoments.ts
+	•	client/src/services/feeds.ts
+
+Acceptance
+	•	No direct @supabase/supabase-js imports in client code (except the auth bootstrap if strictly required).
+	•	All data mutations/queries route through /api/* endpoints with Bearer token auth.
+
+⸻
+
+2) Standardize client services to match the new API response format
+
+Actions
+	1.	Open client/src/services/*.ts and ensure each service adheres to:
+	•	Authorization: Bearer <access_token>
+	•	Pagination: ?page=&pageSize=&q=&tags=
+	•	Returns { data: T[]; total: number; page: number; pageSize: number } (or the exact format implemented in server).
+	2.	Provide helpers: buildQuery(params), apiFetch<T>(path, options) with robust error handling and 401 handling (redirect to login if token invalid).
+
+Add file (if missing): client/src/services/api.ts
+	•	getToken() from auth provider
+	•	apiFetch<T>() wrapper
+	•	buildQuery()
+
+Acceptance
+	•	All services consume the wrapper and compile cleanly.
+	•	401/403 handled predictably (logout/redirect).
+
+⸻
+
+3) Brief Builder: autosave + draft recovery (client-side)
+
+Actions
+	1.	Implement client/src/ui/brief-canvas/autoSave.ts with:
+	•	useDebouncedAutoSave({ briefId, blocks, notes, delay=1200 })
+	•	Debounced PUT /api/briefs/:id with minimal payload Δ (only changed fields).
+	2.	Add local draft store to survive refresh:
+	•	localStorage key: brief-draft:<briefId>
+	•	Persist on every local edit (throttled 300ms).
+	•	On mount: if server version < local draft timestamp, prompt: “Restore local draft?”
+	3.	Wire autosave + restore into BriefCanvasPage (or its container).
+
+Acceptance
+	•	Edits survive refresh/navigation.
+	•	Saving is silent (tiny “Saved” toast), errors surface with a retry button.
+	•	No runaway save loops (debounce and change-detection in place).
+
+⸻
+
+4) Brief export: client button → server route → Google Slides
+
+Actions
+	1.	In the brief detail/canvas header, add:
+	•	Primary button: Export → Google Slides
+	•	On click: POST /api/briefs/:id/export/slides
+	•	If 401 from Google, call /api/auth/google/start?redirect=/briefs/:id or open a modal to connect.
+	2.	Show export progress/toast; on success show “Open in Slides” link from server response.
+
+Acceptance
+	•	Export succeeds when user has Google connected.
+	•	Error states are visible and actionable (connect Google, retry, etc).
+
+⸻
+
+5) UI: tags, pagination, search
+
+Actions
+	1.	Captures Inbox: ensure list fetches with ?page&pageSize&q&tags and renders tag chips + selected-tag filters.
+	2.	Moments Radar: load with ?q&tags, and show tag filters (multi-select).
+	3.	Briefs list: add search input + tag filter bar; infinite scroll or pager.
+
+Acceptance
+	•	Lists behave consistently with the new API.
+	•	URL query params reflect filters (so pages are shareable/reloadable).
+
+⸻
+
+6) Testing & smoke suite
+
+Actions
+	1.	Add/update scripts/smoke.ts to call:
+	•	GET /api/captures?page=1&pageSize=10
+	•	GET /api/moments?page=1
+	•	GET /api/briefs?page=1
+	•	POST /api/briefs/:id/export/slides (mock mode if GOOGLE_MOCK=1)
+	2.	Ensure npm run smoke prints PASS/FAIL for each.
+
+Acceptance
+	•	npm run typecheck → PASS
+	•	npm run build → PASS
+	•	npm run smoke → PASS
+	•	Manual click-through of Captures→Moments→Briefs works with auth
+
+⸻
+
+7) Housekeeping
+
+Actions
+	•	Remove dead Supabase client code from client (except auth bootstrap if needed).
+	•	Update client/src/flags.ts to keep BRIEF_EXPORT, GOOGLE_* flags on.
+	•	Confirm .env.example lists required keys for local dev.
+
+⸻
+
+8) Output
+	•	Commit with message:
+feat(ui): route all data via unified API; add brief autosave+draft recovery; wire Google export
+	•	Push to current branch and report:
+	•	files updated
+	•	any remaining direct Supabase references (should be 0)
+	•	smoke + build status
+
+⸻
+
+Human stop (very short)
+
+After the agent completes:
+	•	Do a quick manual pass:
+	•	Login → Captures (filter by a tag) → open capture detail → add to brief.
+	•	Open Brief Canvas, make a small edit, refresh the page → confirm draft restores prompt.
+	•	Click Export to Google Slides (if Google is connected) → confirm a Slides URL is returned.
+
+If any of those fail, tell me which screen and we’ll tweak that specific part.
+
+⸻
+
+Why this sequence?
+	•	We lock the one-way in (server API), which stabilizes security and performance.
+	•	We make Brief Canvas resilient (autosave + recovery) before polishing UX.
+	•	We connect the export now that the back end is live—so you can demo end-to-end.
+
+When you’re ready, I’ll give you the next block (polish pass + error toasts + perf tweaks + “heartbeat” background checks).

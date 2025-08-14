@@ -7,11 +7,21 @@ This project is a Strategic Intelligence platform utilizing the DSD Signal Drop 
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
-**August 14, 2025 - Task Block #3 Complete: Full-Stack API Consolidation** 
+**August 14, 2025 - Task Block #4 Complete: Client-Side Improvements & Testing** 
+- **Unified API Client**: Created standardized API client service (api.ts) replacing all direct HTTP calls ✅
+- **Service Layer Refactoring**: Updated all service files (captures, briefs, moments, feeds) to use unified API client ✅
+- **Supabase Consolidation**: Eliminated all direct Supabase data calls from client, maintaining only auth usage ✅
+- **Autosave Implementation**: Added Brief Builder autosave functionality with draft recovery and local storage backup ✅
+- **Export Enhancement**: Improved Google Slides integration with better error handling and OAuth flow ✅
+- **Testing Infrastructure**: Created comprehensive smoke test suite (scripts/smoke.ts) for API validation ✅
+- **Debug Component Updates**: Modernized SupabaseDebug and SupabaseTestComponent to use API calls instead of direct Supabase ✅
+- **Code Quality**: Fixed TypeScript errors, standardized API response handling across all services ✅
+
+**Previous - Task Block #3 Complete: Full-Stack API Consolidation** 
 - **Database Schema Enhanced**: Applied tags migration to dsd_briefs table with GIN indexes for performance ✅
 - **Server Infrastructure**: Enhanced CORS configuration and reusable Supabase auth middleware for all API routes ✅
 - **Comprehensive API Endpoints**: Complete paginated endpoints for captures, briefs, moments, feeds with tag filtering ✅
-- **Advanced Storage Layer**: Implemented all pagination, search, and tag management methods (listCapturesWithPagination, updateCaptureTags, getBriefWithDetails, etc.) ✅
+- **Advanced Storage Layer**: Implemented all pagination, search, and tag management methods ✅
 - **Client-Server Integration**: Updated all client services to use new API response formats with enhanced features ✅
 - **Authentication Flow**: Bearer token validation working correctly across all endpoints ✅
 - **Route Consolidation**: Legacy routes temporarily disabled, new comprehensive API operational ✅

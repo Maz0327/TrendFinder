@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@shared/supabase-client';
+import { api } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export function SupabaseDebug() {
   const [debugInfo, setDebugInfo] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const { user, session } = useAuth();
 
   useEffect(() => {
     checkSupabaseSetup();
@@ -17,38 +19,41 @@ export function SupabaseDebug() {
     setLoading(true);
     const info: any = {
       envVars: {
-        url: import.meta.env.VITE_SUPABASE_URL,
-        anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Present' : 'Missing',
-        urlLength: import.meta.env.VITE_SUPABASE_URL?.length || 0,
-        anonKeyLength: import.meta.env.VITE_SUPABASE_ANON_KEY?.length || 0,
+        apiBase: import.meta.env.VITE_API_BASE_URL || '/api',
+        hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
+        hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
-      connection: 'Testing...',
+      apiConnection: 'Testing...',
       auth: 'Testing...',
-      session: null,
+      session: session,
+      user: user,
       error: null
     };
 
     try {
-      // Test basic connection
-      const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
-      if (error) {
-        info.connection = `Error: ${error.message}`;
+      // Test API connection
+      try {
+        const capturesTest = await api.get('/captures', { page: 1, pageSize: 1 });
+        info.apiConnection = `Connected - API responding (${capturesTest.total || 0} captures)`;
+      } catch (error: any) {
+        info.apiConnection = `API Error: ${error.message}`;
         info.error = error;
-      } else {
-        info.connection = 'Connected';
       }
 
-      // Check auth status
-      const { data: { session }, error: authError } = await supabase.auth.getSession();
-      if (authError) {
-        info.auth = `Error: ${authError.message}`;
-      } else {
-        info.auth = session ? 'Authenticated' : 'Not signed in';
-        info.session = session;
+      // Test health endpoint
+      try {
+        const healthResponse = await fetch('/health');
+        const health = await healthResponse.json();
+        info.health = health.status || 'unknown';
+      } catch (error) {
+        info.health = 'unavailable';
       }
+
+      // Auth status from context
+      info.auth = session ? `Authenticated as ${user?.email || 'user'}` : 'Not signed in';
 
     } catch (err) {
-      info.connection = `Connection failed: ${err}`;
+      info.apiConnection = `Connection failed: ${err}`;
       info.error = err;
     }
 
@@ -58,22 +63,10 @@ export function SupabaseDebug() {
 
   const testGoogleSignIn = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      
-      if (error) {
-        console.error('Google sign in error:', error);
-        alert(`Google sign in error: ${error.message}`);
-      } else {
-        console.log('Google sign in initiated:', data);
-      }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      alert(`Unexpected error: ${err}`);
+      // Redirect to our API endpoint for Google OAuth
+      window.location.href = '/api/auth/google/start?redirect=' + encodeURIComponent(window.location.pathname);
+    } catch (error) {
+      console.error('Google sign in failed:', error);
     }
   };
 
@@ -95,56 +88,67 @@ export function SupabaseDebug() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
-          Supabase Debug Information
+          System Debug Information
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Environment Variables */}
         <div>
-          <h4 className="font-medium mb-2">Environment Variables</h4>
+          <h4 className="font-medium mb-2">API Configuration</h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span>VITE_SUPABASE_URL:</span>
-              <Badge variant={debugInfo.envVars?.url ? 'default' : 'destructive'}>
-                {debugInfo.envVars?.url ? `${debugInfo.envVars.url.substring(0, 30)}...` : 'Missing'}
+              <span>API Base:</span>
+              <Badge variant="default">
+                {debugInfo.envVars?.apiBase}
               </Badge>
             </div>
             <div className="flex justify-between">
-              <span>VITE_SUPABASE_ANON_KEY:</span>
-              <Badge variant={debugInfo.envVars?.anonKey === 'Present' ? 'default' : 'destructive'}>
-                {debugInfo.envVars?.anonKey} ({debugInfo.envVars?.anonKeyLength} chars)
+              <span>Supabase URL:</span>
+              <Badge variant={debugInfo.envVars?.hasSupabaseUrl ? 'default' : 'destructive'}>
+                {debugInfo.envVars?.hasSupabaseUrl ? 'Configured' : 'Missing'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span>Supabase Key:</span>
+              <Badge variant={debugInfo.envVars?.hasSupabaseKey ? 'default' : 'destructive'}>
+                {debugInfo.envVars?.hasSupabaseKey ? 'Configured' : 'Missing'}
               </Badge>
             </div>
           </div>
         </div>
 
-        {/* Connection Status */}
+        {/* API Connection Status */}
         <div>
-          <h4 className="font-medium mb-2">Connection Status</h4>
+          <h4 className="font-medium mb-2">API Connection Status</h4>
           <div className="flex items-center gap-2">
-            {debugInfo.connection === 'Connected' ? (
+            {debugInfo.apiConnection?.includes('Connected') ? (
               <CheckCircle className="h-4 w-4 text-green-500" />
             ) : (
               <XCircle className="h-4 w-4 text-red-500" />
             )}
-            <span className="text-sm">{debugInfo.connection}</span>
+            <span className="text-sm">{debugInfo.apiConnection}</span>
           </div>
+          {debugInfo.health && (
+            <div className="mt-1 text-xs text-gray-600">
+              System Health: {debugInfo.health}
+            </div>
+          )}
         </div>
 
         {/* Auth Status */}
         <div>
           <h4 className="font-medium mb-2">Authentication Status</h4>
           <div className="flex items-center gap-2">
-            {debugInfo.auth === 'Authenticated' ? (
+            {debugInfo.auth?.includes('Authenticated') ? (
               <CheckCircle className="h-4 w-4 text-green-500" />
             ) : (
               <AlertCircle className="h-4 w-4 text-yellow-500" />
             )}
             <span className="text-sm">{debugInfo.auth}</span>
           </div>
-          {debugInfo.session && (
+          {debugInfo.user && (
             <div className="mt-2 p-2 bg-green-50 rounded text-xs">
-              User: {debugInfo.session.user?.email}
+              User: {debugInfo.user.email}
             </div>
           )}
         </div>
@@ -155,7 +159,7 @@ export function SupabaseDebug() {
             Test Google Sign In
           </Button>
           <Button onClick={checkSupabaseSetup} variant="outline" className="w-full">
-            Refresh Debug Info
+            Refresh System Info
           </Button>
         </div>
 

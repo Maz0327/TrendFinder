@@ -1,4 +1,4 @@
-import { apiGet, apiSend } from "./http";
+import { api, PaginatedResponse } from "./api";
 import type { Database } from "@shared/database.types";
 
 type Moment = Database["public"]["Tables"]["cultural_moments"]["Row"];
@@ -11,26 +11,18 @@ export async function listMoments(params?: {
   page?: number;
   pageSize?: number;
 }) {
-  const qp = new URLSearchParams();
-  if (params?.projectId) qp.set("projectId", params.projectId);
-  if (params?.q) qp.set("q", params.q);
-  if (params?.page) qp.set("page", params.page.toString());
-  if (params?.pageSize) qp.set("pageSize", params.pageSize.toString());
-  
-  const q = qp.toString() ? `?${qp.toString()}` : "";
-  // Updated to handle new paginated server response format
-  const response = await apiGet<{ rows: Moment[]; total: number; page: number; pageSize: number }>(`/moments${q}`);
+  const response = await api.get<PaginatedResponse<Moment>>("/moments", params);
   return { items: response.rows, total: response.total, page: response.page, pageSize: response.pageSize };
 }
 
 export async function createMoment(payload: MomentInsert) {
-  return apiSend<Moment>("/moments", "POST", payload);
+  return api.post<Moment>("/moments", payload);
 }
 
 export async function updateMoment(id: string, payload: MomentUpdate) {
-  return apiSend<Moment>(`/moments/${id}`, "PATCH", payload);
+  return api.patch<Moment>(`/moments/${id}`, payload);
 }
 
 export async function deleteMoment(id: string) {
-  return apiSend<{ id: string }>(`/moments/${id}`, "DELETE");
+  return api.delete<{ id: string }>(`/moments/${id}`);
 }

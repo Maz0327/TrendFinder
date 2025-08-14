@@ -54,7 +54,7 @@ export default function BriefBuilderV2() {
     setSelectedCaptures(mockCaptures);
   }, []);
 
-  const handleExportToSlides = async (options: { title: string; outline: any[] }) => {
+  const handleExportToSlides = async (briefId: string, options?: { templateId?: string }) => {
     setIsExporting(true);
     
     try {
@@ -63,28 +63,38 @@ export default function BriefBuilderV2() {
         description: "Creating your Google Slides presentation"
       });
 
-      const result = await exportBriefToSlides({
-        captureIds: selectedCaptures.map(c => c.id),
-        projectId: 'demo-project',
-        title: options.title,
-        outline: options.outline
-      });
+      const result = await exportBriefToSlides(briefId, options);
 
       toast({
         title: "Export successful!",
-        description: `Your brief is ready: ${result.slidesUrl}`,
+        description: "Your brief is ready in Google Slides"
       });
 
-      // Open the slides in a new tab
-      window.open(result.slidesUrl, '_blank');
+      // Open the slides in a new tab if URL is provided
+      if (result.slideUrl) {
+        window.open(result.slideUrl, '_blank');
+      }
       
     } catch (error: any) {
       console.error('Export failed:', error);
-      toast({
-        title: "Export failed",
-        description: error.message || "Failed to export to Google Slides",
-        variant: "destructive"
-      });
+      
+      if (error.message?.includes('Google') || error.message?.includes('401')) {
+        toast({
+          title: "Google connection required",
+          description: "Please connect your Google account to export briefs",
+          variant: "destructive"
+        });
+        // Redirect to Google OAuth
+        setTimeout(() => {
+          window.location.href = '/api/auth/google/start?redirect=' + encodeURIComponent(window.location.pathname);
+        }, 2000);
+      } else {
+        toast({
+          title: "Export failed",
+          description: error.message || "Failed to export to Google Slides",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsExporting(false);
       setShowPreBriefReview(false);
@@ -103,7 +113,7 @@ export default function BriefBuilderV2() {
         
         <div className="flex gap-3">
           <Button
-            onClick={() => setShowPreBriefReview(true)}
+            onClick={() => handleExportToSlides("demo-brief-id")}
             disabled={selectedCaptures.length === 0 || isExporting}
             className="bg-blue-600 hover:bg-blue-700"
           >

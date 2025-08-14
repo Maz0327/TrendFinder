@@ -1,4 +1,4 @@
-import { apiGet, apiSend } from "./http";
+import { api } from "./api";
 import type { Database } from "@shared/database.types";
 
 type UserFeed = Database["public"]["Tables"]["user_feeds"]["Row"];
@@ -9,28 +9,27 @@ type ProjectInsert = Database["public"]["Tables"]["projects"]["Insert"];
 
 // User feeds functions - updated for new comprehensive API  
 export async function listUserFeeds(params?: { projectId?: string }) {
-  const q = params?.projectId ? `?projectId=${encodeURIComponent(params.projectId)}` : "";
-  return apiGet<UserFeed[]>(`/feeds${q}`); // Feeds API returns simple array, not paginated
+  return api.get<UserFeed[]>("/feeds", params); // Feeds API returns simple array, not paginated
 }
 
 export async function createUserFeed(payload: UserFeedInsert) {
-  return apiSend<UserFeed>("/feeds", "POST", payload);
+  return api.post<UserFeed>("/feeds", payload);
 }
 
 export async function toggleUserFeedActive(id: string) {
   // Updated to use new toggle endpoint that flips the current state
-  return apiSend<UserFeed>(`/feeds/${id}/toggle`, "PATCH");
+  return api.patch<UserFeed>(`/feeds/${id}/toggle`);
 }
 
 export async function deleteUserFeed(id: string) {
-  return apiSend<{ id: string }>(`/feeds/${id}`, "DELETE");
+  return api.delete<{ id: string }>(`/feeds/${id}`);
 }
 
 // Project functions (for backward compatibility)
 export async function listProjects() {
-  return apiGet<Project[]>("/projects");
+  return api.get<Project[]>("/projects");
 }
 
 export async function createProject(payload: Omit<ProjectInsert, "user_id">) {
-  return apiSend<Project>("/projects", "POST", payload);
+  return api.post<Project>("/projects", payload);
 }

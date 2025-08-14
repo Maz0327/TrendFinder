@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@shared/supabase-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { api } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 
 export function SupabaseTestComponent() {
   const [connectionStatus, setConnectionStatus] = useState<'testing' | 'connected' | 'error'>('testing');
   const [testResults, setTestResults] = useState<any[]>([]);
-  const { user, signInWithGoogle, signOut } = useSupabaseAuth();
+  const { user, session, signOut } = useAuth();
 
   useEffect(() => {
     testConnection();
@@ -18,29 +18,45 @@ export function SupabaseTestComponent() {
     const results = [];
     
     try {
-      // Test 1: Basic connection
-      const { data, error } = await supabase.from('users').select('count', { count: 'exact' });
-      results.push({
-        test: 'Database Connection',
-        status: error ? 'failed' : 'passed',
-        details: error ? error.message : `Connected - ${data?.length || 0} users`,
-      });
+      // Test 1: API Connection - test captures endpoint
+      try {
+        const capturesResponse = await api.get('/captures', { page: 1, pageSize: 1 });
+        results.push({
+          test: 'API Connection',
+          status: 'passed',
+          details: `API responding - ${capturesResponse.total || 0} captures available`,
+        });
+      } catch (error) {
+        results.push({
+          test: 'API Connection',
+          status: 'failed',
+          details: error instanceof Error ? error.message : 'API connection failed',
+        });
+      }
 
       // Test 2: Auth status
-      const { data: { session } } = await supabase.auth.getSession();
       results.push({
         test: 'Authentication',
         status: session ? 'passed' : 'no-session',
-        details: session ? `Logged in as ${session.user.email}` : 'No active session',
+        details: session ? `Logged in as ${user?.email || 'user'}` : 'No active session',
       });
 
-      // Test 3: Storage buckets
-      const { data: buckets } = await supabase.storage.listBuckets();
-      results.push({
-        test: 'Storage',
-        status: buckets ? 'passed' : 'failed',
-        details: buckets ? `${buckets.length} buckets available` : 'Storage not accessible',
-      });
+      // Test 3: API Health
+      try {
+        const healthResponse = await fetch('/health');
+        const health = await healthResponse.json();
+        results.push({
+          test: 'System Health',
+          status: health.status === 'healthy' ? 'passed' : 'warning',
+          details: health.status === 'healthy' ? 'All services healthy' : `Status: ${health.status}`,
+        });
+      } catch (error) {
+        results.push({
+          test: 'System Health',
+          status: 'failed',
+          details: 'Health check failed',
+        });
+      }
 
       setTestResults(results);
       setConnectionStatus(results.some(r => r.status === 'failed') ? 'error' : 'connected');
@@ -56,10 +72,8 @@ export function SupabaseTestComponent() {
   };
 
   const handleGoogleSignIn = async () => {
-    const { error } = await signInWithGoogle();
-    if (error) {
-      console.error('Google sign in error:', error);
-    }
+    // Redirect to Google OAuth through our API
+    window.location.href = '/api/auth/google/start?redirect=' + encodeURIComponent(window.location.pathname);
   };
 
   const handleSignOut = async () => {
