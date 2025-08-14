@@ -119,7 +119,7 @@ app.use((req, res, next) => {
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Ext-Token');
   
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
@@ -279,6 +279,10 @@ app.use((req, res, next) => {
   console.log("🔗 Database URL source:", process.env.SUPABASE_DATABASE_URL ? "Supabase" : "Neon");
   
   const server = await registerRoutes(app);
+
+  // Start Moments Aggregator Worker (Task Block 8A)
+  const { startMomentsAggregator } = await import("./workers/moments-aggregator");
+  startMomentsAggregator();
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

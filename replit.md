@@ -62,3 +62,12 @@ Preferred communication style: Simple, everyday language.
 - **Zero Breaking Changes**: All functionality, design, and integrations preserved exactly ✅
 
 **Task Block #7 Complete: Brief Canvas Backend (pages/blocks, autosave, snapshots, publish)**
+
+**August 14, 2025 - Task Block 8A (Moments Radar) + 8B (Chrome Extension Capture) Complete**
+- **Database Infrastructure**: Created moments and ext_tokens tables with proper indexing, materialized views, and RLS policies ✅
+- **Real-time Streaming**: Implemented SSE utilities for live data streaming to frontend clients with 10-second intervals ✅
+- **Moments API**: Complete read-model system with pagination, filtering, and background aggregation worker ✅  
+- **Extension Security**: Token-based authentication with SHA-256 hashing, expiration, and secure scope management ✅
+- **Capture Integration**: Multipart file upload support with automatic analysis enqueuing and storage abstraction ✅
+- **Background Processing**: Moments aggregator worker running every 2 minutes for real-time trend detection ✅
+- **API Architecture**: All routes properly secured, CORS configured for Chrome extensions, comprehensive error handling ✅

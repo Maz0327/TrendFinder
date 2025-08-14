@@ -54,6 +54,11 @@ import { productionMonitor } from "./monitoring/productionMonitor";
 import briefBlocksRouter from "./routes/brief-blocks";
 import uploadsRouter from "./routes/uploads";
 
+// Task Block 8A + 8B: Moments Radar + Chrome Extension
+import momentsRoutesNew from './routes/moments';
+import extTokenRoutes from './routes/ext-tokens';
+import extCaptureRoutes from './routes/ext-capture';
+
 // Initialize AI services
 const liveBrightData = new LiveBrightDataService();
 const aiAnalyzer = new AIAnalyzer();
@@ -132,14 +137,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import and mount new comprehensive API routes that replace the legacy ones
   const capturesRouter = (await import("./routes/captures")).default;
   const briefsRouter = (await import("./routes/briefs")).default;
-  const momentsRouter = (await import("./routes/moments")).default;
   const feedsRouter = (await import("./routes/feeds")).default;
   const briefCanvasRouter = (await import("./routes/brief-canvas")).default;
 
   app.use("/api/captures", capturesRouter);
   app.use("/api/briefs", briefsRouter);
-  app.use("/api/moments", momentsRouter);
   app.use("/api/feeds", feedsRouter);
+  
+  // Task Block 8A + 8B: Mount new Moments Radar and Extension routes
+  app.use("/api/moments", momentsRoutesNew);
+  app.use("/api/ext/tokens", extTokenRoutes);
+  app.use("/api/ext/capture", extCaptureRoutes);
   app.use("/api/briefs", briefCanvasRouter); // Brief Canvas routes mount under /api/briefs
   
   // Legacy routes
