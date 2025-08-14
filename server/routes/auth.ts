@@ -19,7 +19,7 @@ function getUserFromRequest(req: Request): AuthUser | null {
 
   // Mock user for development - in production, decode JWT and get actual user data
   return {
-    id: 'user-123',
+    id: '550e8400-e29b-41d4-a716-446655440000', // Proper UUID format
     email: 'user@example.com',
     name: 'Test User',
     avatarUrl: null
