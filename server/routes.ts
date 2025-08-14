@@ -134,11 +134,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const briefsRouter = (await import("./routes/briefs")).default;
   const momentsRouter = (await import("./routes/moments")).default;
   const feedsRouter = (await import("./routes/feeds")).default;
+  const briefCanvasRouter = (await import("./routes/brief-canvas")).default;
 
   app.use("/api/captures", capturesRouter);
   app.use("/api/briefs", briefsRouter);
   app.use("/api/moments", momentsRouter);
   app.use("/api/feeds", feedsRouter);
+  app.use("/api/briefs", briefCanvasRouter); // Brief Canvas routes mount under /api/briefs
   
   // Legacy routes
   app.use("/api", extensionRouter);

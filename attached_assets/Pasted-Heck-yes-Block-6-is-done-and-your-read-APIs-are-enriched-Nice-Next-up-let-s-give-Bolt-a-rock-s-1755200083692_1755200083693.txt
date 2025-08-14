@@ -1,0 +1,266 @@
+Heck yes — Block #6 is done and your read APIs are enriched. Nice.
+Next up, let’s give Bolt a rock-solid backend contract for the Brief Canvas (pages/blocks, autosave, versioning, publish→export). Here’s a single, copy-paste Replit Task Block #7 you can drop into the agent. It’s self-contained, includes “human stops,” and won’t touch your working auth/analysis/export code.
+
+⸻
+
+Replit Task Block #7 — Brief Canvas Backend (pages/blocks, autosave, snapshots, publish)
+
+Goal: Add a clean, durable domain model + APIs for the Brief Canvas so the UI can render/edit slides-like pages with draggable blocks, autosave drafts, and export to Google Slides using the current export service.
+
+Do NOT: change existing auth flows, analysis pipeline, or the Google export scaffolding from earlier blocks.
+
+⸻
+
+0) Context/Guardrails
+	•	Stack: Node/Express server + Supabase DB + existing /api/* pattern.
+	•	Keep everything namespaced under /api/briefs/*.
+	•	All operations authenticated; rely on the same bearer/JWT flow as the rest of the app.
+	•	Respect RLS owner-only access (same as briefs table).
+
+⸻
+
+1) DB schema (idempotent migration)
+
+Create migration server/migrations/20250814_brief_canvas.sql with:
+
+-- Pages are optional, but useful for slide-like layout
+create table if not exists public.brief_pages (
+  id uuid primary key default gen_random_uuid(),
+  brief_id uuid not null references public.dsd_briefs(id) on delete cascade,
+  index_no integer not null default 0,
+  title text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Canvas blocks: text, image, capture_ref, note, quote, shape, etc.
+create type if not exists public.brief_block_type as enum (
+  'text', 'image', 'capture_ref', 'note', 'quote', 'shape', 'list', 'chart'
+);
+
+create table if not exists public.brief_blocks (
+  id uuid primary key default gen_random_uuid(),
+  brief_id uuid not null references public.dsd_briefs(id) on delete cascade,
+  page_id uuid references public.brief_pages(id) on delete set null,
+  type public.brief_block_type not null,
+  -- normalized layout for easy UI mapping (tailwind-ish grid or freeform px)
+  x integer not null default 0,
+  y integer not null default 0,
+  w integer not null default 6,
+  h integer not null default 4,
+  z integer not null default 0,
+  rotation numeric(6,2) not null default 0,
+  -- content JSON varies by type:
+  -- text: {html, plain?}
+  -- image: {storagePath, alt}
+  -- capture_ref: {capture_id}
+  -- list: {items: [...]}, quote: {text, author}, chart: {...}
+  content jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Snapshots for versioning / undo / “restore”
+create table if not exists public.brief_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  brief_id uuid not null references public.dsd_briefs(id) on delete cascade,
+  created_by uuid not null,
+  reason text,
+  data jsonb not null, -- full brief state (pages + blocks)
+  created_at timestamptz not null default now()
+);
+
+-- Lightweight collaborative lock with TTL
+create table if not exists public.brief_locks (
+  brief_id uuid primary key references public.dsd_briefs(id) on delete cascade,
+  locked_by uuid not null,
+  lock_token uuid not null,
+  expires_at timestamptz not null
+);
+
+-- Helpful indexes
+create index if not exists idx_brief_pages_brief on public.brief_pages (brief_id, index_no);
+create index if not exists idx_brief_blocks_brief on public.brief_blocks (brief_id, page_id, z);
+create index if not exists idx_brief_snapshots_brief on public.brief_snapshots (brief_id, created_at desc);
+
+-- Touch trigger
+create or replace function public.touch_updated_at()
+returns trigger language plpgsql as $$
+begin new.updated_at := now(); return new; end $$;
+
+drop trigger if exists trg_pages_touch on public.brief_pages;
+create trigger trg_pages_touch before update on public.brief_pages
+for each row execute function public.touch_updated_at();
+
+drop trigger if exists trg_blocks_touch on public.brief_blocks;
+create trigger trg_blocks_touch before update on public.brief_blocks
+for each row execute function public.touch_updated_at();
+
+HUMAN STOP (only if migrations aren’t auto-applied): Paste the SQL in Supabase SQL editor, run it, then continue.
+
+⸻
+
+2) RLS policies (owner-only, mirror briefs)
+
+Create server/migrations/20250814_brief_canvas_policies.sql:
+
+alter table public.brief_pages enable row level security;
+alter table public.brief_blocks enable row level security;
+alter table public.brief_snapshots enable row level security;
+alter table public.brief_locks enable row level security;
+
+-- Replace `auth.uid()` relationship rule with your existing briefs ownership rule.
+-- Example assumes briefs has user_id owner.
+
+create policy "owner_select_pages" on public.brief_pages for select
+using (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()));
+create policy "owner_write_pages" on public.brief_pages for all
+using (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()))
+with check (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()));
+
+create policy "owner_select_blocks" on public.brief_blocks for select
+using (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()));
+create policy "owner_write_blocks" on public.brief_blocks for all
+using (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()))
+with check (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()));
+
+create policy "owner_select_snapshots" on public.brief_snapshots for select
+using (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()));
+create policy "owner_write_snapshots" on public.brief_snapshots for all
+using (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()))
+with check (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()));
+
+create policy "owner_select_locks" on public.brief_locks for select
+using (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()));
+create policy "owner_write_locks" on public.brief_locks for all
+using (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()))
+with check (exists (select 1 from public.dsd_briefs b where b.id = brief_id and b.user_id = auth.uid()));
+
+
+⸻
+
+3) Server routes — /api/briefs/:id/canvas*
+
+Create server/routes/brief-canvas.ts and register it in server/routes.ts.
+
+Endpoints:
+	1.	GET /api/briefs/:id/canvas
+Return the full canvas state + lock status:
+
+{
+  brief: { id, title, status, updated_at },
+  pages: [{ id, index_no, title }],
+  blocks: [{ id, page_id, type, x,y,w,h,z, rotation, content, updated_at }],
+  lock: { locked: boolean, locked_by?: string, expires_at?: string },
+  autosave: { intervalMs: 1500, maxBatch: 50 }
+}
+
+	2.	PATCH /api/briefs/:id/canvas (idempotent batch upsert)
+Body: { ops: Array< {type: 'upsert_block' | 'delete_block' | 'upsert_page' | 'reorder_pages', payload: any} >, lockToken?: string }
+
+	•	Validate types/layout bounds.
+	•	Enforce lock if present (see #5).
+	•	Return updated updated_at and changed rows.
+
+	3.	POST /api/briefs/:id/snapshots
+Body: { reason?: string }
+
+	•	Reads pages + blocks, writes single snapshot row (data = full state). Return snapshot id/timestamp.
+
+	4.	GET /api/briefs/:id/snapshots → list with pagination.
+	5.	POST /api/briefs/:id/snapshots/:snapshotId/restore
+
+	•	Replace current pages/blocks with snapshot data. Return new updated_at.
+
+	6.	POST /api/briefs/:id/lock
+
+	•	Acquire (or refresh) a lock with TTL 120s, returning { lockToken, expires_at }.
+	•	Only one lock per brief. Overwrite if expired.
+
+	7.	POST /api/briefs/:id/lock/heartbeat
+
+	•	Extend lock TTL (same token required).
+
+	8.	POST /api/briefs/:id/publish
+
+	•	Set status = 'ready' (or similar), create a snapshot “publish”, and (optionally) trigger export to slides by calling the existing service or returning {ok:true} and letting the client call export explicitly.
+
+Notes:
+	•	Use the same auth middleware you already established.
+	•	Validate type ∈ enum; sanitize content by type.
+	•	For capture_ref blocks, ensure the referenced capture belongs to the same user (owner check).
+
+⸻
+
+4) Slides export mapping (reuse service)
+
+Update your existing Google Slides export route to prefer canvas:
+	•	In server/routes/google-export.ts, if a brief has any brief_blocks, build slides from pages/blocks; otherwise fall back to the older section-based export.
+	•	Simple mapping:
+	•	text → create text box at normalized position.
+	•	image → place image from Supabase storage path (ensure signed URL).
+	•	capture_ref → place the capture screenshot thumbnail + caption (title/url).
+	•	Keep it minimal; the UI will refine layouts.
+
+⸻
+
+5) Locking enforcement helper
+
+Create server/services/brief-locks.ts:
+	•	acquireLock(briefId, userId): new token + expires_at = now()+ interval '120 seconds'.
+	•	heartbeat(briefId, token): update expires_at.
+	•	assertWritable(briefId, token?): if blocks/pages are being mutated and there’s an active lock held by another user, throw 409.
+
+Call assertWritable inside the PATCH/snapshot-restore endpoints.
+
+⸻
+
+6) OpenAPI
+
+Update server/openapi.json for the new endpoints + schemas (brief canvas, page, block, snapshot, lock).
+
+⸻
+
+7) Smoke tests
+
+Add scripts/smoke-brief-canvas.ts:
+	•	Create a brief (existing endpoint).
+	•	POST /briefs/:id/lock → get token.
+	•	PATCH /briefs/:id/canvas with a couple of blocks (text, capture_ref mock).
+	•	GET /briefs/:id/canvas → verify blocks.
+	•	POST /briefs/:id/snapshots + list + restore.
+	•	POST /briefs/:id/publish → 200.
+	•	Optionally POST /briefs/:id/export/slides → 200 (if env allows).
+
+Add to package.json:
+
+"scripts": {
+  "smoke:brief:canvas": "ts-node --transpile-only scripts/smoke-brief-canvas.ts"
+}
+
+
+⸻
+
+8) Verification — print this
+
+Please run and print:
+	•	✅ Tables: brief_pages, brief_blocks, brief_snapshots, brief_locks
+	•	✅ Enum: brief_block_type
+	•	✅ RLS enabled with owner policies
+	•	✅ Endpoints responding:
+GET/POST/PATCH /api/briefs/:id/canvas*, /snapshots*, /lock*, /publish
+	•	✅ Export chooses canvas mapping when blocks exist
+	•	✅ npm run smoke:brief:canvas PASS
+
+If any step fails, print the failing endpoint + error + minimal diff needed.
+
+⸻
+
+Why this now?
+You’ve got clean APIs, analysis, and enriched reads. This block gives Bolt a predictable, durable canvas contract (pages/blocks/snapshots/locks) that feels like “Google Slides inside your app,” and it reuses your existing Google export to keep momentum.
+
+When this lands, the very next block can be:
+	•	Block #8: Moments Radar read-model (trend windows + intensity sparkline + SSE/Supabase realtime), or
+	•	Block #8 (alt): Chrome extension ingestion test loop (capture → upload → analysis → brief).
+
+Your call after #7 verifies.
