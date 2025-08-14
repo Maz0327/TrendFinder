@@ -119,6 +119,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start durable DB-backed worker
   startDbWorker();
 
+  // Start media analysis worker  
+  const { startMediaWorker } = await import("./workers/mediaWorker");
+  startMediaWorker();
+
   // Mount modular routers
   // Register legacy API routes (non-conflicting ones)
   registerAuthRoutes(app);
@@ -146,6 +150,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Brief Canvas routers (fixed auth middleware)
   app.use(briefBlocksRouter);
   app.use(uploadsRouter);
+
+  // Media Analysis router
+  const mediaAnalysisRouter = (await import("./routes/media-analysis")).default;
+  app.use(mediaAnalysisRouter);
 
   // example log on startup
   logger.info("Mounted captures and extension routers");

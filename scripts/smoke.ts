@@ -43,6 +43,9 @@ class SmokeTest {
     // Brief Canvas API
     await this.testBriefCanvasAPI();
     
+    // Media Analysis API
+    await this.testMediaAnalysisAPI();
+    
     this.printResults();
   }
 
@@ -267,6 +270,62 @@ class SmokeTest {
       }
       
       return 'Upload API working (signed URL generation)';
+    });
+  }
+
+  private async testMediaAnalysisAPI(): Promise<void> {
+    // Test Quick Analysis (synchronous)
+    await this.test('Quick Media Analysis', async () => {
+      const response = await fetch(`${API_BASE}/media/analyze/quick`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': this.authToken ? `Bearer ${this.authToken}` : 'Bearer mock-token'
+        },
+        body: JSON.stringify({
+          sourcePath: 'test/sample.jpg',
+          kind: 'image',
+          hint: 'Analyze this test image'
+        })
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) return 'SKIP: No auth token';
+        throw new Error(`Quick analysis failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (!result.jobId) throw new Error('No jobId in quick analysis response');
+      if (!result.result) throw new Error('No result in quick analysis response');
+      
+      return `Quick analysis completed (job: ${result.jobId})`;
+    });
+
+    // Test Deep Analysis (queued)  
+    await this.test('Deep Media Analysis', async () => {
+      const response = await fetch(`${API_BASE}/media/analyze/deep`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': this.authToken ? `Bearer ${this.authToken}` : 'Bearer mock-token'
+        },
+        body: JSON.stringify({
+          sourcePath: 'test/sample.jpg',
+          kind: 'image',
+          hint: 'Deep analyze this test image'
+        })
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) return 'SKIP: No auth token';
+        throw new Error(`Deep analysis failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (!result.jobId) throw new Error('No jobId in deep analysis response');
+      if (result.status !== 'queued') throw new Error(`Expected queued status, got: ${result.status}`);
+      
+      return `Deep analysis queued (job: ${result.jobId})`;
     });
   }
 

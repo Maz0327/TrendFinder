@@ -6,9 +6,10 @@ export const FEATURES = {
   GOOGLE_DRIVE_INTEGRATION: true,
   
   // AI features
-  FAST_MEDIA_ANALYSIS: false,
-  DEEP_MEDIA_ANALYSIS: false,
+  FAST_MEDIA_ANALYSIS: true,
+  DEEP_MEDIA_ANALYSIS: true,
   AI_ARRANGE_BLOCKS: false,
+  AUTO_TAG_FROM_ANALYSIS: false,
   
   // Advanced features
   REAL_TIME_COLLABORATION: false,
