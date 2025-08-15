@@ -1,9 +1,22 @@
 {
-  "include": ["client", "server", "shared", "scripts"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "include": [
+    "client",
+    "server",
+    "shared",
+    "scripts"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts"
+  ],
   "compilerOptions": {
     "target": "ES2018",
-    "lib": ["ES2020", "DOM"],
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
     "module": "ESNext",
     "jsx": "react-jsx",
     "moduleResolution": "Bundler",
@@ -13,13 +26,23 @@
     "downlevelIteration": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client"],
+    "types": [
+      "vite/client"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./client/src/*"],
-      "@ui/*": ["./client/src/ui-v2/*"],
-      "@shared/*": ["./shared/*"],
-      "@shared/database.types": ["./shared/database.types.ts"]
+      "@/*": [
+        "client/src/*"
+      ],
+      "@ui/*": [
+        "client/src/ui-v2/*"
+      ],
+      "@shared/*": [
+        "./shared/*"
+      ],
+      "@shared/database.types": [
+        "./shared/database.types.ts"
+      ]
     }
   }
 }
