@@ -46,7 +46,7 @@ export function ProjectSwitcher() {
         }
         className="w-[280px] md:w-80"
       >
-        <div className="p-2 border-b border-white/10 mb-2">
+        <div className="p-2 glass-border-b mb-2">
           <div className="text-xs text-ink/50 uppercase tracking-wide mb-2">
             Projects
           </div>
@@ -56,7 +56,7 @@ export function ProjectSwitcher() {
               onClick={() => setCurrentProjectId(project.id)}
               icon={
                 currentProject?.id === project.id ? (
-                  <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                  <div className="w-2 h-2 frost-strong rounded-full" />
                 ) : (
                   <div className="w-2 h-2" />
                 )

@@ -14,7 +14,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
   return (
     <div className="text-center py-12">
       <motion.div 
-        className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6"
+        className="w-24 h-24 frost-subtle rounded-full flex items-center justify-center mx-auto mb-6"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ 
@@ -52,7 +52,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
       {action && (
         <motion.button
           onClick={action.onClick}
-          className="px-6 py-3 bg-blue-500 hover:bg-blue-600 hover:scale-[1.02] rounded-lg transition-all duration-200 hover:shadow-lg"
+          className="px-6 py-3 frost-strong glass-hover hover:scale-[1.02] rounded-lg transition-all duration-200 glass-shadow-hover"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.5 }}

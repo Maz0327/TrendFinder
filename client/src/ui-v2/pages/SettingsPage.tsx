@@ -58,7 +58,7 @@ export default function SettingsPage() {
                 <input
                   type="text"
                   defaultValue={user?.name || ''}
-                  className="w-full px-3 py-2 glass rounded-lg bg-transparent outline-none focus:ring-2 focus:ring-blue-500/50"
+                  className="w-full px-3 py-2 glass rounded-lg bg-transparent outline-none focus:ring-2 glass-border-focus"
                   placeholder="Enter your display name"
                 />
               </div>

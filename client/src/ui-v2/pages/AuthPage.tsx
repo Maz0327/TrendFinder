@@ -24,8 +24,8 @@ export default function AuthPage() {
           transition={{ duration: 0.4 }}
         >
           <GlassCard className="max-w-md text-center">
-            <div className="flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mx-auto mb-4">
-              <User className="w-8 h-8 text-green-400" />
+            <div className="flex items-center justify-center w-16 h-16 frost-strong rounded-full mx-auto mb-4">
+              <User className="w-8 h-8 text-ink" />
             </div>
             
             <h2 className="text-xl font-semibold mb-2">Welcome back!</h2>
@@ -43,7 +43,7 @@ export default function AuthPage() {
               <button
                 onClick={() => signOut()}
                 disabled={isSigningOut}
-                className="px-4 py-2 glass hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 glass glass-hover rounded-lg transition-colors disabled:opacity-50"
               >
                 {isSigningOut ? 'Signing out...' : 'Sign Out'}
               </button>
@@ -62,8 +62,8 @@ export default function AuthPage() {
         transition={{ duration: 0.4 }}
       >
         <GlassCard className="max-w-md text-center">
-          <div className="flex items-center justify-center w-16 h-16 bg-blue-500/20 rounded-full mx-auto mb-6">
-            <LogIn className="w-8 h-8 text-blue-400" />
+          <div className="flex items-center justify-center w-16 h-16 frost-card rounded-full mx-auto mb-6">
+            <LogIn className="w-8 h-8 text-ink" />
           </div>
           
           <h1 className="text-2xl font-bold mb-2">Welcome to Content Radar</h1>
