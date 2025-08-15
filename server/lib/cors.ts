@@ -24,6 +24,11 @@ const getAllowedOrigins = (): string[] => {
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
+    // In development, be more permissive to allow Vite dev server
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
     const allowedOrigins = getAllowedOrigins();
     
     // Allow requests with no origin (like mobile apps or curl requests)

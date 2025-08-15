@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '../hooks/useApi';
+import { ReactNode, useEffect, createContext, useContext, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { IS_MOCK_MODE } from "../services/http";
+import { useAuth } from "../hooks/useAuth";
 
-// Import auth hook
-import { useAuth } from '../hooks/useAuth';
-import { useTheme } from '../hooks/useTheme';
+const qc = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+});
 
 // Project Context
 interface ProjectContextType {
@@ -12,37 +13,18 @@ interface ProjectContextType {
   setCurrentProjectId: (id: string | null) => void;
 }
 
-const ProjectContext = createContext<ProjectContextType | null>(null);
+const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export function useProjectContext() {
   const context = useContext(ProjectContext);
-  if (!context) {
-    throw new Error('useProjectContext must be used within ProjectProvider');
+  if (context === undefined) {
+    throw new Error('useProjectContext must be used within a ProjectProvider');
   }
   return context;
 }
 
-function ProjectProvider({ children }: { children: React.ReactNode }) {
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem('currentProjectId');
-    } catch {
-      return null;
-    }
-  });
-
-  // Persist to localStorage
-  useEffect(() => {
-    try {
-      if (currentProjectId) {
-        localStorage.setItem('currentProjectId', currentProjectId);
-      } else {
-        localStorage.removeItem('currentProjectId');
-      }
-    } catch {
-      // Ignore localStorage errors
-    }
-  }, [currentProjectId]);
+function ProjectProvider({ children }: { children: ReactNode }) {
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   return (
     <ProjectContext.Provider value={{ currentProjectId, setCurrentProjectId }}>
@@ -51,64 +33,33 @@ function ProjectProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Auth Boundary
-function AuthBoundary({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="glass rounded-2xl p-8 text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-ink/70">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Temporarily bypass authentication for development
-  // if (!user && !window.location.pathname.includes('/login')) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-  //       <div className="glass rounded-2xl p-8 text-center max-w-md">
-  //         <h2 className="text-xl font-semibold mb-4">Authentication Required</h2>
-  //         <p className="text-ink/70 mb-6">
-  //           Please sign in to access Content Radar.
-  //         </p>
-  //         <a
-  //           href="/api/login"
-  //           className="inline-block px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
-  //         >
-  //           Sign In
-  //         </a>
-  //       </div>
-  //     );
-  //   }
-
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const el = document.documentElement;
+    const saved = localStorage.getItem("theme");
+    const theme = saved || "dark";
+    el.classList.remove("theme-dark", "theme-light");
+    el.classList.add(theme === "light" ? "theme-light" : "theme-dark");
+  }, []);
   return <>{children}</>;
 }
 
-// Theme Wrapper Component
-function ThemeWrapper({ children }: { children: React.ReactNode }) {
-  const { theme } = useTheme();
-  return (
-    <div data-theme={theme} className="ui-v2">
-      {children}
-    </div>
-  );
+export function AuthBoundary({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (IS_MOCK_MODE) return <>{children}</>;
+  if (loading) return <div className="p-6 text-ink">Loading…</div>;
+  if (!user) return <div className="p-6 text-ink">Please sign in.</div>;
+  return <>{children}</>;
 }
 
-// Main Providers
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthBoundary>
+    <QueryClientProvider client={qc}>
+      <ThemeProvider>
         <ProjectProvider>
-          <ThemeWrapper>
-            {children}
-          </ThemeWrapper>
+          <AuthBoundary>{children}</AuthBoundary>
         </ProjectProvider>
-      </AuthBoundary>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

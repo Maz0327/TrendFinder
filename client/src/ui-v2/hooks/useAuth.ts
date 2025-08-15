@@ -1,58 +1,32 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { IS_MOCK_MODE } from '../services/http';
-import { User } from '../types';
+import { useEffect, useState } from "react";
+import { IS_MOCK_MODE, api } from "../services/http";
 
-const mockUser: User = {
-  id: 'user-1',
-  email: 'strategist@example.com',
-  name: 'Alex Chen',
-  avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face',
-};
+export type AuthUser = { id: string; email?: string; name?: string; avatar_url?: string };
+
 export function useAuth() {
-  const queryClient = useQueryClient();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const { data: user, isLoading, error } = useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: async () => {
-      if (IS_MOCK_MODE) {
-        return mockUser;
-      }
-      // Real auth service call to our backend
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
       try {
-        const response = await fetch('/api/auth/user', { credentials: 'include' });
-        if (response.ok) {
-          const userData = await response.json();
-          return userData;
+        if (IS_MOCK_MODE) {
+          if (mounted) setUser({ id: "mock-user", email: "demo@local" });
+        } else {
+          const me = await api.request<AuthUser | null>("/auth/user");
+          if (mounted) setUser(me);
         }
-        return null;
-      } catch (error) {
-        console.error('Auth error:', error);
-        return null;
+      } catch {
+        if (IS_MOCK_MODE && mounted) setUser({ id: "mock-user", email: "demo@local" });
+      } finally {
+        if (mounted) setLoading(false);
       }
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  const signOutMutation = useMutation({
-    mutationFn: async () => {
-      if (!IS_MOCK_MODE) {
-        // Real sign out would go here
-      }
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(['auth', 'me'], null);
-      queryClient.clear();
-    },
-  });
-
-  return {
-    user,
-    isLoading,
-    error,
-    isAuthenticated: !!user,
-    signOut: signOutMutation.mutate,
-    isSigningOut: signOutMutation.isPending,
-    getSignInUrl: () => '/api/auth/google/start',
-  };
+  return { user, loading, isAuthenticated: !!user };
 }
