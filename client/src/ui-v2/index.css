@@ -19,15 +19,15 @@
 
 /* Component-level utilities */
 @layer components {
-  /* Frosted glass card */
+  /* Frosted glass card - enhanced for better readability */
   .glass {
-    @apply backdrop-blur-md rounded-2xl border shadow;
-    /* color with alpha: prefer slash opacity; fall back to rgb() if needed */
-    background-color: rgba(255,255,255,0.05);
-    border-color: rgba(255,255,255,0.10);
+    @apply backdrop-blur-xl rounded-2xl border shadow-xl;
+    background-color: rgba(15, 15, 20, 0.85);
+    border-color: rgba(255,255,255,0.15);
     box-shadow:
-      0 0 0 1px rgba(255,255,255,0.06) inset,
-      0 10px 30px rgba(0,0,0,0.35);
+      0 0 0 1px rgba(255,255,255,0.1) inset,
+      0 20px 40px rgba(0,0,0,0.5),
+      0 8px 16px rgba(0,0,0,0.3);
   }
 
   /* Common card container */
@@ -68,10 +68,22 @@
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
   }
 
-  /* Header glass effect */
+  /* Header glass effect - enhanced for better content blur */
   .glass-header {
-    @apply backdrop-blur-md border-b border-white/10;
-    background: rgba(15, 15, 20, 0.8);
+    @apply backdrop-blur-xl border-b border-white/20;
+    background: rgba(8, 8, 12, 0.9);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  /* Enhanced glass dropdown/popover */
+  .glass-popover {
+    @apply backdrop-blur-xl rounded-xl border shadow-2xl;
+    background: rgba(10, 10, 15, 0.9);
+    border-color: rgba(255,255,255,0.2);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.1) inset,
+      0 24px 48px rgba(0,0,0,0.6),
+      0 8px 24px rgba(0,0,0,0.4);
   }
 }
 

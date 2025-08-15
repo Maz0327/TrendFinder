@@ -115,7 +115,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               <Menu className="w-5 h-5 stroke-1" />
             </button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-full sm:max-w-[280px] bg-gray-900/95 backdrop-blur-xl border-white/10 p-0 md:hidden">
+          <SheetContent side="left" className="w-full sm:max-w-[280px] glass-popover p-0 md:hidden">
             <div className="flex flex-col h-full overflow-y-auto px-4">
               {/* Header */}
               <div className="flex items-center justify-between py-4 border-b border-white/10">
