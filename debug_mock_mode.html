@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><title>Mock Mode Debug</title></head>
+<body>
+<h1>Mock Mode Detection Test</h1>
+<script>
+const IS_MOCK_MODE = Boolean(false) || (typeof window !== "undefined" && (
+  window.location.hostname.includes("bolt") ||
+  window.location.hostname.includes("stackblitz") ||
+  window.location.hostname.includes("replit")
+));
+
+console.log('Current hostname:', window.location.hostname);
+console.log('IS_MOCK_MODE:', IS_MOCK_MODE);
+console.log('Includes replit?', window.location.hostname.includes("replit"));
+
+document.body.innerHTML += `
+<p>Current hostname: ${window.location.hostname}</p>
+<p>IS_MOCK_MODE: ${IS_MOCK_MODE}</p>
+<p>Includes replit: ${window.location.hostname.includes("replit")}</p>
+`;
+</script>
+</body>
+</html>
