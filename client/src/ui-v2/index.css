@@ -19,3 +19,27 @@
 .text-ink { color: rgb(var(--text)); }
 .text-muted-ink { color: rgb(var(--muted-text)); }
 .ring-brand { box-shadow: 0 0 0 1px rgba(var(--ring) / 0.25); }
+
+/* Glassmorphism components */
+.glass-header { 
+  background: rgba(var(--card), 0.8); 
+  backdrop-filter: blur(12px); 
+  border-bottom: 1px solid rgba(var(--text), 0.1); 
+}
+.frost-card { 
+  background: rgba(var(--card), 0.6); 
+  backdrop-filter: blur(8px); 
+  border: 1px solid rgba(var(--text), 0.1); 
+  border-radius: var(--radius); 
+}
+.frost-strong { 
+  background: rgba(var(--card), 0.9); 
+  backdrop-filter: blur(16px); 
+}
+.frost-subtle { 
+  background: rgba(var(--card), 0.4); 
+  backdrop-filter: blur(4px); 
+}
+.frost-hover:hover { 
+  background: rgba(var(--card), 0.8); 
+}

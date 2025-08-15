@@ -1,6 +1,6 @@
 import { BrowserRouter, useRoutes } from 'react-router-dom';
 import { Providers } from './providers';
-import { routes } from './routes';
+import { routes } from './routes.tsx';
 
 function AppRoutes() {
   return useRoutes(routes);

@@ -5,7 +5,7 @@ import { PageHeader } from './PageHeader';
 
 export function AppShell() {
   return (
-    <div className="ui-v2-app-bg min-h-screen text-ink transition-colors duration-300">
+    <div className="bg-app min-h-screen text-ink transition-colors duration-300">
       <AppHeader />
       <div className="flex">
         <SideNav />

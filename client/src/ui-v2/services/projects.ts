@@ -1,5 +1,5 @@
 import { api, IS_MOCK_MODE } from './http';
-import { Project } from '../types';
+import { Project } from '../types/dto';
 
 const mockProjects: Project[] = [
   {
@@ -24,7 +24,7 @@ export const projectsService = {
       await new Promise(resolve => setTimeout(resolve, 300));
       return mockProjects;
     }
-    return api.get<Project[]>('/projects');
+    return api.request<Project[]>('/projects');
   },
 
   async create(data: { name: string; description?: string }): Promise<Project> {
@@ -40,7 +40,10 @@ export const projectsService = {
       mockProjects.push(newProject);
       return newProject;
     }
-    return api.post<Project>('/projects', data);
+    return api.request<Project>('/projects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 
   async update(id: string, data: Partial<Project>): Promise<Project> {
@@ -53,7 +56,10 @@ export const projectsService = {
       }
       throw new Error('Project not found');
     }
-    return api.patch<Project>(`/projects/${id}`, data);
+    return api.request<Project>(`/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   },
 
   async delete(id: string): Promise<void> {
@@ -65,6 +71,6 @@ export const projectsService = {
       }
       return;
     }
-    await api.del(`/projects/${id}`);
+    await api.request(`/projects/${id}`, { method: 'DELETE' });
   },
 };

@@ -36,10 +36,18 @@ function ProjectProvider({ children }: { children: ReactNode }) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const el = document.documentElement;
+    const body = document.body;
     const saved = localStorage.getItem("theme");
     const theme = saved || "dark";
+    
     el.classList.remove("theme-dark", "theme-light");
     el.classList.add(theme === "light" ? "theme-light" : "theme-dark");
+    
+    // Ensure body has proper styling
+    body.classList.add("bg-app", "text-ink");
+    body.style.minHeight = "100vh";
+    body.style.margin = "0";
+    body.style.padding = "0";
   }, []);
   return <>{children}</>;
 }

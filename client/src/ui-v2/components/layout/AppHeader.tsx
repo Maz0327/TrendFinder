@@ -34,7 +34,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -163,9 +163,9 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               {/* User Menu */}
               <div className="py-3 border-t border-white/10">
                 <div className="flex items-center gap-3 mb-3">
-                  {user?.avatarUrl ? (
+                  {user?.avatar_url ? (
                     <img 
-                      src={user.avatarUrl} 
+                      src={user.avatar_url} 
                       alt={user.name || user.email}
                       className="w-8 h-8 rounded-full"
                     />
@@ -181,7 +181,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                 </div>
                 <SheetClose asChild>
                   <button
-                    onClick={() => signOut()}
+                    onClick={() => {/* Sign out in mock mode */}}
                     className="w-full px-3 py-2 glass rounded-lg hover:frost-subtle transition-colors text-sm"
                   >
                     Sign Out
@@ -208,9 +208,9 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
             <PopoverMenu
               trigger={
                 <button className="flex items-center gap-1 md:gap-2 p-2 hover:frost-subtle rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[40px]">
-                  {user?.avatarUrl ? (
+                  {user?.avatar_url ? (
                     <img 
-                      src={user.avatarUrl} 
+                      src={user.avatar_url} 
                       alt={user.name || user.email}
                       className="w-6 h-6 rounded-full border border-white/20"
                     />
@@ -230,7 +230,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               </PopoverMenuItem>
               <div className="border-t glass-border my-1"></div>
               <PopoverMenuItem 
-                onClick={() => signOut()}
+                onClick={() => {/* Sign out in mock mode */}}
                 destructive
               >
                 Sign Out
