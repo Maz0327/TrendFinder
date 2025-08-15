@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { AuthProvider } from '@/context/AuthContext';
 import { ProjectProvider } from '@/context/ProjectContext';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { AppLayout } from '@/components/layout/AppLayout';
 import RequireAuth from '@/components/auth/RequireAuth';
 import AuthDebug from '@/components/auth/AuthDebug';
@@ -30,7 +31,8 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="min-h-screen text-zinc-100" style={{ backgroundColor: '#070707' }}>
+        <ThemeProvider>
+          <div className="min-h-screen bg-background text-foreground">
           <Switch>
             {/* Public auth routes */}
             <Route path="/login" component={LoginPage} />
@@ -154,6 +156,7 @@ export default function App() {
           {/* Temporary debug component */}
           <AuthDebug />
         </div>
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

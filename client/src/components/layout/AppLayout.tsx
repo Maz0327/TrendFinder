@@ -1,6 +1,7 @@
 // client/src/components/layout/AppLayout.tsx
 import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const NavItem: React.FC<{ to: string; label: string; onClick?: () => void }> = ({ to, label, onClick }) => {
   const [location] = useLocation();
@@ -46,6 +47,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           <NavItem to="/brief-builder-v2" label="Brief Builder" />
           <NavItem to="/feeds" label="Feeds" />
           <NavItem to="/settings" label="Settings" />
+          <ThemeToggle />
         </nav>
       </header>
 
