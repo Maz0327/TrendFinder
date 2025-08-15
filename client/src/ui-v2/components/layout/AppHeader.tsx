@@ -16,6 +16,7 @@ import { ProjectSwitcher } from './ProjectSwitcher';
 import { PopoverMenu, PopoverMenuItem } from '../primitives/PopoverMenu';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
+import { ThemeToggle } from '../primitives/ThemeToggle';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Dashboard' },
@@ -115,7 +116,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               <Menu className="w-5 h-5 stroke-1" />
             </button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-full sm:max-w-[280px] glass-popover p-0 md:hidden">
+          <SheetContent side="left" className="w-full sm:max-w-[280px] frost-card frost-strong p-0 md:hidden">
             <div className="flex flex-col h-full overflow-y-auto px-4">
               {/* Header */}
               <div className="flex items-center justify-between py-4 border-b border-white/10">
@@ -200,6 +201,8 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
             <Bell className="w-4 h-4 stroke-1" />
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-gray-900"></span>
           </button>
+          
+          <ThemeToggle />
           
           <div className="hidden md:block">
             <PopoverMenu

@@ -1,0 +1,16 @@
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "../../hooks/useTheme";
+
+export function ThemeToggle({ className = "" }: { className?: string }) {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      className={`frost-card frost-hover px-3 py-2 flex items-center gap-2 ${className}`}
+      aria-label="Toggle theme"
+    >
+      {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+      <span className="text-sm">{theme === "dark" ? "Light" : "Dark"}</span>
+    </button>
+  );
+}

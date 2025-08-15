@@ -87,6 +87,83 @@
   }
 }
 
+/* === Frosted Glass Theme Tokens (Light + Dark) === */
+:root {
+  /* surfaces */
+  --surface: 255 255 255;         /* base card tint (light) */
+  --surface-2: 248 249 251;
+  --text: 17 24 28;               /* ink */
+  --muted-text: 98 106 115;
+
+  /* borders & shadows */
+  --glass-border: 0 0 0 / 0.08;
+  --glass-ring: 99 102 241 / 0.25;
+  --shadow-1: 0 10px 30px rgba(0,0,0,0.10);
+
+  /* accents */
+  --accent-1: 99 102 241;         /* indigo-ish */
+  --accent-2: 56 189 248;         /* sky-ish */
+
+  /* backgrounds */
+  --app-bg: 245 247 250;
+  --app-grad-a: 255 255 255 / 0.9;
+  --app-grad-b: 235 240 255 / 0.7;
+}
+
+:root[data-theme="dark"] {
+  --surface: 18 20 24;            /* base card tint (dark) */
+  --surface-2: 15 17 20;
+  --text: 234 236 239;
+  --muted-text: 147 153 165;
+
+  --glass-border: 255 255 255 / 0.10;
+  --glass-ring: 59 130 246 / 0.30;
+  --shadow-1: 0 18px 50px rgba(0,0,0,0.45);
+
+  --accent-1: 59 130 246;
+  --accent-2: 147 51 234;
+
+  --app-bg: 10 11 14;
+  --app-grad-a: 18 20 24 / 0.9;
+  --app-grad-b: 35 38 46 / 0.7;
+}
+
+/* App background (soft radial gradient + noise-ready layer) */
+.ui-v2-app-bg {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(var(--app-grad-b)) 0%, transparent 60%),
+    radial-gradient(800px 400px at -10% 10%, rgba(var(--app-grad-a)) 0%, transparent 70%),
+    rgb(var(--app-bg));
+}
+
+/* Glass utilities (no Tailwind @layer) */
+.frost-card {
+  background: rgba(var(--surface), 0.55);
+  backdrop-filter: saturate(140%) blur(16px);
+  -webkit-backdrop-filter: saturate(140%) blur(16px);
+  border: 1px solid color-mix(in oklab, rgb( var(--surface) ) 70%, rgba(var(--glass-border)));
+  box-shadow: var(--shadow-1);
+  border-radius: 16px;
+}
+
+.frost-strong { background: rgba(var(--surface), 0.70); }
+.frost-subtle { background: rgba(var(--surface), 0.40); }
+
+.frost-border { border: 1px solid rgba(var(--glass-border)); }
+.frost-ring   { outline: 2px solid rgba(var(--glass-ring)); outline-offset: 2px; }
+
+.frost-input {
+  background: rgba(var(--surface), 0.45);
+  border: 1px solid color-mix(in oklab, rgb( var(--surface) ) 70%, rgba(var(--glass-border)));
+  border-radius: 12px;
+}
+
+.text-ink { color: rgb(var(--text)); }
+.text-muted-ink { color: rgb(var(--muted-text)); }
+
+/* Subtle hover */
+.frost-hover:hover { background: rgba(var(--surface), 0.65); transition: background 160ms ease; }
+
 /* IMPORTANT:
    Do NOT declare @layer here.
    Do NOT define classes like .bg-background or .border-border here.

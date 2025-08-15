@@ -41,7 +41,7 @@ export function PopoverMenu({
         {isOpen && (
           <motion.div
             className={cn(
-              'absolute top-full mt-2 z-50 glass-popover p-2 min-w-[200px] md:min-w-56',
+              'absolute top-full mt-2 z-50 frost-card frost-strong p-2 min-w-[200px] md:min-w-56',
               align === 'right' && 'right-0',
               align === 'center' && 'left-1/2 -translate-x-1/2',
               align === 'left' && 'left-0',
