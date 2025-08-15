@@ -36,43 +36,34 @@ export function ProjectSwitcher() {
     <>
       <PopoverMenu
         trigger={
-          <button className="icon-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 glass rounded-lg hover:frost-subtle transition-colors touch-target min-w-0">
+          <button className="flex items-center gap-2 px-3 py-2 glass rounded-lg hover:frost-subtle transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[40px] min-w-0">
             <Folder className="w-4 h-4 stroke-1" />
-            <span className="text-xs md:text-sm font-medium truncate max-w-[80px] md:max-w-[120px]">
+            <span className="text-sm font-medium truncate max-w-[120px]">
               {currentProject?.name || 'Select Project'}
             </span>
-            <ChevronDown className="w-4 h-4 stroke-1 text-xs md:text-sm" />
+            <ChevronDown className="w-4 h-4 stroke-1 ml-auto" />
           </button>
         }
-        className="w-[280px] md:w-80"
       >
-        <div className="p-2 glass-border-b mb-2">
-          <div className="text-xs text-ink/50 uppercase tracking-wide mb-2">
-            Projects
-          </div>
-          {projects.map((project) => (
-            <PopoverMenuItem
-              key={project.id}
-              onClick={() => setCurrentProjectId(project.id)}
-              icon={
-                currentProject?.id === project.id ? (
-                  <div className="w-2 h-2 frost-strong rounded-full" />
-                ) : (
-                  <div className="w-2 h-2" />
-                )
-              }
-            >
-              <div>
-                <div className="font-medium">{project.name}</div>
-                {project.description && (
-                  <div className="text-xs text-ink/50 mt-1">
-                    {project.description}
-                  </div>
-                )}
-              </div>
-            </PopoverMenuItem>
-          ))}
-        </div>
+        {projects.map((project) => (
+          <PopoverMenuItem
+            key={project.id}
+            onClick={() => setCurrentProjectId(project.id)}
+            icon={
+              currentProject?.id === project.id ? (
+                <div className="w-2 h-2 bg-blue-500 rounded-full" />
+              ) : (
+                <Folder className="w-4 h-4" />
+              )
+            }
+          >
+            {project.name}
+          </PopoverMenuItem>
+        ))}
+        
+        {projects.length > 0 && (
+          <div className="border-t border-white/10 my-2"></div>
+        )}
         
         <PopoverMenuItem
           onClick={() => setShowCreateModal(true)}
