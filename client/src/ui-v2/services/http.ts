@@ -3,7 +3,8 @@ export const IS_MOCK_MODE =
   Boolean(import.meta.env.VITE_UIV2_MOCK) ||
   (typeof window !== "undefined" &&
     (window.location.hostname.includes("bolt") ||
-     window.location.hostname.includes("stackblitz")));
+     window.location.hostname.includes("stackblitz") ||
+     window.location.hostname.includes("replit")));
 
 export const api = {
   async request<T>(path: string, init: RequestInit = {}): Promise<T> {
