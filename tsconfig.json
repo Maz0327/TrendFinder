@@ -17,6 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./client/src/*"],
+      "@ui/*": ["./client/src/ui-v2/*"],
       "@shared/*": ["./shared/*"],
       "@shared/database.types": ["./shared/database.types.ts"]
     }

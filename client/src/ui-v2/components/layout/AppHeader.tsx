@@ -1,0 +1,241 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { NavLink, useLocation } from 'react-router-dom';
+import { Search, Bell, User, ChevronDown, Plus, Folder, Menu, X } from 'lucide-react';
+import { 
+  Home, 
+  Inbox, 
+  Radar, 
+  FileText, 
+  Rss, 
+  Settings,
+  FolderOpen
+} from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { ProjectSwitcher } from './ProjectSwitcher';
+import { PopoverMenu, PopoverMenuItem } from '../primitives/PopoverMenu';
+import { useAuth } from '../../hooks/useAuth';
+import { cn } from '../../lib/utils';
+
+const navItems = [
+  { to: '/', icon: Home, label: 'Dashboard' },
+  { to: '/captures', icon: Inbox, label: 'Captures' },
+  { to: '/moments', icon: Radar, label: 'Moments' },
+  { to: '/briefs', icon: FileText, label: 'Briefs' },
+  { to: '/feeds', icon: Rss, label: 'Feeds' },
+  { to: '/projects', icon: FolderOpen, label: 'Projects' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
+];
+
+interface AppHeaderProps {
+  title?: string;
+  breadcrumbs?: Array<{ label: string; href?: string }>;
+}
+
+export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
+  const { user, signOut } = useAuth();
+  const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <motion.header
+      className="glass-header sticky top-0 z-50 h-14 md:h-16 px-3 md:px-6 flex items-center justify-between gap-2 md:gap-4 min-w-0"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+          <h1 className="text-lg md:text-xl font-bold tracking-tight text-white truncate">Content Radar</h1>
+          <div className="hidden sm:block">
+            <ProjectSwitcher />
+          </div>
+        </div>
+        
+        {breadcrumbs && (
+          <nav className="hidden lg:flex items-center gap-2 text-sm text-white/70 min-w-0">
+            {breadcrumbs.map((crumb, index) => (
+              <div key={index} className="flex items-center gap-2">
+                {index > 0 && <span>/</span>}
+                {crumb.href ? (
+                  <a href={crumb.href} className="hover:text-white transition-colors truncate">
+                    {crumb.label}
+                  </a>
+                ) : (
+                  <span className="text-white truncate">{crumb.label}</span>
+                )}
+              </div>
+            ))}
+          </nav>
+        )}
+        
+        {title && !breadcrumbs && (
+          <h2 className="hidden lg:block text-sm font-medium text-white/80 truncate max-w-[200px]">{title}</h2>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.to || 
+              (item.to !== '/' && location.pathname.startsWith(item.to));
+            
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={cn(
+                  'relative icon-center gap-1.5 md:gap-2 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap touch-target flex-shrink-0',
+                  'hover:bg-white/10 hover:text-white transition-colors',
+                  isActive 
+                    ? 'text-white bg-white/10' 
+                    : 'text-white/70 hover:text-white'
+                )}
+              >
+                <item.icon className="icon-responsive text-sm md:text-base" />
+                <span className="hidden lg:block">{item.label}</span>
+                
+                {isActive && (
+                  <motion.div
+                    className="absolute inset-0 bg-blue-500/20 rounded-lg border border-blue-500/30"
+                    layoutId="activeNavItem"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* Mobile Burger Menu */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <button className="md:hidden icon-container rounded-lg hover:bg-white/10 transition-colors">
+              <Menu className="icon-responsive" />
+            </button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-full sm:max-w-[280px] bg-gray-900/95 backdrop-blur-xl border-white/10 p-0 md:hidden">
+            <div className="flex flex-col h-full overflow-y-auto px-4">
+              {/* Header */}
+              <div className="flex items-center justify-between py-4 border-b border-white/10">
+                <h2 className="text-lg font-semibold">Content Radar</h2>
+                <SheetClose asChild>
+                  <button className="icon-container-sm rounded-lg hover:bg-white/10 transition-colors">
+                    <X className="icon-responsive" />
+                  </button>
+                </SheetClose>
+              </div>
+
+              {/* Project Switcher */}
+              <div className="py-3 border-b border-white/10">
+                <ProjectSwitcher />
+              </div>
+
+              {/* Navigation */}
+              <nav className="flex-1 py-4 space-y-1">
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.to || 
+                    (item.to !== '/' && location.pathname.startsWith(item.to));
+                  
+                  return (
+                    <SheetClose key={item.to} asChild>
+                      <NavLink
+                        to={item.to}
+                       className={({ isActive: routerIsActive }) => cn(
+                         'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-sm',
+                         'hover:bg-white/10 hover:text-white touch-target',
+                         'text-left font-medium',
+                         routerIsActive 
+                           ? 'text-white bg-white/10 border border-blue-500/30' 
+                           : 'text-white/70'
+                       )}
+                      >
+                       <item.icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-medium text-sm">{item.label}</span>
+                      </NavLink>
+                    </SheetClose>
+                  );
+                })}
+              </nav>
+
+              {/* User Menu */}
+              <div className="py-3 border-t border-white/10">
+                <div className="flex items-center gap-3 mb-3">
+                  {user?.avatarUrl ? (
+                    <img 
+                      src={user.avatarUrl} 
+                      alt={user.name || user.email}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                      <User className="icon-responsive" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{user?.name || 'User'}</div>
+                    <div className="text-xs text-white/70 truncate">{user?.email}</div>
+                  </div>
+                </div>
+                <SheetClose asChild>
+                  <button
+                    onClick={() => signOut()}
+                    className="w-full px-3 py-2 glass rounded-lg hover:bg-white/10 transition-colors text-sm"
+                  >
+                    Sign Out
+                  </button>
+                </SheetClose>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+        
+        <div className="flex items-center gap-1 md:gap-2">
+          <button className="icon-container-sm md:icon-container hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+            <Search className="icon-responsive" />
+          </button>
+          
+          <button className="icon-container-sm md:icon-container hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 relative">
+            <Bell className="icon-responsive" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-gray-900"></span>
+          </button>
+          
+          <div className="hidden md:block">
+            <PopoverMenu
+              trigger={
+                <button className="flex items-center gap-1 md:gap-2 p-2 hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 touch-target">
+                  {user?.avatarUrl ? (
+                    <img 
+                      src={user.avatarUrl} 
+                      alt={user.name || user.email}
+                      className="w-6 h-6 rounded-full border border-white/20"
+                    />
+                  ) : (
+                    <User className="icon-responsive" />
+                  )}
+                  <span className="text-sm hidden xl:block truncate max-w-[120px] font-medium">{user?.name || user?.email}</span>
+                </button>
+              }
+              align="right"
+            >
+              <PopoverMenuItem icon={<User className="w-4 h-4" />}>
+                Profile
+              </PopoverMenuItem>
+              <PopoverMenuItem icon={<Settings className="w-4 h-4" />}>
+                Settings
+              </PopoverMenuItem>
+              <div className="border-t border-white/10 my-1"></div>
+              <PopoverMenuItem 
+                onClick={() => signOut()}
+                destructive
+              >
+                Sign Out
+              </PopoverMenuItem>
+            </PopoverMenu>
+          </div>
+        </div>
+      </div>
+    </motion.header>
+  );
+}

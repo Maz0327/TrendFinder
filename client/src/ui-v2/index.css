@@ -1,0 +1,15 @@
+@import './styles/tokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+.ui-v2 {
+  font-family: ui-sans-serif, -apple-system, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* IMPORTANT:
+   Do NOT declare @layer here.
+   Do NOT define classes like .bg-background or .border-border here.
+   Use Tailwind utilities in JSX (e.g., className="bg-background border-border") —
+   they are generated from the token mapping in tailwind.config + global index.css.
+*/

@@ -1,9 +1,11 @@
-import { createRoot } from "react-dom/client";
-import App from "./App";
-import "./index.css";
-import { errorLogger } from "./lib/errorLogger";
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import './ui-v2/index.css'
+import { UiV2App } from './ui-v2/app/UiV2App'
 
-// Initialize global error logging
-errorLogger;
-
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <UiV2App />
+  </React.StrictMode>
+)
