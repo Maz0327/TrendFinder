@@ -87,13 +87,13 @@ export function CanvasToolbar() {
       {/* Add Elements */}
       <Toolbar>
         <ToolbarButton onClick={handleAddTextBlock} title="Add Text">
-          <Type className="icon-responsive text-sm" />
+          <Type className="w-4 h-4 stroke-1" />
         </ToolbarButton>
         <ToolbarButton onClick={handleAddImageBlock} title="Add Image">
-          <Image className="icon-responsive text-sm" />
+          <Image className="w-4 h-4 stroke-1" />
         </ToolbarButton>
         <ToolbarButton onClick={handleAddNoteBlock} title="Add Note">
-          <StickyNote className="icon-responsive text-sm" />
+          <StickyNote className="w-4 h-4 stroke-1" />
         </ToolbarButton>
       </Toolbar>
 
@@ -101,23 +101,23 @@ export function CanvasToolbar() {
       {selectedBlockIds.length > 1 && (
         <Toolbar className="hidden lg:flex">
           <ToolbarButton title="Align Left">
-            <AlignLeft className="icon-responsive" />
+            <AlignLeft className="w-4 h-4 stroke-1" />
           </ToolbarButton>
           <ToolbarButton title="Align Center">
-            <AlignCenter className="icon-responsive" />
+            <AlignCenter className="w-4 h-4 stroke-1" />
           </ToolbarButton>
           <ToolbarButton title="Align Right">
-            <AlignRight className="icon-responsive" />
+            <AlignRight className="w-4 h-4 stroke-1" />
           </ToolbarButton>
           <div className="w-px h-6 bg-white/20 mx-1" />
           <ToolbarButton title="Align Top">
-            <AlignTop className="icon-responsive" />
+            <AlignTop className="w-4 h-4 stroke-1" />
           </ToolbarButton>
           <ToolbarButton title="Align Middle">
-            <AlignMiddle className="icon-responsive" />
+            <AlignMiddle className="w-4 h-4 stroke-1" />
           </ToolbarButton>
           <ToolbarButton title="Align Bottom">
-            <AlignBottom className="icon-responsive" />
+            <AlignBottom className="w-4 h-4 stroke-1" />
           </ToolbarButton>
         </Toolbar>
       )}
@@ -125,13 +125,13 @@ export function CanvasToolbar() {
       {/* View Controls */}
       <Toolbar>
         <ToolbarButton onClick={handleZoomOut} title="Zoom Out">
-          <ZoomOut className="icon-responsive text-sm" />
+          <ZoomOut className="w-4 h-4 stroke-1" />
         </ToolbarButton>
         <span className="text-xs px-1 md:px-2 min-w-[35px] md:min-w-[50px] text-center">
           {Math.round(zoom * 100)}%
         </span>
         <ToolbarButton onClick={handleZoomIn} title="Zoom In">
-          <ZoomIn className="icon-responsive text-sm" />
+          <ZoomIn className="w-4 h-4 stroke-1" />
         </ToolbarButton>
         <div className="w-px h-4 md:h-6 bg-white/20 mx-0.5 md:mx-1 hidden md:block" />
         <ToolbarButton 
@@ -139,7 +139,7 @@ export function CanvasToolbar() {
           active={showGrid}
           title="Grid"
         >
-          <Grid className="icon-responsive text-sm" />
+          <Grid className="w-4 h-4 stroke-1" />
         </ToolbarButton>
       </Toolbar>
 
@@ -150,14 +150,14 @@ export function CanvasToolbar() {
           disabled={!canUndo()}
           title="Undo"
         >
-          <Undo className="icon-responsive" />
+          <Undo className="w-4 h-4 stroke-1" />
         </ToolbarButton>
         <ToolbarButton 
           onClick={redo} 
           disabled={!canRedo()}
           title="Redo"
         >
-          <Redo className="icon-responsive" />
+          <Redo className="w-4 h-4 stroke-1" />
         </ToolbarButton>
       </Toolbar>
 
@@ -167,14 +167,14 @@ export function CanvasToolbar() {
           onClick={() => setShowAIModal(true)}
           title="AI"
         >
-          <Sparkles className="icon-responsive text-sm" />
+          <Sparkles className="w-4 h-4 stroke-1" />
         </ToolbarButton>
         <ToolbarButton 
           onClick={handleExport}
           disabled={isExporting}
           title="Export"
         >
-          <Download className="icon-responsive text-sm" />
+          <Download className="w-4 h-4 stroke-1" />
           {isExporting && (
             <motion.div
               className="absolute inset-0 bg-blue-500/20 rounded-lg"

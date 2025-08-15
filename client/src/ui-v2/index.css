@@ -45,6 +45,34 @@
 
   .text-subtle { color: hsl(var(--muted-foreground)); }
   .ring-acc   { box-shadow: 0 0 0 2px hsl(var(--ring)); }
+
+  /* Icon utilities for consistent sizing and appearance */
+  .icon-responsive {
+    @apply w-4 h-4 stroke-1;
+  }
+  
+  .icon-container {
+    @apply p-2 flex items-center justify-center;
+  }
+  
+  .icon-container-sm {
+    @apply p-1.5 flex items-center justify-center;
+  }
+  
+  .icon-center {
+    @apply flex items-center justify-center;
+  }
+
+  /* Touch targets for better mobile UX */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Header glass effect */
+  .glass-header {
+    @apply backdrop-blur-md border-b border-white/10;
+    background: rgba(15, 15, 20, 0.8);
+  }
 }
 
 /* IMPORTANT:

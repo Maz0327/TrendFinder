@@ -86,14 +86,14 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  'relative icon-center gap-1.5 md:gap-2 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap touch-target flex-shrink-0',
+                  'relative flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap min-h-[40px] flex-shrink-0',
                   'hover:bg-white/10 hover:text-white transition-colors',
                   isActive 
                     ? 'text-white bg-white/10' 
                     : 'text-white/70 hover:text-white'
                 )}
               >
-                <item.icon className="icon-responsive text-sm md:text-base" />
+                <item.icon className="w-4 h-4 stroke-1 flex-shrink-0" />
                 <span className="hidden lg:block">{item.label}</span>
                 
                 {isActive && (
@@ -111,8 +111,8 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
         {/* Mobile Burger Menu */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
-            <button className="md:hidden icon-container rounded-lg hover:bg-white/10 transition-colors">
-              <Menu className="icon-responsive" />
+            <button className="md:hidden p-2 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors min-h-[40px] min-w-[40px]">
+              <Menu className="w-5 h-5 stroke-1" />
             </button>
           </SheetTrigger>
           <SheetContent side="left" className="w-full sm:max-w-[280px] bg-gray-900/95 backdrop-blur-xl border-white/10 p-0 md:hidden">
@@ -121,8 +121,8 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               <div className="flex items-center justify-between py-4 border-b border-white/10">
                 <h2 className="text-lg font-semibold">Content Radar</h2>
                 <SheetClose asChild>
-                  <button className="icon-container-sm rounded-lg hover:bg-white/10 transition-colors">
-                    <X className="icon-responsive" />
+                  <button className="p-1.5 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors">
+                    <X className="w-4 h-4 stroke-1" />
                   </button>
                 </SheetClose>
               </div>
@@ -143,8 +143,8 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                       <NavLink
                         to={item.to}
                        className={({ isActive: routerIsActive }) => cn(
-                         'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-sm',
-                         'hover:bg-white/10 hover:text-white touch-target',
+                         'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-sm min-h-[44px]',
+                         'hover:bg-white/10 hover:text-white',
                          'text-left font-medium',
                          routerIsActive 
                            ? 'text-white bg-white/10 border border-blue-500/30' 
@@ -170,7 +170,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                     />
                   ) : (
                     <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
-                      <User className="icon-responsive" />
+                      <User className="w-4 h-4 stroke-1" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -192,19 +192,19 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
         </Sheet>
         
         <div className="flex items-center gap-1 md:gap-2">
-          <button className="icon-container-sm md:icon-container hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-            <Search className="icon-responsive" />
+          <button className="p-1.5 md:p-2 flex items-center justify-center hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[36px] min-w-[36px] md:min-h-[40px] md:min-w-[40px]">
+            <Search className="w-4 h-4 stroke-1" />
           </button>
           
-          <button className="icon-container-sm md:icon-container hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 relative">
-            <Bell className="icon-responsive" />
+          <button className="p-1.5 md:p-2 flex items-center justify-center hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 relative min-h-[36px] min-w-[36px] md:min-h-[40px] md:min-w-[40px]">
+            <Bell className="w-4 h-4 stroke-1" />
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-gray-900"></span>
           </button>
           
           <div className="hidden md:block">
             <PopoverMenu
               trigger={
-                <button className="flex items-center gap-1 md:gap-2 p-2 hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 touch-target">
+                <button className="flex items-center gap-1 md:gap-2 p-2 hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[40px]">
                   {user?.avatarUrl ? (
                     <img 
                       src={user.avatarUrl} 
@@ -212,7 +212,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                       className="w-6 h-6 rounded-full border border-white/20"
                     />
                   ) : (
-                    <User className="icon-responsive" />
+                    <User className="w-4 h-4 stroke-1" />
                   )}
                   <span className="text-sm hidden xl:block truncate max-w-[120px] font-medium">{user?.name || user?.email}</span>
                 </button>

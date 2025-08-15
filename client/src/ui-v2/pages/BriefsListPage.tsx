@@ -109,7 +109,7 @@ export default function BriefsListPage() {
                     : 'hover:bg-white/10'
                 }`}
               >
-                <Grid className="icon-responsive" />
+                <Grid className="w-4 h-4 stroke-1" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
@@ -119,7 +119,7 @@ export default function BriefsListPage() {
                     : 'hover:bg-white/10'
                 }`}
               >
-                <List className="icon-responsive" />
+                <List className="w-4 h-4 stroke-1" />
               </button>
             </div>
           </div>

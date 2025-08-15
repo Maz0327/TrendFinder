@@ -41,7 +41,7 @@ export function SearchInput({
   return (
     <div className={cn('relative', className)}>
       <div className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none icon-center">
-        <Search className="icon-responsive text-sm" />
+        <Search className="w-4 h-4 stroke-1" />
       </div>
       
       <input
@@ -57,7 +57,7 @@ export function SearchInput({
           onClick={handleClear}
           className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors icon-container-sm flex-shrink-0"
         >
-          <X className="icon-responsive text-sm" />
+          <X className="w-4 h-4 stroke-1" />
         </button>
       )}
     </div>

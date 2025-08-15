@@ -117,7 +117,7 @@ export default function DashboardPage() {
               <GlassCard>
                 <div className="flex items-center gap-2 md:gap-4 min-w-0">
                   <div className={`icon-container-sm md:icon-container rounded-xl ${stat.bgColor}`}>
-                    <stat.icon className={`icon-responsive text-lg md:text-xl ${stat.color}`} />
+                    <stat.icon className={`w-4 h-4 stroke-1 text-lg md:text-xl ${stat.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-lg md:text-2xl font-bold leading-tight">{stat.value}</div>
@@ -144,13 +144,13 @@ export default function DashboardPage() {
                 <GlassCard hover onClick={action.action}>
                   <div className="flex items-center gap-3 md:gap-4">
                     <div className={`icon-container-sm md:icon-container rounded-xl ${action.color}`}>
-                      <action.icon className="icon-responsive text-lg md:text-xl text-white" />
+                      <action.icon className="w-4 h-4 stroke-1 text-lg md:text-xl text-white" />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-sm md:text-base font-semibold leading-tight">{action.title}</h3>
                       <p className="text-xs md:text-sm text-white/70 leading-relaxed mt-1">{action.description}</p>
                     </div>
-                    <ArrowRight className="icon-responsive text-white/50 group-hover:text-white/80 transition-colors" />
+                    <ArrowRight className="w-4 h-4 stroke-1 text-white/50 group-hover:text-white/80 transition-colors" />
                   </div>
                 </GlassCard>
               </motion.div>
