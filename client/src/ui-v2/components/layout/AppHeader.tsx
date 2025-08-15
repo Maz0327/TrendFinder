@@ -176,7 +176,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{user?.name || 'User'}</div>
-                    <div className="text-xs text-white/70 truncate">{user?.email}</div>
+                    <div className="text-xs text-ink/70 truncate">{user?.email}</div>
                   </div>
                 </div>
                 <SheetClose asChild>

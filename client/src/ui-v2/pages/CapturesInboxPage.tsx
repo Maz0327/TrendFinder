@@ -194,7 +194,7 @@ export default function CapturesInboxPage() {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-white/50">
+                                  <div className="w-full h-full flex items-center justify-center text-ink/50">
                                     Video
                                   </div>
                                 )}
@@ -202,7 +202,7 @@ export default function CapturesInboxPage() {
                             )}
 
                             {/* Content */}
-                            <p className="text-xs md:text-sm text-white/70 line-clamp-2">
+                            <p className="text-xs md:text-sm text-ink/70 line-clamp-2">
                               {capture.content}
                             </p>
 
@@ -265,7 +265,7 @@ export default function CapturesInboxPage() {
                           <div className="flex items-center gap-4 min-w-0">
                             <div className="flex-1 min-w-0">
                               <h3 className="font-medium truncate leading-tight">{capture.title}</h3>
-                              <p className="text-sm text-white/70 line-clamp-1 mt-1 leading-relaxed">{capture.content}</p>
+                              <p className="text-sm text-ink/70 line-clamp-1 mt-1 leading-relaxed">{capture.content}</p>
                             </div>
                             
                             <div className="flex items-center gap-2 flex-shrink-0">
@@ -329,10 +329,10 @@ export default function CapturesInboxPage() {
         {captures.length === 0 && (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Tag className="w-8 h-8 text-white/50" />
+              <Tag className="w-8 h-8 text-ink/50" />
             </div>
             <h3 className="text-lg font-semibold mb-2">No captures found</h3>
-            <p className="text-white/70">
+            <p className="text-ink/70">
               {searchQuery || selectedTags.length > 0 || selectedPlatform
                 ? 'Try adjusting your filters to see more captures.'
                 : 'Start capturing content to see it here for triage.'}
@@ -383,7 +383,7 @@ export default function CapturesInboxPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/50">
+                          <div className="w-full h-full flex items-center justify-center text-ink/50">
                             Video Content
                           </div>
                         )}
@@ -392,7 +392,7 @@ export default function CapturesInboxPage() {
                     
                     <div>
                       <h3 className="font-semibold mb-2">Content</h3>
-                      <p className="text-white/80">{capture.content}</p>
+                      <p className="text-ink/80">{capture.content}</p>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">

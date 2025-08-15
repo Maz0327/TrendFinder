@@ -46,7 +46,7 @@ export function SlideList() {
           </button>
         </div>
         
-        <div className="text-xs text-white/50 hidden lg:block">
+        <div className="text-xs text-ink/50 hidden lg:block">
           {brief.slides.length} slide{brief.slides.length !== 1 ? 's' : ''}
         </div>
       </div>

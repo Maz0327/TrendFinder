@@ -68,7 +68,7 @@ export default function BriefsListPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">Strategic Briefs</h1>
-            <p className="text-white/70 mt-1 text-sm md:text-base leading-relaxed">
+            <p className="text-ink/70 mt-1 text-sm md:text-base leading-relaxed">
               Create and manage your strategic content briefs
             </p>
           </div>
@@ -176,7 +176,7 @@ export default function BriefsListPage() {
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 text-sm text-white/60">
+                    <div className="flex items-center gap-4 text-sm text-ink/60">
                       <span>{brief.slideCount} slides</span>
                       <span>•</span>
                       <span>Updated {new Date(brief.updatedAt).toLocaleDateString()}</span>
@@ -217,11 +217,11 @@ export default function BriefsListPage() {
                   className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-lg cursor-pointer group transition-colors"
                   onClick={() => navigate(`/briefs/${brief.id}`)}
                 >
-                  <FileText className="w-5 h-5 text-white/50" />
+                  <FileText className="w-5 h-5 text-ink/50" />
                   
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium truncate">{brief.title}</h3>
-                    <div className="text-sm text-white/60">
+                    <div className="text-sm text-ink/60">
                       {brief.slideCount} slides • Updated {new Date(brief.updatedAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -276,10 +276,10 @@ export default function BriefsListPage() {
         {briefs.length === 0 && (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-white/50" />
+              <FileText className="w-8 h-8 text-ink/50" />
             </div>
             <h3 className="text-lg font-semibold mb-2">No briefs yet</h3>
-            <p className="text-white/70 mb-6">
+            <p className="text-ink/70 mb-6">
               {searchQuery || selectedTags.length > 0
                 ? 'Try adjusting your filters to see more briefs.'
                 : 'Create your first strategic brief to get started.'}

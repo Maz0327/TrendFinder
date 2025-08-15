@@ -73,7 +73,7 @@ export default function MomentsRadarPage() {
     <div className="space-y-6">
       <div className="space-y-6">
         <h1 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">Moments Radar</h1>
-        <p className="text-white/70 mt-1 text-sm md:text-base leading-relaxed">
+        <p className="text-ink/70 mt-1 text-sm md:text-base leading-relaxed">
           Cultural moments will appear here as they are detected from your captures.
         </p>
 
@@ -192,7 +192,7 @@ export default function MomentsRadarPage() {
                   {/* Intensity Bar */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs md:text-sm">
-                      <span className="text-white/70">Intensity</span>
+                      <span className="text-ink/70">Intensity</span>
                       <span className="font-medium">{moment.intensity}%</span>
                     </div>
                     <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
@@ -206,13 +206,13 @@ export default function MomentsRadarPage() {
                   </div>
 
                   {/* Description */}
-                  <p className="text-xs md:text-sm text-white/70 line-clamp-2 md:line-clamp-3">
+                  <p className="text-xs md:text-sm text-ink/70 line-clamp-2 md:line-clamp-3">
                     {moment.description}
                   </p>
 
                   {/* Platforms */}
                   <div className="space-y-2">
-                    <div className="text-xs text-white/50 uppercase tracking-wide">
+                    <div className="text-xs text-ink/50 uppercase tracking-wide">
                       Platforms
                     </div>
                     <div className="flex flex-wrap gap-1 md:gap-2">
@@ -230,7 +230,7 @@ export default function MomentsRadarPage() {
                   {/* Tags */}
                   {moment.tags.length > 0 && (
                     <div className="space-y-2">
-                      <div className="text-xs text-white/50 uppercase tracking-wide">
+                      <div className="text-xs text-ink/50 uppercase tracking-wide">
                         Tags
                       </div>
                       <div className="flex flex-wrap gap-1 md:gap-2">
@@ -252,7 +252,7 @@ export default function MomentsRadarPage() {
                   )}
 
                   {/* Timestamp */}
-                  <div className="flex items-center gap-1 text-xs text-white/50 mt-auto">
+                  <div className="flex items-center gap-1 text-xs text-ink/50 mt-auto">
                     <Calendar className="w-3 h-3" />
                     {new Date(moment.createdAt).toLocaleDateString()}
                   </div>
@@ -266,10 +266,10 @@ export default function MomentsRadarPage() {
         {filteredMoments.length === 0 && (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <TrendingUp className="w-8 h-8 text-white/50" />
+              <TrendingUp className="w-8 h-8 text-ink/50" />
             </div>
             <h3 className="text-lg font-semibold mb-2">No moments found</h3>
-            <p className="text-white/70">
+            <p className="text-ink/70">
               Cultural moments will appear here as they are detected from your captures.
             </p>
           </div>

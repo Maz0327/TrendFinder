@@ -97,10 +97,10 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 className="text-xl md:text-2xl font-semibold mb-3 text-white">
+          <h1 className="text-xl md:text-2xl font-semibold mb-3 text-ink">
             Dashboard Overview
           </h1>
-          <p className="text-sm md:text-base text-white/70 max-w-2xl mx-auto px-4 leading-relaxed">
+          <p className="text-sm md:text-base text-ink/70 max-w-2xl mx-auto px-4 leading-relaxed">
             Monitor your content performance and track strategic insights across all projects.
           </p>
         </motion.div>
@@ -121,8 +121,8 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-lg md:text-2xl font-bold leading-tight">{stat.value}</div>
-                    <div className="text-xs md:text-sm text-white/80 truncate font-medium">{stat.label}</div>
-                    <div className="text-xs text-white/60 mt-1 hidden md:block leading-relaxed">{stat.change}</div>
+                    <div className="text-xs md:text-sm text-ink/80 truncate font-medium">{stat.label}</div>
+                    <div className="text-xs text-ink/60 mt-1 hidden md:block leading-relaxed">{stat.change}</div>
                   </div>
                 </div>
               </GlassCard>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div>
-          <h2 className="text-base md:text-lg font-semibold mb-4 md:mb-6 tracking-tight px-1 text-white/90">Quick Actions</h2>
+          <h2 className="text-base md:text-lg font-semibold mb-4 md:mb-6 tracking-tight px-1 text-ink/90">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {quickActions.map((action, index) => (
               <motion.div
@@ -144,13 +144,13 @@ export default function DashboardPage() {
                 <GlassCard hover onClick={action.action}>
                   <div className="flex items-center gap-3 md:gap-4">
                     <div className={`icon-container-sm md:icon-container rounded-xl ${action.color}`}>
-                      <action.icon className="w-4 h-4 stroke-1 text-lg md:text-xl text-white" />
+                      <action.icon className="w-4 h-4 stroke-1 text-lg md:text-xl text-ink" />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-sm md:text-base font-semibold leading-tight">{action.title}</h3>
-                      <p className="text-xs md:text-sm text-white/70 leading-relaxed mt-1">{action.description}</p>
+                      <p className="text-xs md:text-sm text-ink/70 leading-relaxed mt-1">{action.description}</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 stroke-1 text-white/50 group-hover:text-white/80 transition-colors" />
+                    <ArrowRight className="w-4 h-4 stroke-1 text-ink/50 group-hover:text-ink/80 transition-colors" />
                   </div>
                 </GlassCard>
               </motion.div>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
         {recentBriefs.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-base md:text-lg font-semibold tracking-tight px-1 text-white/90">Recent Briefs</h2>
+              <h2 className="text-base md:text-lg font-semibold tracking-tight px-1 text-ink/90">Recent Briefs</h2>
               <button
                 onClick={() => navigate('/briefs')}
                 className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-all duration-200 hover:underline"
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       
-                      <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-white/70 leading-relaxed">
+                      <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-ink/70 leading-relaxed">
                         <span>{brief.slideCount} slides</span>
                         <span>•</span>
                         <span>{new Date(brief.updatedAt).toLocaleDateString()}</span>

@@ -186,7 +186,7 @@ export function CanvasToolbar() {
       </Toolbar>
 
       {/* Keyboard shortcuts hint */}
-      <div className="hidden 2xl:flex items-center gap-3 text-xs text-white/50">
+      <div className="hidden 2xl:flex items-center gap-3 text-xs text-ink/50">
         <ShortcutHint keys={['⌘', 'S']} />
         <span>Save</span>
         <ShortcutHint keys={['G']} />

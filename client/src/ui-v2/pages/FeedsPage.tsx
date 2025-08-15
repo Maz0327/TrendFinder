@@ -80,7 +80,7 @@ export default function FeedsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">Content Feeds</h1>
-            <p className="text-white/70 mt-1 text-sm md:text-base leading-relaxed">
+            <p className="text-ink/70 mt-1 text-sm md:text-base leading-relaxed">
               Manage RSS feeds and content sources for automated capture
             </p>
           </div>
@@ -107,7 +107,7 @@ export default function FeedsPage() {
                   className="p-3 glass rounded-lg hover:bg-white/10 hover:scale-[1.02] transition-all duration-200 text-left touch-target"
                 >
                   <div className="font-medium text-sm">{feed.title}</div>
-                  <div className="text-xs text-white/50 truncate mt-1">
+                  <div className="text-xs text-ink/50 truncate mt-1">
                     {new URL(feed.url).hostname}
                   </div>
                 </button>
@@ -125,10 +125,10 @@ export default function FeedsPage() {
           ) : feeds.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Rss className="w-8 h-8 text-white/50" />
+                <Rss className="w-8 h-8 text-ink/50" />
               </div>
               <h3 className="text-lg font-semibold mb-2">No feeds configured</h3>
-              <p className="text-white/70 mb-6">
+              <p className="text-ink/70 mb-6">
                 Add RSS feeds to automatically capture content for analysis.
               </p>
               <button
@@ -161,16 +161,16 @@ export default function FeedsPage() {
                         <h3 className="text-sm md:text-base font-medium truncate">
                           {feed.title || new URL(feed.feedUrl).hostname}
                         </h3>
-                        <p className="text-sm text-white/70 truncate mt-1">
+                        <p className="text-sm text-ink/70 truncate mt-1">
                           {feed.feedUrl}
                         </p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-white/50">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-ink/50">
                           <span className="hidden md:inline">Added {new Date(feed.createdAt).toLocaleDateString()}</span>
                           <a
                             href={feed.feedUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 hover:text-white/80 transition-colors touch-target"
+                            className="flex items-center gap-1 hover:text-ink/80 transition-colors touch-target"
                           >
                             <ExternalLink className="w-3 h-3" />
                             <span className="hidden md:inline">View Feed</span>

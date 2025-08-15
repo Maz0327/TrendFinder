@@ -114,7 +114,7 @@
   --app-grad-d: 59 130 246 / 0.15;   /* much stronger blue */
 }
 
-.ui-v2[data-theme="dark"] {
+:root[data-theme="dark"] {
   --surface: 30 41 59;            /* slightly lighter for better text contrast */
   --surface-2: 15 23 42;
   --text: 248 250 252;            /* high contrast white */
@@ -199,21 +199,3 @@
    Use Tailwind utilities in JSX (e.g., className="bg-background border-border") —
    they are generated from the token mapping in tailwind.config + global index.css.
 */
-/* Default token base (used if data-theme not set yet) */
-.ui-v2 {
-  --text: 15 23 42;
-  --muted-text: 71 85 105;
-  --surface: 255 255 255;
-  --surface-2: 248 249 251;
-  --glass-border: 255 255 255 / 0.03;
-  --glass-ring: 139 92 246 / 0.15;
-  --shadow-1: 0 8px 32px rgba(139, 92, 246, 0.06);
-  --accent-1: 139 92 246;
-  --accent-2: 236 72 153;
-  --accent-3: 34 197 94;
-  --app-bg: 255 255 255;
-  --app-grad-a: 139 92 246 / 0.25;
-  --app-grad-b: 236 72 153 / 0.20;
-  --app-grad-c: 34 197 94 / 0.18;
-  --app-grad-d: 59 130 246 / 0.15;
-}

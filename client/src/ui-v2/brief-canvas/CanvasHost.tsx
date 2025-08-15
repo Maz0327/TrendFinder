@@ -53,7 +53,7 @@ export function CanvasHost() {
       <div className="h-screen flex items-center justify-center">
         <div className="glass rounded-2xl p-8 text-center">
           <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-white/70">Loading brief...</p>
+          <p className="text-ink/70">Loading brief...</p>
         </div>
       </div>
     );
@@ -65,7 +65,7 @@ export function CanvasHost() {
         <div className="glass rounded-2xl p-8 text-center">
           <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Brief Not Found</h2>
-          <p className="text-white/70">The brief you're looking for doesn't exist.</p>
+          <p className="text-ink/70">The brief you're looking for doesn't exist.</p>
         </div>
       </div>
     );
@@ -77,7 +77,7 @@ export function CanvasHost() {
       <div className="glass-header h-14 md:h-16 px-3 md:px-6 flex items-center justify-between border-b border-white/10 gap-2">
         <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
           <h1 className="text-sm md:text-lg font-semibold truncate max-w-[150px] md:max-w-none">{brief.title}</h1>
-          <div className="hidden md:flex items-center gap-2 text-sm text-white/60">
+          <div className="hidden md:flex items-center gap-2 text-sm text-ink/60">
             <Clock className="w-4 h-4" />
             {isDirty ? (
               <span>Unsaved changes</span>
@@ -111,7 +111,7 @@ export function CanvasHost() {
           <div className="p-3 md:p-4 border-b border-white/10">
             <h3 className="font-medium mb-4">Properties</h3>
             {/* Properties content will be added here */}
-            <div className="text-sm text-white/50">
+            <div className="text-sm text-ink/50">
               Select a block to edit properties
             </div>
           </div>
@@ -138,7 +138,7 @@ export function CanvasHost() {
                 <h3 className="text-lg font-semibold">Restore Draft?</h3>
               </div>
               
-              <p className="text-white/70 mb-6">
+              <p className="text-ink/70 mb-6">
                 We found a more recent draft of this brief saved locally. 
                 Would you like to restore it?
               </p>

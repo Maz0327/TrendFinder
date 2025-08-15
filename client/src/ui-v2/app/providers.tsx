@@ -4,6 +4,7 @@ import { queryClient } from '../hooks/useApi';
 
 // Import auth hook
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 
 // Project Context
 interface ProjectContextType {
@@ -63,7 +64,7 @@ function AuthBoundary({ children }: { children: React.ReactNode }) {
   //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
   //       <div className="glass rounded-2xl p-8 text-center">
   //         <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-  //         <p className="text-white/70">Loading...</p>
+  //         <p className="text-ink/70">Loading...</p>
   //       </div>
   //     );
   //   }
@@ -73,7 +74,7 @@ function AuthBoundary({ children }: { children: React.ReactNode }) {
   //       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
   //         <div className="glass rounded-2xl p-8 text-center max-w-md">
   //           <h2 className="text-xl font-semibold mb-4">Authentication Required</h2>
-  //           <p className="text-white/70 mb-6">
+  //           <p className="text-ink/70 mb-6">
   //             Please sign in to access Content Radar.
   //           </p>
   //           <a
@@ -88,15 +89,25 @@ function AuthBoundary({ children }: { children: React.ReactNode }) {
   //   }
 }
 
+// Theme Wrapper Component
+function ThemeWrapper({ children }: { children: React.ReactNode }) {
+  const { theme } = useTheme();
+  return (
+    <div data-theme={theme} className="ui-v2">
+      {children}
+    </div>
+  );
+}
+
 // Main Providers
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthBoundary>
         <ProjectProvider>
-          <div className="ui-v2">
+          <ThemeWrapper>
             {children}
-          </div>
+          </ThemeWrapper>
         </ProjectProvider>
       </AuthBoundary>
     </QueryClientProvider>

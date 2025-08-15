@@ -29,7 +29,7 @@ export default function AuthPage() {
             </div>
             
             <h2 className="text-xl font-semibold mb-2">Welcome back!</h2>
-            <p className="text-white/70 mb-6">
+            <p className="text-ink/70 mb-6">
               Signed in as {user.name || user.email}
             </p>
             
@@ -67,7 +67,7 @@ export default function AuthPage() {
           </div>
           
           <h1 className="text-2xl font-bold mb-2">Welcome to Content Radar</h1>
-          <p className="text-white/70 mb-8">
+          <p className="text-ink/70 mb-8">
             Transform your content captures into strategic insights and compelling briefs.
           </p>
           
@@ -84,7 +84,7 @@ export default function AuthPage() {
             Sign in with Google
           </a>
           
-          <p className="text-xs text-white/50 mt-6">
+          <p className="text-xs text-ink/50 mt-6">
             By signing in, you agree to our Terms of Service and Privacy Policy.
           </p>
         </GlassCard>

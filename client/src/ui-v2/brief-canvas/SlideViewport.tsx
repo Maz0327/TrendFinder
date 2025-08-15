@@ -96,7 +96,7 @@ export function SlideViewport() {
   if (!currentSlide) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-white/50">No slide selected</div>
+        <div className="text-ink/50">No slide selected</div>
       </div>
     );
   }

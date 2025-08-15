@@ -48,7 +48,7 @@ export default function SettingsPage() {
               )}
               <div>
                 <h3 className="text-lg font-semibold">{user?.name || 'User'}</h3>
-                <p className="text-white/70">{user?.email}</p>
+                <p className="text-ink/70">{user?.email}</p>
               </div>
             </div>
             
@@ -71,7 +71,7 @@ export default function SettingsPage() {
                   disabled
                   className="w-full px-3 py-2 glass rounded-lg bg-transparent outline-none opacity-50 cursor-not-allowed"
                 />
-                <p className="text-xs text-white/50 mt-1">Email cannot be changed</p>
+                <p className="text-xs text-ink/50 mt-1">Email cannot be changed</p>
               </div>
               
               <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors">
@@ -86,7 +86,7 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">API Tokens</h3>
-              <p className="text-white/70 text-sm">
+              <p className="text-ink/70 text-sm">
                 Manage API tokens for browser extensions and integrations.
               </p>
             </div>
@@ -95,7 +95,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between p-4 glass rounded-lg">
                 <div>
                   <div className="font-medium">Chrome Extension</div>
-                  <div className="text-sm text-white/70">Created Jan 15, 2024</div>
+                  <div className="text-sm text-ink/70">Created Jan 15, 2024</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <code className="px-2 py-1 bg-white/10 rounded text-xs font-mono">
@@ -119,7 +119,7 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Theme</h3>
-              <p className="text-white/70 text-sm mb-4">
+              <p className="text-ink/70 text-sm mb-4">
                 Customize the appearance of Content Radar.
               </p>
               
@@ -156,7 +156,7 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Keyboard Shortcuts</h3>
-              <p className="text-white/70 text-sm">
+              <p className="text-ink/70 text-sm">
                 Learn the keyboard shortcuts to work more efficiently.
               </p>
             </div>
@@ -172,7 +172,7 @@ export default function SettingsPage() {
                           {key}
                         </kbd>
                         {keyIndex < shortcut.keys.length - 1 && (
-                          <span className="text-xs text-white/50">+</span>
+                          <span className="text-xs text-ink/50">+</span>
                         )}
                       </span>
                     ))}
@@ -188,7 +188,7 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Notification Preferences</h3>
-              <p className="text-white/70 text-sm">
+              <p className="text-ink/70 text-sm">
                 Choose what notifications you'd like to receive.
               </p>
             </div>
@@ -204,7 +204,7 @@ export default function SettingsPage() {
                   <input type="checkbox" defaultChecked className="mt-1 text-blue-500" />
                   <div>
                     <div className="font-medium">{item.title}</div>
-                    <div className="text-sm text-white/70">{item.description}</div>
+                    <div className="text-sm text-ink/70">{item.description}</div>
                   </div>
                 </label>
               ))}
@@ -217,7 +217,7 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Privacy & Data</h3>
-              <p className="text-white/70 text-sm">
+              <p className="text-ink/70 text-sm">
                 Control how your data is used and stored.
               </p>
             </div>
@@ -225,7 +225,7 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div className="p-4 glass rounded-lg">
                 <h4 className="font-medium mb-2">Data Export</h4>
-                <p className="text-sm text-white/70 mb-3">
+                <p className="text-sm text-ink/70 mb-3">
                   Download all your data including projects, captures, and briefs.
                 </p>
                 <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors">
@@ -235,7 +235,7 @@ export default function SettingsPage() {
               
               <div className="p-4 glass rounded-lg border border-red-500/20">
                 <h4 className="font-medium mb-2 text-red-400">Delete Account</h4>
-                <p className="text-sm text-white/70 mb-3">
+                <p className="text-sm text-ink/70 mb-3">
                   Permanently delete your account and all associated data. This action cannot be undone.
                 </p>
                 <button className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors">

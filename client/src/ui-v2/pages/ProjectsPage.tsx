@@ -64,7 +64,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">Projects</h1>
-            <p className="text-white/70 mt-1 text-sm md:text-base leading-relaxed">
+            <p className="text-ink/70 mt-1 text-sm md:text-base leading-relaxed">
               Organize your content analysis and strategic work
             </p>
           </div>
@@ -96,7 +96,7 @@ export default function ProjectsPage() {
                   <div className={`p-3 rounded-xl ${
                     currentProjectId === project.id 
                       ? 'bg-blue-500/20 text-blue-400' 
-                      : 'bg-white/10 text-white/70'
+                      : 'bg-white/10 text-ink/70'
                   }`}>
                     <Folder className="w-6 h-6" />
                   </div>
@@ -104,11 +104,11 @@ export default function ProjectsPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{project.name}</h3>
                     {project.description && (
-                      <p className="text-sm text-white/70 mt-1 line-clamp-2">
+                      <p className="text-sm text-ink/70 mt-1 line-clamp-2">
                         {project.description}
                       </p>
                     )}
-                    <div className="text-xs text-white/50 mt-2">
+                    <div className="text-xs text-ink/50 mt-2">
                       Created {new Date(project.createdAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -163,9 +163,9 @@ export default function ProjectsPage() {
 
         {projects.length === 0 && (
           <div className="text-center py-12">
-            <Folder className="w-16 h-16 text-white/30 mx-auto mb-4" />
+            <Folder className="w-16 h-16 text-ink/30 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-            <p className="text-white/70 mb-6">
+            <p className="text-ink/70 mb-6">
               Create your first project to start organizing your content analysis.
             </p>
             <button

@@ -36,7 +36,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
             ease: 'easeInOut'
           }}
         >
-          <Icon className="w-12 h-12 text-white/60" />
+          <Icon className="w-12 h-12 text-ink/60" />
         </motion.div>
       </motion.div>
       
@@ -46,7 +46,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
         transition={{ duration: 0.4, delay: 0.3 }}
       >
         <h3 className="text-xl font-bold mb-3 tracking-tight">{title}</h3>
-        <p className="text-white/70 mb-8 max-w-md mx-auto leading-relaxed">{description}</p>
+        <p className="text-ink/70 mb-8 max-w-md mx-auto leading-relaxed">{description}</p>
       </motion.div>
       
       {action && (

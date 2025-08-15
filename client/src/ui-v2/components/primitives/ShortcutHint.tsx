@@ -13,7 +13,7 @@ export function ShortcutHint({ keys, className }: ShortcutHintProps) {
           <kbd className="px-1.5 py-0.5 text-xs font-mono bg-white/10 rounded border border-white/20">
             {key}
           </kbd>
-          {index < keys.length - 1 && <span className="text-xs text-white/50">+</span>}
+          {index < keys.length - 1 && <span className="text-xs text-ink/50">+</span>}
         </span>
       ))}
     </div>

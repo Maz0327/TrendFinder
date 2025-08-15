@@ -47,7 +47,7 @@ export function ProjectSwitcher() {
         className="w-[280px] md:w-80"
       >
         <div className="p-2 border-b border-white/10 mb-2">
-          <div className="text-xs text-white/50 uppercase tracking-wide mb-2">
+          <div className="text-xs text-ink/50 uppercase tracking-wide mb-2">
             Projects
           </div>
           {projects.map((project) => (
@@ -65,7 +65,7 @@ export function ProjectSwitcher() {
               <div>
                 <div className="font-medium">{project.name}</div>
                 {project.description && (
-                  <div className="text-xs text-white/50 mt-1">
+                  <div className="text-xs text-ink/50 mt-1">
                     {project.description}
                   </div>
                 )}

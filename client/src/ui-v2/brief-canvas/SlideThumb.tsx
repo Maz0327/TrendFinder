@@ -65,16 +65,16 @@ export function SlideThumb({
       {/* Slide Info */}
       <div className="px-1 md:px-2 lg:px-3 pb-1 md:pb-2 lg:pb-3 hidden lg:block">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-white/70">
+          <span className="text-xs font-medium text-ink/70">
             {index + 1}
           </span>
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-ink/50">
             {slide.blocks.length} blocks
           </span>
         </div>
         
         {slide.title && (
-          <div className="text-xs text-white/80 mt-1 truncate">
+          <div className="text-xs text-ink/80 mt-1 truncate">
             {slide.title}
           </div>
         )}

@@ -62,7 +62,7 @@ export function BlockImage({ block }: BlockImageProps) {
       {/* Provenance indicator */}
       {block.sourceCaptureId && (
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+          <div className="bg-black/70 text-ink text-xs px-2 py-1 rounded flex items-center gap-1">
             <ExternalLink className="w-3 h-3" />
             Source
           </div>
