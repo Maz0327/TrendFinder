@@ -26,6 +26,14 @@ const app = express();
 // Trust proxy for Replit deployment
 app.set('trust proxy', 1);
 
+// Security headers
+import { securityMiddleware } from './lib/security';
+app.use(securityMiddleware);
+
+// Enhanced CORS with environment-driven origins
+import { corsMiddleware } from './lib/cors';
+app.use(corsMiddleware);
+
 // Logging and monitoring middleware
 app.use(requestLogger);
 app.use(productionMonitor.trackApiRequest);
@@ -34,7 +42,18 @@ app.use(productionMonitor.trackApiRequest);
 app.use(requestTimeout()); // 30s timeout
 app.use(requestSizeLimit); // Request size validation
 app.use(validateContentType(['application/json', 'application/x-www-form-urlencoded']));
-app.use('/api/', apiRateLimit); // Rate limiting for API routes
+
+// Enhanced rate limiting
+import { publicLimiter, heavyLimiter, authLimiter } from './middleware/rateLimit';
+app.use('/api/', publicLimiter); // Apply to all API routes
+app.use('/api/auth/', authLimiter); // Stricter for auth routes
+app.use('/api/analysis/', heavyLimiter); // Stricter for heavy operations
+app.use('/api/captures/upload', heavyLimiter); // Upload rate limiting
+
+// Body size limits
+const JSON_LIMIT = process.env.JSON_LIMIT || '1mb';
+app.use(express.json({ limit: JSON_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: JSON_LIMIT }));
 
 // Enhanced CORS configuration for Replit/Bolt origins
 import cors from 'cors';
@@ -278,6 +297,13 @@ app.use((req, res, next) => {
   const DATABASE_URL = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
   console.log("🔗 Database URL source:", process.env.SUPABASE_DATABASE_URL ? "Supabase" : "Neon");
   
+  // Health and documentation endpoints (Block 10)
+  const { healthzEndpoint, readyzEndpoint } = await import('./lib/health');
+  const docsRouter = (await import('./routes/docs')).default;
+  app.get('/healthz', healthzEndpoint);
+  app.get('/readyz', readyzEndpoint);
+  app.use('/api', docsRouter);
+  
   const server = await registerRoutes(app);
 
   // Start Moments Aggregator Worker (Task Block 8A)
@@ -296,9 +322,14 @@ app.use((req, res, next) => {
   // Global error handling middleware - MUST be after Vite setup
   app.use(errorLogger);
   app.use(globalErrorHandler);
+  
+  // Add global error handler from Block 10
+  const { globalErrorHandler: block10ErrorHandler, notFoundHandler: block10NotFoundHandler } = await import('./middleware/globalError');
+  app.use(block10ErrorHandler);
 
   // 404 handler for unmatched routes - LAST middleware
   app.use(notFoundHandler);
+  app.use(block10NotFoundHandler);
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
