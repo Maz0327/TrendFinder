@@ -21,7 +21,7 @@ import CapturesInbox from '@/pages/captures-inbox';
 import MomentsRadar from '@/pages/moments-radar';
 import BriefBuilderV2 from '@/pages/brief-builder-v2';
 import FeedsPage from '@/pages/feeds';
-import { Settings } from '@/pages/Settings';
+import Settings from '@/pages/Settings';
 import Integrations from '@/pages/integrations';
 
 // Keep existing pages accessible

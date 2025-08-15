@@ -109,6 +109,17 @@ export interface IStorage {
   updateAnnotation(id: string, updates: Partial<InsertAnnotation>): Promise<Annotation>;
   deleteAnnotation(id: string): Promise<void>;
   
+  // Extension Management
+  createPairingCode(data: { code: string; userId: string; projectId?: string | null; deviceLabel?: string | null; expiresAt: Date }): Promise<void>;
+  validatePairingCode(code: string): Promise<{ user_id: string; project_id?: string | null; device_label?: string | null } | null>;
+  markPairingCodeUsed(code: string, deviceId: string): Promise<void>;
+  createExtensionDevice(data: { userId: string; projectId?: string | null; label?: string | null; lastSeenAt: Date }): Promise<{ id: string }>;
+  getExtensionDevice(deviceId: string): Promise<{ user_id: string; revoked_at?: Date | null } | null>;
+  listExtensionDevices(userId: string): Promise<any[]>;
+  updateDeviceHeartbeat(deviceId: string): Promise<void>;
+  updateDeviceLabel(deviceId: string, label: string): Promise<void>;
+  revokeDevice(deviceId: string): Promise<void>;
+  
   // Analytics Data Management
   getAnalyticsData(filter: {
     userId?: string;
@@ -3722,6 +3733,78 @@ export class DatabaseStorage implements IStorage {
       'UPDATE jobs SET status = $1, error = $2 WHERE id = $3',
       ['queued', errMsg || null, id]
     );
+  }
+
+  // Extension Management Implementation
+  async createPairingCode(data: { code: string; userId: string; projectId?: string | null; deviceLabel?: string | null; expiresAt: Date }): Promise<void> {
+    await this.client.query(`
+      INSERT INTO extension_pairing_codes (code, user_id, project_id, device_label, expires_at)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [data.code, data.userId, data.projectId, data.deviceLabel, data.expiresAt]);
+  }
+
+  async validatePairingCode(code: string): Promise<{ user_id: string; project_id?: string | null; device_label?: string | null } | null> {
+    const result = await this.client.query(`
+      SELECT * FROM extension_pairing_codes 
+      WHERE code = $1 AND used_at IS NULL AND expires_at > NOW()
+    `, [code]);
+    return result.rows[0] || null;
+  }
+
+  async markPairingCodeUsed(code: string, deviceId: string): Promise<void> {
+    await this.client.query(`
+      UPDATE extension_pairing_codes 
+      SET used_at = NOW(), device_id = $2 
+      WHERE code = $1
+    `, [code, deviceId]);
+  }
+
+  async createExtensionDevice(data: { userId: string; projectId?: string | null; label?: string | null; lastSeenAt: Date }): Promise<{ id: string }> {
+    const result = await this.client.query(`
+      INSERT INTO extension_devices (user_id, project_id, label, last_seen_at)
+      VALUES ($1, $2, $3, $4) RETURNING id
+    `, [data.userId, data.projectId, data.label, data.lastSeenAt]);
+    return result.rows[0];
+  }
+
+  async getExtensionDevice(deviceId: string): Promise<{ user_id: string; revoked_at?: Date | null } | null> {
+    const result = await this.client.query(`
+      SELECT * FROM extension_devices WHERE id = $1
+    `, [deviceId]);
+    return result.rows[0] || null;
+  }
+
+  async listExtensionDevices(userId: string): Promise<any[]> {
+    const result = await this.client.query(`
+      SELECT * FROM extension_devices 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC
+    `, [userId]);
+    return result.rows;
+  }
+
+  async updateDeviceHeartbeat(deviceId: string): Promise<void> {
+    await this.client.query(`
+      UPDATE extension_devices 
+      SET last_seen_at = NOW() 
+      WHERE id = $1
+    `, [deviceId]);
+  }
+
+  async updateDeviceLabel(deviceId: string, label: string): Promise<void> {
+    await this.client.query(`
+      UPDATE extension_devices 
+      SET label = $2 
+      WHERE id = $1
+    `, [deviceId, label]);
+  }
+
+  async revokeDevice(deviceId: string): Promise<void> {
+    await this.client.query(`
+      UPDATE extension_devices 
+      SET revoked_at = NOW() 
+      WHERE id = $1
+    `, [deviceId]);
   }
 }
 

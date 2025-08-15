@@ -38,6 +38,17 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  // Get current authenticated user (alternative endpoint for frontend compatibility)
+  app.get('/api/auth/user', async (req: Request, res: Response) => {
+    try {
+      const user = getUserFromRequest(req);
+      res.json(user);
+    } catch (error) {
+      console.error('Auth error:', error);
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  });
+
   // Google auth start - placeholder for UI
   app.post('/api/auth/google/start', async (req: Request, res: Response) => {
     // This is handled by existing Supabase auth flow on client

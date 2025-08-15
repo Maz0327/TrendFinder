@@ -28,7 +28,7 @@ import { enqueue, getJob } from "./jobs/inMemoryQueue";
 
 // Legacy route functions - temporarily commented to avoid conflicts with new API routers
 // import { registerCapturesRoutes } from "./routes/captures";
-import { extensionRouter } from "./routes/extension";
+import extensionRoutesNew from "./routes/extension";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerProjectsRoutes } from "./routes/projects";
 // import { registerMomentsRoutes } from "./routes/moments";
@@ -150,8 +150,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/ext/capture", extCaptureRoutes);
   app.use("/api/briefs", briefCanvasRouter); // Brief Canvas routes mount under /api/briefs
   
-  // Legacy routes
-  app.use("/api", extensionRouter);
+  // Extension routes (Block 11)
+  app.use("/api/extension", extensionRoutesNew);
   app.use("/api", aiRouter);
   app.use("/api", brightDataRouter);
   app.use("/api", intelligenceRouter);

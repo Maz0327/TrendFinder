@@ -1,157 +1,121 @@
-import { Router, Request, Response } from 'express';
-import { supabaseAdmin } from '../lib/supabaseAdmin';
-import { 
-  generateExtensionToken, 
-  verifyExtensionToken, 
-  revokeExtensionToken, 
-  getUserExtensionTokens 
-} from '../lib/extensionAuth';
+import { Router } from "express";
+import crypto from "crypto";
+import { z } from "zod";
+import { signExtensionAccess, signExtensionRefresh, verifyExtensionToken } from "../services/extension/tokens";
+import { requireAuth } from "../middleware/auth"; // your existing middleware that adds req.user
+import { storage } from "../storage";
 
-const router = Router();
+const r = Router();
 
-// Create new extension token (authenticated route)
-router.post('/tokens', async (req, res) => {
+/** Helper to generate code like PAIR-AB12CD */
+function makeCode(): string {
+  const a = crypto.randomBytes(3).toString("hex").toUpperCase(); // 6 hex => 12 chars
+  return `PAIR-${a.slice(0,2)}${a.slice(2,4)}${a.slice(4,6)}`;
+}
+
+/** Auth'd user creates a pairing code */
+r.post("/pairing-codes", requireAuth, async (req: any, res, next) => {
   try {
-    const { name } = req.body;
-    const userId = (req as any).user?.id; // Assuming user is attached via auth middleware
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    if (!name) {
-      return res.status(400).json({ error: 'Token name is required' });
-    }
-    
-    const token = await generateExtensionToken(userId, name);
-    res.json({ token, message: 'Extension token created successfully' });
-  } catch (error) {
-    console.error('Error creating extension token:', error);
-    res.status(500).json({ error: 'Failed to create extension token' });
-  }
-});
-
-// List user's extension tokens
-router.get('/tokens', async (req, res) => {
-  try {
-    const userId = (req as any).user?.id;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    const tokens = await getUserExtensionTokens(userId);
-    res.json({ tokens });
-  } catch (error) {
-    console.error('Error fetching extension tokens:', error);
-    res.status(500).json({ error: 'Failed to fetch extension tokens' });
-  }
-});
-
-// Revoke extension token
-router.delete('/tokens/:tokenId', async (req, res) => {
-  try {
-    const { tokenId } = req.params;
-    const userId = (req as any).user?.id;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    await revokeExtensionToken(tokenId, userId);
-    res.json({ message: 'Extension token revoked successfully' });
-  } catch (error) {
-    console.error('Error revoking extension token:', error);
-    res.status(500).json({ error: 'Failed to revoke extension token' });
-  }
-});
-
-// Capture endpoint for Chrome Extension (uses extension token auth)
-router.post('/capture', verifyExtensionToken, async (req, res) => {
-  try {
-    const userId = (req as any).extensionUserId;
-    const { 
-      title, 
-      content, 
-      url, 
-      platform, 
-      tags,
-      image_url,
-      image_thumb_url,
-      selection_rect,
-      ocr_text,
-      source_author,
-      source_posted_at,
-      source_metrics,
-      project_id 
-    } = req.body;
-    
-    if (!title || !content) {
-      return res.status(400).json({ error: 'Title and content are required' });
-    }
-    
-    // Insert capture into database
-    const { data: capture, error } = await supabaseAdmin
-      .from('captures')
-      .insert({
-        user_id: userId,
-        title,
-        content,
-        url,
-        platform,
-        tags,
-        image_url,
-        image_thumb_url,
-        selection_rect,
-        ocr_text,
-        source_author,
-        source_posted_at,
-        source_metrics,
-        project_id,
-        analysis_status: 'pending'
-      })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating capture:', error);
-      return res.status(500).json({ error: 'Failed to create capture' });
-    }
-    
-    // Create analysis job
-    const { error: jobError } = await supabaseAdmin
-      .from('analysis_jobs')
-      .insert({
-        capture_id: capture.id,
-        status: 'pending'
-      });
-      
-    if (jobError) {
-      console.error('Error creating analysis job:', jobError);
-    }
-    
-    res.status(201).json({ 
-      capture: {
-        id: capture.id,
-        title: capture.title,
-        url: capture.url,
-        created_at: capture.created_at
-      },
-      message: 'Capture created successfully' 
+    const schema = z.object({
+      projectId: z.string().uuid().nullable().optional(),
+      label: z.string().min(0).max(80).nullable().optional(),
+      ttlSeconds: z.number().int().positive().max(3600).optional(),
     });
-  } catch (error) {
-    console.error('Error processing capture:', error);
-    res.status(500).json({ error: 'Failed to process capture' });
-  }
+    const { projectId = null, label = null, ttlSeconds } = schema.parse(req.body);
+    const ttl = ttlSeconds ?? Number(process.env.EXTENSION_PAIR_CODE_TTL_SECONDS || 600);
+    const code = makeCode();
+    const expires = new Date(Date.now() + ttl*1000);
+    const userId = req.user.id;
+
+    await storage.createPairingCode({
+      code,
+      userId,
+      projectId,
+      deviceLabel: label,
+      expiresAt: expires
+    });
+
+    res.json({ code, expiresAt: expires.toISOString() });
+  } catch (e) { next(e); }
 });
 
-// Health check for extension
-router.get('/health', verifyExtensionToken, (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    userId: (req as any).extensionUserId,
-    timestamp: new Date().toISOString() 
-  });
+/** Extension exchanges code for token pair */
+r.post("/token", async (req, res, next) => {
+  try {
+    const schema = z.object({ code: z.string().min(6).max(32) });
+    const { code } = schema.parse(req.body);
+    const row = await storage.validatePairingCode(code);
+    
+    if (!row) return res.status(400).json({ error: "invalid_or_expired_code" });
+
+    // create device
+    const device = await storage.createExtensionDevice({
+      userId: row.user_id,
+      projectId: row.project_id,
+      label: row.device_label,
+      lastSeenAt: new Date()
+    });
+
+    await storage.markPairingCodeUsed(code, device.id);
+
+    const access = signExtensionAccess(row.user_id, device.id);
+    const refresh = signExtensionRefresh(row.user_id, device.id);
+    res.json({ token: access, refreshToken: refresh, expiresInMs: Number(process.env.EXTENSION_TOKEN_EXPIRES_SECONDS || 3600)*1000 });
+  } catch (e) { next(e); }
 });
 
-export { router as extensionRouter };
+/** Extension refreshes token */
+r.post("/refresh", async (req, res, next) => {
+  try {
+    const schema = z.object({ refreshToken: z.string().min(20) });
+    const { refreshToken } = schema.parse(req.body);
+    const decoded = verifyExtensionToken(refreshToken);
+    if (decoded.scope !== "extension" || decoded.typ !== "refresh") return res.status(401).json({ error: "invalid_scope" });
+
+    // Optional: verify device not revoked
+    const device = await storage.getExtensionDevice(decoded.deviceId);
+    if (!device || device.revoked_at) return res.status(401).json({ error: "device_revoked" });
+
+    const access = signExtensionAccess(decoded.sub, decoded.deviceId);
+    res.json({ token: access, expiresInMs: Number(process.env.EXTENSION_TOKEN_EXPIRES_SECONDS || 3600)*1000 });
+  } catch (e) { next(e); }
+});
+
+/** Extension heartbeat (updates last_seen_at) */
+r.post("/heartbeat", async (req, res, next) => {
+  try {
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    const decoded = verifyExtensionToken(token);
+    if (decoded.typ !== "access") return res.status(401).json({ error: "invalid_token" });
+    await storage.updateDeviceHeartbeat(decoded.deviceId);
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+/** Auth'd user device list/manage */
+r.get("/devices", requireAuth, async (req: any, res, next) => {
+  try {
+    const userId = req.user.id;
+    const devices = await storage.listExtensionDevices(userId);
+    res.json({ data: devices });
+  } catch (e) { next(e); }
+});
+
+r.patch("/devices/:id", requireAuth, async (req: any, res, next) => {
+  try {
+    const schema = z.object({ label: z.string().min(0).max(80).nullable().optional(), revoke: z.boolean().optional() });
+    const { label, revoke } = schema.parse(req.body);
+    const deviceId = req.params.id;
+    const userId = req.user.id;
+    
+    const device = await storage.getExtensionDevice(deviceId);
+    if (!device || device.user_id !== userId) return res.status(404).json({ error: "not_found" });
+    
+    if (label !== undefined) await storage.updateDeviceLabel(deviceId, label);
+    if (revoke) await storage.revokeDevice(deviceId);
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+export default r;
