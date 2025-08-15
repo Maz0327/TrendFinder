@@ -33,13 +33,13 @@ export function SlideList() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-1 md:p-2 lg:p-4 border-b border-white/10">
+      <div className="p-1 md:p-2 lg:p-4 glass-border-b">
         <div className="flex items-center justify-between mb-1 md:mb-2 lg:mb-3">
           <h3 className="font-medium text-xs md:text-sm lg:text-base hidden lg:block">Slides</h3>
           <h3 className="font-medium text-xs lg:hidden">S</h3>
           <button
             onClick={() => addSlide()}
-            className="p-1 md:p-1.5 hover:bg-white/10 rounded-lg transition-colors touch-target"
+            className="p-1 md:p-1.5 glass-hover rounded-lg transition-colors touch-target"
             title="Add slide"
           >
             <Plus className="w-3 md:w-4 h-3 md:h-4" />

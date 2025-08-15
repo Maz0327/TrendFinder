@@ -26,8 +26,8 @@ export function SlideThumb({
       className={cn(
         'group relative cursor-pointer rounded border md:rounded-lg border-2 transition-all duration-200 touch-target',
         isActive 
-          ? 'border-blue-500 bg-blue-500/10' 
-          : 'border-white/10 hover:border-white/30'
+          ? 'glass-border-active frost-subtle' 
+          : 'glass-border glass-hover-border'
       )}
       onClick={onClick}
       draggable
@@ -39,16 +39,16 @@ export function SlideThumb({
     >
       {/* Slide Preview */}
       <div className="aspect-[4/3] p-0.5 md:p-1 lg:p-3">
-        <div className="w-full h-full bg-white/5 rounded border border-white/10 relative overflow-hidden min-h-[40px] md:min-h-[60px]">
+        <div className="w-full h-full frost-subtle rounded glass-border relative overflow-hidden min-h-[40px] md:min-h-[60px]">
           {/* Render simplified version of blocks */}
           {slide.blocks.map((block) => (
             <div
               key={block.id}
               className={cn(
                 'absolute rounded-sm',
-                block.type === 'text' && 'bg-white/20',
-                block.type === 'image' && 'bg-blue-500/20',
-                block.type === 'note' && 'bg-yellow-500/20'
+                block.type === 'text' && 'frost-card',
+                block.type === 'image' && 'frost-strong',
+                block.type === 'note' && 'frost-subtle'
               )}
               style={{
                 left: `${(block.x / 800) * 100}%`,

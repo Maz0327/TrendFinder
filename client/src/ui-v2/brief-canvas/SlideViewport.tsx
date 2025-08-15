@@ -104,7 +104,7 @@ export function SlideViewport() {
   return (
     <div
       ref={viewportRef}
-      className="flex-1 overflow-hidden relative bg-gray-900 canvas-mobile"
+      className="flex-1 overflow-hidden relative glass-canvas canvas-mobile"
       onMouseMove={handleBlockDrag}
       onMouseUp={handleBlockDragEnd}
       onMouseLeave={handleBlockDragEnd}
@@ -129,7 +129,7 @@ export function SlideViewport() {
       >
         <div
           className={cn(
-            'relative bg-white rounded-lg shadow-2xl',
+            'relative frost-card rounded-lg glass-shadow',
             showGrid && 'canvas-grid',
             'min-w-[320px] md:min-w-[800px]' // Ensure minimum width on mobile
           )}
@@ -148,7 +148,7 @@ export function SlideViewport() {
                 key={block.id}
                 className={cn(
                   'absolute cursor-move touch-target',
-                  isSelected && 'ring-2 ring-blue-500 ring-offset-2'
+                  isSelected && 'ring-2 glass-border ring-offset-2'
                 )}
                 style={{
                   left: block.x,
@@ -172,24 +172,24 @@ export function SlideViewport() {
                   }
                 }}
               >
-                {block.type === 'text' && <BlockText block={block} />}
-                {block.type === 'image' && <BlockImage block={block} />}
-                {block.type === 'note' && <BlockNote block={block} />}
+                {block.type === 'text' && <BlockText block={block as any} />}
+                {block.type === 'image' && <BlockImage block={block as any} />}
+                {block.type === 'note' && <BlockNote block={block as any} />}
                 
                 {/* Selection handles */}
                 {isSelected && (
                   <>
                     {/* Corner handles for resizing */}
-                    <div className="absolute -top-1 -left-1 w-3 md:w-2 h-3 md:h-2 bg-blue-500 rounded-full cursor-nw-resize touch-target" />
-                    <div className="absolute -top-1 -right-1 w-3 md:w-2 h-3 md:h-2 bg-blue-500 rounded-full cursor-ne-resize touch-target" />
-                    <div className="absolute -bottom-1 -left-1 w-3 md:w-2 h-3 md:h-2 bg-blue-500 rounded-full cursor-sw-resize touch-target" />
-                    <div className="absolute -bottom-1 -right-1 w-3 md:w-2 h-3 md:h-2 bg-blue-500 rounded-full cursor-se-resize touch-target" />
+                    <div className="absolute -top-1 -left-1 w-3 md:w-2 h-3 md:h-2 frost-strong rounded-full cursor-nw-resize touch-target" />
+                    <div className="absolute -top-1 -right-1 w-3 md:w-2 h-3 md:h-2 frost-strong rounded-full cursor-ne-resize touch-target" />
+                    <div className="absolute -bottom-1 -left-1 w-3 md:w-2 h-3 md:h-2 frost-strong rounded-full cursor-sw-resize touch-target" />
+                    <div className="absolute -bottom-1 -right-1 w-3 md:w-2 h-3 md:h-2 frost-strong rounded-full cursor-se-resize touch-target" />
                     
                     {/* Edge handles */}
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 md:w-2 h-3 md:h-2 bg-blue-500 rounded-full cursor-n-resize touch-target" />
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 md:w-2 h-3 md:h-2 bg-blue-500 rounded-full cursor-s-resize touch-target" />
-                    <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-3 md:w-2 h-3 md:h-2 bg-blue-500 rounded-full cursor-w-resize touch-target" />
-                    <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-3 md:w-2 h-3 md:h-2 bg-blue-500 rounded-full cursor-e-resize touch-target" />
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 md:w-2 h-3 md:h-2 frost-strong rounded-full cursor-n-resize touch-target" />
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 md:w-2 h-3 md:h-2 frost-strong rounded-full cursor-s-resize touch-target" />
+                    <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-3 md:w-2 h-3 md:h-2 frost-strong rounded-full cursor-w-resize touch-target" />
+                    <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-3 md:w-2 h-3 md:h-2 frost-strong rounded-full cursor-e-resize touch-target" />
                   </>
                 )}
               </div>

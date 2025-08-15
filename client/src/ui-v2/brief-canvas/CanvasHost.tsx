@@ -12,7 +12,7 @@ import { AlertTriangle, Clock } from 'lucide-react';
 
 export function CanvasHost() {
   const { id } = useParams<{ id: string }>();
-  const { brief: serverBrief, isLoading } = useBrief(id);
+  const { brief: serverBrief, isLoading } = useBrief(id || '');
   const { brief, setBrief, isDirty, lastSaved } = useCanvasStore();
   const [showDraftRestore, setShowDraftRestore] = useState(false);
   const [draftInfo, setDraftInfo] = useState<any>(null);
@@ -52,7 +52,7 @@ export function CanvasHost() {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="glass rounded-2xl p-8 text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <div className="animate-spin w-8 h-8 border-2 glass-border border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-ink/70">Loading brief...</p>
         </div>
       </div>
@@ -72,9 +72,9 @@ export function CanvasHost() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
+    <div className="h-screen flex flex-col glass-canvas overflow-hidden">
       {/* Header */}
-      <div className="glass-header h-14 md:h-16 px-3 md:px-6 flex items-center justify-between border-b border-white/10 gap-2">
+      <div className="glass-header h-14 md:h-16 px-3 md:px-6 flex items-center justify-between glass-border-b gap-2">
         <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
           <h1 className="text-sm md:text-lg font-semibold truncate max-w-[150px] md:max-w-none">{brief.title}</h1>
           <div className="hidden md:flex items-center gap-2 text-sm text-ink/60">
@@ -97,7 +97,7 @@ export function CanvasHost() {
       {/* Main Canvas Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Slide List */}
-        <div className="w-12 md:w-16 lg:w-64 glass border-r border-white/10 flex flex-col flex-shrink-0">
+        <div className="w-12 md:w-16 lg:w-64 glass glass-border-r flex flex-col flex-shrink-0">
           <SlideList />
         </div>
 
@@ -107,8 +107,8 @@ export function CanvasHost() {
         </div>
 
         {/* Properties Panel */}
-        <div className="hidden xl:flex w-80 glass border-l border-white/10 flex-col flex-shrink-0">
-          <div className="p-3 md:p-4 border-b border-white/10">
+        <div className="hidden xl:flex w-80 glass glass-border-l flex-col flex-shrink-0">
+          <div className="p-3 md:p-4 glass-border-b">
             <h3 className="font-medium mb-4">Properties</h3>
             {/* Properties content will be added here */}
             <div className="text-sm text-ink/50">

@@ -50,10 +50,10 @@ export default function MomentsRadarPage() {
   }, [moments]);
 
   const getIntensityColor = (intensity: number) => {
-    if (intensity >= 80) return 'text-red-400 bg-red-500/20';
-    if (intensity >= 60) return 'text-orange-400 bg-orange-500/20';
-    if (intensity >= 40) return 'text-yellow-400 bg-yellow-500/20';
-    return 'text-green-400 bg-green-500/20';
+    if (intensity >= 80) return 'text-red-400 frost-card';
+    if (intensity >= 60) return 'text-orange-400 frost-card';
+    if (intensity >= 40) return 'text-yellow-400 frost-card';
+    return 'text-green-400 frost-card';
   };
 
   const getIntensityLabel = (intensity: number) => {
@@ -155,7 +155,7 @@ export default function MomentsRadarPage() {
                   </div>
                   <div className="w-32 frost-subtle rounded-full h-2 overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                      className="h-full glass-gradient transition-all duration-500"
                       style={{ width: `${moment.intensity}%` }}
                     />
                   </div>
@@ -195,9 +195,9 @@ export default function MomentsRadarPage() {
                       <span className="text-ink/70">Intensity</span>
                       <span className="font-medium">{moment.intensity}%</span>
                     </div>
-                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                    <div className="w-full frost-subtle rounded-full h-2 overflow-hidden">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
+                        className="h-full glass-gradient"
                         initial={{ width: 0 }}
                         animate={{ width: `${moment.intensity}%` }}
                         transition={{ duration: 1, delay: index * 0.1 }}
@@ -219,7 +219,7 @@ export default function MomentsRadarPage() {
                       {moment.platforms.map(platform => (
                         <span
                           key={platform}
-                          className="px-1.5 md:px-2 py-0.5 md:py-1 bg-white/10 rounded text-xs"
+                          className="px-1.5 md:px-2 py-0.5 md:py-1 frost-card rounded text-xs"
                         >
                           {platform}
                         </span>
@@ -237,13 +237,13 @@ export default function MomentsRadarPage() {
                         {moment.tags.slice(0, 3).map(tag => (
                           <span
                             key={tag}
-                            className="px-1.5 md:px-2 py-0.5 md:py-1 bg-blue-500/20 text-blue-300 rounded text-xs"
+                            className="px-1.5 md:px-2 py-0.5 md:py-1 frost-strong text-blue-300 rounded text-xs"
                           >
                             {tag}
                           </span>
                         ))}
                         {moment.tags.length > 3 && (
-                          <span className="px-2 py-1 bg-white/10 rounded text-xs">
+                          <span className="px-2 py-1 frost-card rounded text-xs">
                             +{moment.tags.length - 3}
                           </span>
                         )}
@@ -265,7 +265,7 @@ export default function MomentsRadarPage() {
         {/* Empty State */}
         {filteredMoments.length === 0 && (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 frost-card rounded-full flex items-center justify-center mx-auto mb-4">
               <TrendingUp className="w-8 h-8 text-ink/50" />
             </div>
             <h3 className="text-lg font-semibold mb-2">No moments found</h3>

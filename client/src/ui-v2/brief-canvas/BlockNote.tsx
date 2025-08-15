@@ -50,14 +50,14 @@ export function BlockNote({ block }: BlockNoteProps) {
 
   if (isEditing) {
     return (
-      <div className="w-full h-full bg-yellow-200 border border-yellow-300 rounded p-2">
+      <div className="w-full h-full frost-card glass-border rounded p-2">
         <textarea
           ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className="w-full h-full resize-none border-none outline-none bg-transparent text-gray-800 text-sm"
+          className="w-full h-full resize-none border-none outline-none bg-transparent text-ink text-sm"
           placeholder="Add your note..."
         />
       </div>
@@ -67,18 +67,18 @@ export function BlockNote({ block }: BlockNoteProps) {
   return (
     <div
       className={clsx(
-        'w-full h-full bg-yellow-200 border border-yellow-300 rounded p-2 cursor-text',
-        'shadow-sm hover:shadow-md transition-shadow',
-        isSelected && 'ring-2 ring-blue-500 ring-offset-2'
+        'w-full h-full frost-card glass-border rounded p-2 cursor-text',
+        'glass-shadow hover:glass-shadow-hover transition-shadow',
+        isSelected && 'ring-2 glass-border ring-offset-2'
       )}
       onDoubleClick={handleDoubleClick}
     >
-      <div className="w-full h-full text-gray-800 text-sm break-words overflow-hidden">
+      <div className="w-full h-full text-ink text-sm break-words overflow-hidden">
         {block.text || 'Add your note...'}
       </div>
       
       {/* Note indicator */}
-      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border border-yellow-500 opacity-70" />
+      <div className="absolute -top-1 -right-1 w-3 h-3 frost-strong rounded-full glass-border opacity-70" />
     </div>
   );
 }
