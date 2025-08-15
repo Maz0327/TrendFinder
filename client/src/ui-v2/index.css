@@ -106,8 +106,8 @@
   --accent-2: 236 72 153;         /* soft pink */
   --accent-3: 34 197 94;          /* soft mint */
 
-  /* light theme - white bg with much stronger gradients for clear glass visibility */
-  --app-bg: 255 255 255;
+  /* light theme - slightly darker bg with much stronger gradients for clear glass visibility */
+  --app-bg: 224 224 224;
   --app-grad-a: 139 92 246 / 0.25;   /* much stronger purple for glass visibility */
   --app-grad-b: 236 72 153 / 0.20;   /* much stronger pink */
   --app-grad-c: 34 197 94 / 0.18;    /* much stronger mint */
@@ -211,7 +211,7 @@
   --accent-1: 139 92 246;
   --accent-2: 236 72 153;
   --accent-3: 34 197 94;
-  --app-bg: 255 255 255;
+  --app-bg: 224 224 224;
   --app-grad-a: 139 92 246 / 0.25;
   --app-grad-b: 236 72 153 / 0.20;
   --app-grad-c: 34 197 94 / 0.18;
