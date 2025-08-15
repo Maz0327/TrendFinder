@@ -1,10 +1,50 @@
 @import './styles/tokens.css';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 .ui-v2 {
   font-family: ui-sans-serif, -apple-system, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle studio background helpers (optional; no hard override) */
+.ui-v2 .surface {
+  background: radial-gradient(1200px 800px at 20% -10%, rgba(255,255,255,0.06), transparent 50%),
+              radial-gradient(900px 700px at 120% 10%, rgba(100,150,255,0.06), transparent 55%);
+}
+
+/* Component-level utilities */
+@layer components {
+  /* Frosted glass card */
+  .glass {
+    @apply backdrop-blur-md rounded-2xl border shadow;
+    /* color with alpha: prefer slash opacity; fall back to rgb() if needed */
+    background-color: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.10);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.06) inset,
+      0 10px 30px rgba(0,0,0,0.35);
+  }
+
+  /* Common card container */
+  .card {
+    @apply rounded-2xl border;
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border));
+  }
+
+  .card-muted {
+    @apply rounded-2xl border;
+    background-color: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.08);
+  }
+
+  .text-subtle { color: hsl(var(--muted-foreground)); }
+  .ring-acc   { box-shadow: 0 0 0 2px hsl(var(--ring)); }
 }
 
 /* IMPORTANT:

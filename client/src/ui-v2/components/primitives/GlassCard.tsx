@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { cn } from '../../lib/utils';
+import { cn } from '@/ui-v2/../lib/utils';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -13,7 +13,7 @@ export function GlassCard({ children, className, hover = false, onClick }: Glass
   
   return (
     <Component
-      className={cn(
+      className={cn('glass', 
         'glass rounded-lg md:rounded-xl lg:rounded-2xl p-4 md:p-5 lg:p-6 transition-all duration-200 relative',
         hover && 'hover:scale-[1.01] hover:depth-2 cursor-pointer hover:bg-white/[0.06] hover:shadow-xl',
         onClick && 'focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-gray-900',
