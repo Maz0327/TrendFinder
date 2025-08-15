@@ -51,7 +51,7 @@ export function TagInput({
 
   return (
     <div className={cn('relative', className)}>
-      <div className="glass rounded-lg p-2 md:p-3 min-h-[40px] md:min-h-[44px] flex flex-wrap items-center gap-1 md:gap-2 overflow-hidden shadow-sm focus-within:shadow-md focus-within:ring-2 focus-within:ring-blue-500/50 transition-all duration-200">
+      <div className="glass rounded-lg p-2 md:p-3 min-h-[40px] md:min-h-[44px] flex flex-wrap items-center gap-1 md:gap-2 overflow-hidden glass-shadow focus-within:ring-2 focus-within:ring-blue-500/50 transition-all duration-200">
         <AnimatePresence>
           {tags.map((tag) => (
             <motion.span
@@ -101,7 +101,7 @@ export function TagInput({
               <button
                 key={suggestion}
                 onClick={() => addTag(suggestion)}
-                className="w-full text-left px-2 py-1 rounded hover:bg-white/10 text-sm transition-colors"
+                className="w-full text-left px-2 py-1 rounded hover:frost-subtle text-sm transition-colors"
               >
                 {suggestion}
               </button>

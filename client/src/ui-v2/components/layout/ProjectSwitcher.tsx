@@ -36,7 +36,7 @@ export function ProjectSwitcher() {
     <>
       <PopoverMenu
         trigger={
-          <button className="icon-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 glass rounded-lg hover:bg-white/10 transition-colors touch-target min-w-0">
+          <button className="icon-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 glass rounded-lg hover:frost-subtle transition-colors touch-target min-w-0">
             <Folder className="w-4 h-4 stroke-1" />
             <span className="text-xs md:text-sm font-medium truncate max-w-[80px] md:max-w-[120px]">
               {currentProject?.name || 'Select Project'}
