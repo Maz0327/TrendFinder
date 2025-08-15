@@ -1,13 +1,13 @@
 /* Design tokens (no @layer here). Keep colors exactly as before. */
 :root {
-  /* Base "dark studio" palette */
-  --background: 230 14% 5%;     /* #0b0b0d base */
+  /* Base "dark studio" palette - darker for better contrast */
+  --background: 230 20% 3%;     /* much darker base */
   --foreground: 220 14% 96%;
 
-  --card: 230 12% 7%;
+  --card: 230 18% 4%;
   --card-foreground: 220 14% 96%;
 
-  --popover: 230 12% 8%;
+  --popover: 230 18% 5%;
   --popover-foreground: 220 14% 96%;
 
   --border: 240 6% 20%;

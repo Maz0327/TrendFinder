@@ -71,7 +71,7 @@
   /* Header glass effect - soft glassmorphism for light theme */
   .glass-header {
     @apply backdrop-blur-xl border-b;
-    background: rgba(var(--surface), 0.30);
+    background: rgba(var(--surface), 0.40);  /* more opaque on darker bg */
     border-color: rgba(var(--glass-border));
     box-shadow: var(--shadow-1);
   }
@@ -79,12 +79,12 @@
   /* Enhanced glass dropdown/popover */
   .glass-popover {
     @apply backdrop-blur-xl rounded-xl border shadow-2xl;
-    background: rgba(10, 10, 15, 0.9);
-    border-color: rgba(255,255,255,0.2);
+    background: rgba(5, 8, 15, 0.95);  /* darker for better contrast */
+    border-color: rgba(255,255,255,0.25);
     box-shadow:
-      0 0 0 1px rgba(255,255,255,0.1) inset,
-      0 24px 48px rgba(0,0,0,0.6),
-      0 8px 24px rgba(0,0,0,0.4);
+      0 0 0 1px rgba(255,255,255,0.15) inset,
+      0 24px 48px rgba(0,0,0,0.8),
+      0 8px 24px rgba(0,0,0,0.6);
   }
 }
 
@@ -106,12 +106,12 @@
   --accent-2: 236 72 153;         /* soft pink */
   --accent-3: 34 197 94;          /* soft mint */
 
-  /* light theme - white bg with much stronger gradients for clear glass visibility */
-  --app-bg: 255 255 255;
-  --app-grad-a: 139 92 246 / 0.25;   /* much stronger purple for glass visibility */
-  --app-grad-b: 236 72 153 / 0.20;   /* much stronger pink */
-  --app-grad-c: 34 197 94 / 0.18;    /* much stronger mint */
-  --app-grad-d: 59 130 246 / 0.15;   /* much stronger blue */
+  /* light theme - darker neutral bg for better glass contrast */
+  --app-bg: 248 249 251;  /* light gray instead of pure white */
+  --app-grad-a: 139 92 246 / 0.30;   /* stronger gradients on darker bg */
+  --app-grad-b: 236 72 153 / 0.25;   
+  --app-grad-c: 34 197 94 / 0.22;    
+  --app-grad-d: 59 130 246 / 0.20;   
 }
 
 .ui-v2[data-theme="dark"] {
@@ -128,12 +128,12 @@
   --accent-2: 236 72 153;
   --accent-3: 34 197 94;
 
-  /* dark theme with organic gradients */
-  --app-bg: 15 23 42;
-  --app-grad-a: 139 92 246 / 0.12;
-  --app-grad-b: 236 72 153 / 0.08;
-  --app-grad-c: 34 197 94 / 0.06;
-  --app-grad-d: 59 130 246 / 0.10;
+  /* dark theme with organic gradients - much darker */
+  --app-bg: 8 12 24;  /* much darker background */
+  --app-grad-a: 139 92 246 / 0.18;  /* stronger gradients on darker bg */
+  --app-grad-b: 236 72 153 / 0.12;
+  --app-grad-c: 34 197 94 / 0.10;
+  --app-grad-d: 59 130 246 / 0.15;
 }
 
 /* App background - organic scattered gradients for glass effect visibility */
