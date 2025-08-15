@@ -14,9 +14,9 @@ export function GlassCard({ children, className, hover = false, onClick }: Glass
   return (
     <Component
       className={cn(
-        'frost-card p-4 md:p-5 lg:p-6 transition-all duration-200 relative',
+        'frost-card p-6 md:p-7 lg:p-8 transition-all duration-200 relative',  /* More generous padding */
         hover && 'frost-hover cursor-pointer',
-        onClick && 'focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2',
+        onClick && 'focus:outline-none focus:frost-ring',
         className
       )}
       onClick={onClick}

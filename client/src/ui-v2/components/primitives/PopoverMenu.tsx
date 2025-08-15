@@ -79,13 +79,14 @@ export function PopoverMenuItem({
       className={cn(
         'w-full flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 rounded-lg text-left transition-all duration-200 touch-target min-w-0 leading-relaxed',
         'hover:bg-white/10 focus:outline-none focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50',
+        'text-ink',
         destructive && 'text-red-400 hover:bg-red-500/10'
       )}
       onClick={onClick}
       whileHover={{ x: 2, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
     >
-      {icon && <span className="w-4 h-4 flex-shrink-0">{icon}</span>}
+      {icon && <span className="w-4 h-4 flex-shrink-0 text-ink">{icon}</span>}
       <span className="text-xs md:text-sm truncate">{children}</span>
     </motion.button>
   );

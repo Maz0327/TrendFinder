@@ -6,11 +6,11 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   return (
     <button
       onClick={toggle}
-      className={`frost-card frost-hover px-3 py-2 flex items-center gap-2 ${className}`}
+      className={`frost-card frost-hover px-4 py-2.5 flex items-center gap-2 text-ink ${className}`}
       aria-label="Toggle theme"
     >
-      {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-      <span className="text-sm">{theme === "dark" ? "Light" : "Dark"}</span>
+      {theme === "dark" ? <Sun size={16} className="text-ink" /> : <Moon size={16} className="text-ink" />}
+      <span className="text-sm font-medium text-ink">{theme === "dark" ? "Light" : "Dark"}</span>
     </button>
   );
 }
