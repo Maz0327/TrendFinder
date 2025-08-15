@@ -41,7 +41,7 @@ export function PopoverMenu({
         {isOpen && (
           <motion.div
             className={cn(
-              'absolute top-full mt-2 z-50 frost-card frost-strong p-2 min-w-[200px] md:min-w-56',
+              'absolute top-full mt-2 z-50 frost-card frost-strong p-3 min-w-[200px] md:min-w-56',
               align === 'right' && 'right-0',
               align === 'center' && 'left-1/2 -translate-x-1/2',
               align === 'left' && 'left-0',
@@ -77,9 +77,9 @@ export function PopoverMenuItem({
   return (
     <motion.button
       className={cn(
-        'w-full flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 rounded-lg text-left transition-all duration-200 touch-target min-w-0 leading-relaxed',
+        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 touch-target min-w-0',
         'hover:frost-subtle focus:outline-none focus:frost-subtle focus:ring-2 focus:ring-blue-500/50',
-        'text-ink',
+        'text-ink text-sm font-medium',
         destructive && 'text-red-400 hover:bg-red-500/10'
       )}
       onClick={onClick}
@@ -87,7 +87,7 @@ export function PopoverMenuItem({
       whileTap={{ scale: 0.98 }}
     >
       {icon && <span className="w-4 h-4 flex-shrink-0 text-ink">{icon}</span>}
-      <span className="text-xs md:text-sm truncate">{children}</span>
+      <span className="truncate">{children}</span>
     </motion.button>
   );
 }

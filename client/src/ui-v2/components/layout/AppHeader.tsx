@@ -228,7 +228,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               <PopoverMenuItem icon={<Settings className="w-4 h-4" />}>
                 Settings
               </PopoverMenuItem>
-              <div className="border-t glass-border my-1"></div>
+              <div className="border-t border-white/10 my-2"></div>
               <PopoverMenuItem 
                 onClick={() => {/* Sign out in mock mode */}}
                 destructive
