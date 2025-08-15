@@ -54,9 +54,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function AuthBoundary({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (IS_MOCK_MODE) return <>{children}</>;
+  
   if (loading) return <div className="p-6 text-ink">Loading…</div>;
-  if (!user) return <div className="p-6 text-ink">Please sign in.</div>;
+  
+  // If we have a user (including mock user), show the app
+  if (user) return <>{children}</>;
+  
+  // If no user and not mock mode, show sign in
+  if (!IS_MOCK_MODE) return <div className="p-6 text-ink">Please sign in.</div>;
+  
+  // Fallback for mock mode without user - should not happen
   return <>{children}</>;
 }
 
