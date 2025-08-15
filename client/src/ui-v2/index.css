@@ -2,7 +2,7 @@
 :root { --radius: 16px; }
 .theme-dark {
   --background: 24 28 32;
-  --card: 32 36 42;
+  --card: 48 52 58;
   --text: 241 244 248;
   --muted-text: 148 163 184;
   --ring: 99 102 241;
@@ -22,24 +22,24 @@
 
 /* Glassmorphism components */
 .glass-header { 
-  background: rgba(var(--card), 0.8); 
+  background: rgb(var(--card) / 0.8); 
   backdrop-filter: blur(12px); 
-  border-bottom: 1px solid rgba(var(--text), 0.1); 
+  border-bottom: 1px solid rgb(var(--text) / 0.1); 
 }
 .frost-card { 
-  background: rgba(var(--card), 0.6); 
+  background: rgb(var(--card) / 0.8); 
   backdrop-filter: blur(8px); 
-  border: 1px solid rgba(var(--text), 0.1); 
+  border: 1px solid rgb(var(--text) / 0.15); 
   border-radius: var(--radius); 
 }
 .frost-strong { 
-  background: rgba(var(--card), 0.9); 
+  background: rgb(var(--card) / 0.95); 
   backdrop-filter: blur(16px); 
 }
 .frost-subtle { 
-  background: rgba(var(--card), 0.4); 
+  background: rgb(var(--card) / 0.6); 
   backdrop-filter: blur(4px); 
 }
 .frost-hover:hover { 
-  background: rgba(var(--card), 0.8); 
+  background: rgb(var(--card) / 0.9); 
 }
