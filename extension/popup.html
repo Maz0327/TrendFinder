@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Content Radar</title>
+  <style>
+    body { font: 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 12px; width: 320px; color:#e5e7eb; background:#0b0b0d; }
+    .card { background: rgba(255,255,255,.06); backdrop-filter: blur(8px); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; margin-bottom:12px; }
+    input, select, button { width:100%; margin-top:6px; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#e5e7eb;}
+    button { cursor:pointer; }
+    .row { display:flex; gap:8px; }
+    .row > * { flex:1; }
+    small { color:#94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <strong>Connection</strong>
+    <small>Paste pairing code from the web app</small>
+    <input id="pairCode" placeholder="PAIR-XXXXXX" />
+    <button id="btnPair">Pair Extension</button>
+    <div id="pairStatus"></div>
+  </div>
+
+  <div class="card">
+    <strong>Capture</strong>
+    <div class="row">
+      <button id="btnBox">Select Region</button>
+      <button id="btnShot">Screenshot</button>
+    </div>
+    <div class="row">
+      <button id="btnRec">Start Recording</button>
+      <button id="btnStop">Stop</button>
+    </div>
+    <small>Project</small>
+    <input id="projectId" placeholder="project-id (optional)" />
+    <small>Tags (comma separated)</small>
+    <input id="tags" placeholder="tag1, tag2" />
+  </div>
+
+  <div class="card">
+    <strong>Queue</strong>
+    <div id="q"></div>
+    <button id="btnProcess">Process Now</button>
+  </div>
+
+  <script type="module">
+    import { api } from "./src/lib/api.js";
+
+    const $ = (id)=>document.getElementById(id);
+    const state = { rect:null, tabId:null };
+
+    async function sendBG(msg){ return await chrome.runtime.sendMessage(msg); }
+
+    $("btnPair").onclick = async ()=>{
+      $("pairStatus").textContent = "Pairing…";
+      const code = $("pairCode").value.trim();
+      const res = await sendBG({ type: "PAIR_WITH_CODE", code });
+      $("pairStatus").textContent = res.ok ? "Paired ✅" : ("Failed: " + (res.error||""));
+    };
+
+    $("btnBox").onclick = async ()=>{
+      const [tab] = await chrome.tabs.query({ active:true, currentWindow:true });
+      state.tabId = tab.id;
+      await chrome.tabs.sendMessage(tab.id, { type: "OPEN_OVERLAY" });
+      chrome.runtime.onMessage.addListener(function onRect(msg){
+        if (msg.type === "BOUNDING_BOX_SELECTED") {
+          state.rect = msg.rect;
+          chrome.runtime.onMessage.removeListener(onRect);
+        }
+      });
+    };
+
+    async function ensureOffscreen() {
+      const off = await chrome.offscreen.hasDocument?.();
+      if (off) return;
+      await chrome.offscreen.createDocument({
+        url: "src/offscreen/offscreen.html",
+        reasons: ["USER_MEDIA"],
+        justification: "Record or snapshot the user-selected region"
+      });
+    }
+
+    $("btnShot").onclick = async ()=>{
+      if (!state.rect || !state.tabId) { alert("Select region first"); return; }
+      await ensureOffscreen();
+      const start = await chrome.runtime.sendMessage({ type: "START_CAPTURE", rect: state.rect, tabId: state.tabId });
+      if (!start.ok) return alert("Stream failed");
+      const snap = await chrome.runtime.sendMessage({ type: "SCREENSHOT_REGION", rect: state.rect });
+      if (!snap.ok) return alert("Snapshot failed");
+
+      const blob = new Blob([new Uint8Array(snap.blob.split(',')[1].split('').map(c => c.charCodeAt(0)))], { type: "image/png" });
+
+      const meta = {
+        url: state.rect.url,
+        projectId: $("projectId").value || null,
+        tags: $("tags").value ? $("tags").value.split(",").map(s=>s.trim()).filter(Boolean) : [],
+        platform: null,
+        requestFastAnalysis: true
+      };
+
+      await chrome.runtime.sendMessage({
+        type: "ENQUEUE_UPLOAD",
+        payload: { blob, filename: `screenshot_${Date.now()}.png`, mime: "image/png", size: blob.size, meta }
+      });
+      alert("Queued 📸");
+    };
+
+    $("btnRec").onclick = async ()=>{
+      if (!state.rect || !state.tabId) { alert("Select region first"); return; }
+      await ensureOffscreen();
+      const start = await chrome.runtime.sendMessage({ type: "START_CAPTURE", rect: state.rect, tabId: state.tabId });
+      if (!start.ok) return alert("Stream failed");
+      const rec = await chrome.runtime.sendMessage({ type: "RECORD_REGION", rect: state.rect, durationMs: 0 });
+      if (!rec.ok) return alert("Recording failed");
+
+      const blob = new Blob([new Uint8Array(rec.blob.split(',')[1].split('').map(c => c.charCodeAt(0)))], { type: "video/webm" });
+
+      const meta = {
+        url: state.rect.url,
+        projectId: $("projectId").value || null,
+        tags: $("tags").value ? $("tags").value.split(",").map(s=>s.trim()).filter(Boolean) : [],
+        platform: null,
+        requestFastAnalysis: false
+      };
+
+      await chrome.runtime.sendMessage({
+        type: "ENQUEUE_UPLOAD",
+        payload: { blob, filename: `recording_${Date.now()}.webm`, mime: "video/webm", size: blob.size, meta }
+      });
+      alert("Queued 🎥");
+    };
+
+    $("btnStop").onclick = async ()=>{ await chrome.runtime.sendMessage({ type: "STOP_CAPTURE" }); };
+    $("btnProcess").onclick = async ()=>{ await chrome.runtime.sendMessage({ type: "PROCESS_NOW" }); alert("Processing…"); };
+  </script>
+</body>
+</html>

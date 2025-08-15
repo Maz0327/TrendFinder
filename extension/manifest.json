@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Content Radar Capture",
+  "version": "0.1.0",
+  "description": "Region capture (record/screenshot) → upload → analysis → organize into Briefs.",
+  "action": { "default_popup": "popup.html" },
+  "options_page": "options.html",
+  "background": { "service_worker": "src/bg/background.js", "type": "module" },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
+    "tabCapture",
+    "alarms"
+  ],
+  "host_permissions": [
+    "*://*/api/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content.js"],
+      "css": ["src/content/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content/overlay.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
