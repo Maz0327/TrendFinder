@@ -97,7 +97,7 @@
   --muted-text: 71 85 105;        /* darker muted text for readability */
 
   /* borders & shadows - much softer */
-  --glass-border: 255 255 255 / 0.08;
+  --glass-border: 255 255 255 / 0.12;
   --glass-ring: 139 92 246 / 0.15;
   --shadow-1: 0 8px 32px rgba(139, 92, 246, 0.06);
 
@@ -120,7 +120,7 @@
   --text: 248 250 252;            /* high contrast white */
   --muted-text: 203 213 225;      /* lighter for better readability */
 
-  --glass-border: 255 255 255 / 0.10;
+  --glass-border: 255 255 255 / 0.15;
   --glass-ring: 139 92 246 / 0.20;
   --shadow-1: 0 12px 40px rgba(139, 92, 246, 0.15);
 
@@ -205,7 +205,7 @@
   --muted-text: 71 85 105;
   --surface: 255 255 255;
   --surface-2: 248 249 251;
-  --glass-border: 255 255 255 / 0.08;
+  --glass-border: 255 255 255 / 0.12;
   --glass-ring: 139 92 246 / 0.15;
   --shadow-1: 0 8px 32px rgba(139, 92, 246, 0.06);
   --accent-1: 139 92 246;
