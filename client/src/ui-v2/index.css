@@ -105,12 +105,12 @@
   --accent-2: 236 72 153;         /* soft pink */
   --accent-3: 34 197 94;          /* soft mint */
 
-  /* light theme - white bg with scattered pastel gradients */
+  /* light theme - white bg with much stronger gradients for clear glass visibility */
   --app-bg: 255 255 255;
-  --app-grad-a: 139 92 246 / 0.08;   /* soft purple */
-  --app-grad-b: 236 72 153 / 0.06;   /* soft pink */
-  --app-grad-c: 34 197 94 / 0.05;    /* soft mint */
-  --app-grad-d: 59 130 246 / 0.04;   /* soft blue */
+  --app-grad-a: 139 92 246 / 0.25;   /* much stronger purple for glass visibility */
+  --app-grad-b: 236 72 153 / 0.20;   /* much stronger pink */
+  --app-grad-c: 34 197 94 / 0.18;    /* much stronger mint */
+  --app-grad-d: 59 130 246 / 0.15;   /* much stronger blue */
 }
 
 :root[data-theme="dark"] {

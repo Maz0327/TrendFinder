@@ -47,23 +47,23 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
     >
       <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <h1 className="text-lg md:text-xl font-bold tracking-tight text-white truncate">Content Radar</h1>
+          <h1 className="text-lg md:text-xl font-bold tracking-tight text-ink truncate">Content Radar</h1>
           <div className="hidden sm:block">
             <ProjectSwitcher />
           </div>
         </div>
         
         {breadcrumbs && (
-          <nav className="hidden lg:flex items-center gap-2 text-sm text-white/70 min-w-0">
+          <nav className="hidden lg:flex items-center gap-2 text-sm text-muted-ink min-w-0">
             {breadcrumbs.map((crumb, index) => (
               <div key={index} className="flex items-center gap-2">
                 {index > 0 && <span>/</span>}
                 {crumb.href ? (
-                  <a href={crumb.href} className="hover:text-white transition-colors truncate">
+                  <a href={crumb.href} className="hover:text-ink transition-colors truncate">
                     {crumb.label}
                   </a>
                 ) : (
-                  <span className="text-white truncate">{crumb.label}</span>
+                  <span className="text-ink truncate">{crumb.label}</span>
                 )}
               </div>
             ))}
@@ -71,7 +71,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
         )}
         
         {title && !breadcrumbs && (
-          <h2 className="hidden lg:block text-sm font-medium text-white/80 truncate max-w-[200px]">{title}</h2>
+          <h2 className="hidden lg:block text-sm font-medium text-muted-ink truncate max-w-[200px]">{title}</h2>
         )}
       </div>
 
@@ -88,13 +88,13 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                 to={item.to}
                 className={cn(
                   'relative flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap min-h-[40px] flex-shrink-0',
-                  'hover:bg-white/10 hover:text-white transition-colors',
+                  'hover:bg-white/10 transition-colors',
                   isActive 
-                    ? 'text-white bg-white/10' 
-                    : 'text-white/70 hover:text-white'
+                    ? 'text-ink bg-white/10' 
+                    : 'text-muted-ink hover:text-ink'
                 )}
               >
-                <item.icon className="w-4 h-4 stroke-1 flex-shrink-0" />
+                <item.icon className="w-4 h-4 stroke-1 flex-shrink-0 text-ink" />
                 <span className="hidden lg:block">{item.label}</span>
                 
                 {isActive && (
@@ -113,17 +113,17 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <button className="md:hidden p-2 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors min-h-[40px] min-w-[40px]">
-              <Menu className="w-5 h-5 stroke-1" />
+              <Menu className="w-5 h-5 stroke-1 text-ink" />
             </button>
           </SheetTrigger>
           <SheetContent side="left" className="w-full sm:max-w-[280px] frost-card frost-strong p-0 md:hidden">
             <div className="flex flex-col h-full overflow-y-auto px-4">
               {/* Header */}
               <div className="flex items-center justify-between py-4 border-b border-white/10">
-                <h2 className="text-lg font-semibold">Content Radar</h2>
+                <h2 className="text-lg font-semibold text-ink">Content Radar</h2>
                 <SheetClose asChild>
                   <button className="p-1.5 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors">
-                    <X className="w-4 h-4 stroke-1" />
+                    <X className="w-4 h-4 stroke-1 text-ink" />
                   </button>
                 </SheetClose>
               </div>
@@ -145,11 +145,11 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                         to={item.to}
                        className={({ isActive: routerIsActive }) => cn(
                          'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-sm min-h-[44px]',
-                         'hover:bg-white/10 hover:text-white',
+                         'hover:bg-white/10',
                          'text-left font-medium',
                          routerIsActive 
-                           ? 'text-white bg-white/10 border border-blue-500/30' 
-                           : 'text-white/70'
+                           ? 'text-ink bg-white/10 border border-blue-500/30' 
+                           : 'text-muted-ink hover:text-ink'
                        )}
                       >
                        <item.icon className="w-4 h-4 flex-shrink-0" />
