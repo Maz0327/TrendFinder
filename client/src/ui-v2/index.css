@@ -1,8 +1,8 @@
 /* UI-V2 theme tokens and helpers (no @tailwind layers here) */
 :root { --radius: 16px; }
 .theme-dark {
-  --background: 12 12 14;
-  --card: 20 20 24;
+  --background: 24 28 32;
+  --card: 32 36 42;
   --text: 241 244 248;
   --muted-text: 148 163 184;
   --ring: 99 102 241;
