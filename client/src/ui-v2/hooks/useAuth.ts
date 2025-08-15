@@ -17,8 +17,18 @@ export function useAuth() {
       if (IS_MOCK_MODE) {
         return mockUser;
       }
-      // Real auth service call would go here
-      return null;
+      // Real auth service call to our backend
+      try {
+        const response = await fetch('/api/auth/user', { credentials: 'include' });
+        if (response.ok) {
+          const userData = await response.json();
+          return userData;
+        }
+        return null;
+      } catch (error) {
+        console.error('Auth error:', error);
+        return null;
+      }
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes

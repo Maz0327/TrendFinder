@@ -1,10 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
-export const IS_MOCK_MODE =
-  Boolean(import.meta.env.VITE_UIV2_MOCK) ||
-  (typeof window !== "undefined" &&
-    window.location &&
-    String(window.location.hostname || "").includes("stackblitz"));
+export const IS_MOCK_MODE = true; // Temporarily enable mock mode for UI-V2
 
 function authHeader(): Record<string,string> {
   try {

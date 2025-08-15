@@ -55,38 +55,37 @@ function ProjectProvider({ children }: { children: React.ReactNode }) {
 function AuthBoundary({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 
-  // Always allow access for now - bypass auth completely
-  return <>{children}</>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="glass rounded-2xl p-8 text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-ink/70">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Original auth logic commented out for direct access
-  // if (isLoading) {
+  // Temporarily bypass authentication for development
+  // if (!user && !window.location.pathname.includes('/login')) {
   //   return (
   //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-  //       <div className="glass rounded-2xl p-8 text-center">
-  //         <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-  //         <p className="text-ink/70">Loading...</p>
+  //       <div className="glass rounded-2xl p-8 text-center max-w-md">
+  //         <h2 className="text-xl font-semibold mb-4">Authentication Required</h2>
+  //         <p className="text-ink/70 mb-6">
+  //           Please sign in to access Content Radar.
+  //         </p>
+  //         <a
+  //           href="/api/login"
+  //           className="inline-block px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+  //         >
+  //           Sign In
+  //         </a>
   //       </div>
   //     );
   //   }
-  // 
-  //   if (!user && !window.location.pathname.includes('/login')) {
-  //     return (
-  //       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-  //         <div className="glass rounded-2xl p-8 text-center max-w-md">
-  //           <h2 className="text-xl font-semibold mb-4">Authentication Required</h2>
-  //           <p className="text-ink/70 mb-6">
-  //             Please sign in to access Content Radar.
-  //           </p>
-  //           <a
-  //             href="/login"
-  //             className="inline-block px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
-  //           >
-  //             Sign In
-  //           </a>
-  //         </div>
-  //       </div>
-  //     );
-  //   }
+
+  return <>{children}</>;
 }
 
 // Theme Wrapper Component

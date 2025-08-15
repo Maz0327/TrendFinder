@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { User, Key, Palette, Keyboard, Bell, Shield } from 'lucide-react';
 import { GlassCard } from '../components/primitives/GlassCard';
 import { useAuth } from '../hooks/useAuth';
+import ExtensionManager from '../components/ExtensionManager';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -82,37 +83,7 @@ export default function SettingsPage() {
         );
 
       case 'tokens':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">API Tokens</h3>
-              <p className="text-ink/70 text-sm">
-                Manage API tokens for browser extensions and integrations.
-              </p>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 glass rounded-lg">
-                <div>
-                  <div className="font-medium">Chrome Extension</div>
-                  <div className="text-sm text-ink/70">Created Jan 15, 2024</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="px-2 py-1 frost-subtle rounded text-xs font-mono text-ink">
-                    ext_••••••••••••••••
-                  </code>
-                  <button className="px-3 py-1 text-sm bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors">
-                    Revoke
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <button className="px-4 py-2 frost-strong hover:frost-card rounded-lg transition-colors text-ink">
-              Generate New Token
-            </button>
-          </div>
-        );
+        return <ExtensionManager />;
 
       case 'appearance':
         return (

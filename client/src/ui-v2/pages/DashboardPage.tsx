@@ -10,14 +10,14 @@ import {
   Zap
 } from 'lucide-react';
 import { GlassCard } from '../components/primitives/GlassCard';
-import { useProjectContext } from '../app/providers';
+// import { useProjectContext } from '../app/providers';
 import { useCaptures } from '../hooks/useCaptures';
 import { useMoments } from '../hooks/useMoments';
 import { useBriefs } from '../hooks/useBriefs';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { currentProjectId } = useProjectContext();
+  const currentProjectId = null; // Default to showing all projects
   
   const { captures } = useCaptures({ projectId: currentProjectId || undefined });
   const { moments } = useMoments({ projectId: currentProjectId || undefined });
@@ -141,7 +141,8 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.4 + index * 0.05 }}
               >
-                <GlassCard hover onClick={action.action}>
+                <GlassCard hover>
+                  <div className="cursor-pointer" onClick={action.action}>
                   <div className="flex items-center gap-3 md:gap-4">
                     <div className={`icon-container-sm md:icon-container rounded-xl ${action.color}`}>
                       <action.icon className="w-4 h-4 stroke-1 text-lg md:text-xl text-ink" />
@@ -151,6 +152,7 @@ export default function DashboardPage() {
                       <p className="text-xs md:text-sm text-ink/70 leading-relaxed mt-1">{action.description}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 stroke-1 text-ink/50 group-hover:text-ink/80 transition-colors" />
+                  </div>
                   </div>
                 </GlassCard>
               </motion.div>
@@ -179,7 +181,8 @@ export default function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
                 >
-                  <GlassCard hover onClick={() => navigate(`/briefs/${brief.id}`)}>
+                  <GlassCard hover>
+                    <div className="cursor-pointer" onClick={() => navigate(`/briefs/${brief.id}`)}>
                     <div className="space-y-3">
                       <div className="flex items-start justify-between">
                         <h3 className="text-sm md:text-base font-semibold line-clamp-2 leading-tight">{brief.title}</h3>
@@ -217,6 +220,7 @@ export default function DashboardPage() {
                           )}
                         </div>
                       )}
+                    </div>
                     </div>
                   </GlassCard>
                 </motion.div>
