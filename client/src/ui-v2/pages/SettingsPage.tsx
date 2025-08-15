@@ -42,7 +42,7 @@ export default function SettingsPage() {
                   className="w-16 h-16 rounded-full"
                 />
               ) : (
-                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 frost-subtle rounded-full flex items-center justify-center">
                   <User className="w-8 h-8" />
                 </div>
               )}
@@ -74,7 +74,7 @@ export default function SettingsPage() {
                 <p className="text-xs text-ink/50 mt-1">Email cannot be changed</p>
               </div>
               
-              <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors">
+              <button className="px-4 py-2 frost-strong hover:frost-card rounded-lg transition-colors text-ink">
                 Save Changes
               </button>
             </div>
@@ -98,7 +98,7 @@ export default function SettingsPage() {
                   <div className="text-sm text-ink/70">Created Jan 15, 2024</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="px-2 py-1 bg-white/10 rounded text-xs font-mono">
+                  <code className="px-2 py-1 frost-subtle rounded text-xs font-mono text-ink">
                     ext_••••••••••••••••
                   </code>
                   <button className="px-3 py-1 text-sm bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors">
@@ -108,7 +108,7 @@ export default function SettingsPage() {
               </div>
             </div>
             
-            <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors">
+            <button className="px-4 py-2 frost-strong hover:frost-card rounded-lg transition-colors text-ink">
               Generate New Token
             </button>
           </div>
@@ -128,7 +128,7 @@ export default function SettingsPage() {
                   <div className="w-full h-20 bg-gradient-to-br from-gray-900 to-gray-800 rounded mb-2"></div>
                   <div className="text-sm font-medium">Dark (Current)</div>
                 </button>
-                <button className="p-4 glass rounded-lg hover:bg-white/5 transition-colors">
+                <button className="p-4 glass rounded-lg hover:frost-subtle transition-colors">
                   <div className="w-full h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded mb-2"></div>
                   <div className="text-sm font-medium">Light (Coming Soon)</div>
                 </button>
@@ -168,7 +168,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-1">
                     {shortcut.keys.map((key, keyIndex) => (
                       <span key={keyIndex} className="flex items-center gap-1">
-                        <kbd className="px-2 py-1 text-xs font-mono bg-white/10 rounded border border-white/20">
+                        <kbd className="px-2 py-1 text-xs font-mono frost-subtle rounded glass-border text-ink">
                           {key}
                         </kbd>
                         {keyIndex < shortcut.keys.length - 1 && (
@@ -200,7 +200,7 @@ export default function SettingsPage() {
                 { title: 'Cultural Moments', description: 'When new moments are detected' },
                 { title: 'System Updates', description: 'Important system announcements' },
               ].map((item, index) => (
-                <label key={index} className="flex items-start gap-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
+                <label key={index} className="flex items-start gap-3 p-3 glass rounded-lg cursor-pointer hover:frost-subtle transition-colors">
                   <input type="checkbox" defaultChecked className="mt-1 text-blue-500" />
                   <div>
                     <div className="font-medium">{item.title}</div>

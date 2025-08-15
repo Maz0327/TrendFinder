@@ -71,7 +71,7 @@ export default function ProjectsPage() {
           
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-500 hover:bg-blue-600 hover:scale-[1.02] rounded-lg transition-all duration-200 hover:shadow-lg text-sm md:text-base"
+            className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 frost-strong hover:frost-card hover:scale-[1.02] rounded-lg transition-all duration-200 glass-shadow text-sm md:text-base text-ink"
           >
             <Plus className="w-3 h-3 md:w-4 md:h-4" />
             <span className="hidden sm:inline">New Project</span>
@@ -95,8 +95,8 @@ export default function ProjectsPage() {
                 <div className="flex items-start gap-4">
                   <div className={`p-3 rounded-xl ${
                     currentProjectId === project.id 
-                      ? 'bg-blue-500/20 text-blue-400' 
-                      : 'bg-white/10 text-ink/70'
+                      ? 'frost-strong text-blue-400' 
+                      : 'frost-subtle text-ink/70'
                   }`}>
                     <Folder className="w-6 h-6" />
                   </div>

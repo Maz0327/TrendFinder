@@ -27,7 +27,7 @@ export function BlockImage({ block }: BlockImageProps) {
   return (
     <div
       className={cn(
-        'w-full h-full relative overflow-hidden rounded border border-gray-200',
+        'w-full h-full relative overflow-hidden rounded glass-border',
         isSelected && 'ring-2 ring-blue-500 ring-offset-2'
       )}
     >

@@ -87,7 +87,7 @@ export default function FeedsPage() {
           
           <button
             onClick={() => setShowAddModal(true)}
-           className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-blue-500 hover:bg-blue-600 hover:scale-[1.02] rounded-lg transition-all duration-200 hover:shadow-lg text-sm md:text-base"
+           className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 frost-strong hover:frost-card hover:scale-[1.02] rounded-lg transition-all duration-200 glass-shadow text-sm md:text-base text-ink"
           >
             <Plus className="w-3 h-3 md:w-4 md:h-4" />
             <span className="hidden sm:inline">Add Feed</span>
@@ -104,7 +104,7 @@ export default function FeedsPage() {
                 <button
                   key={feed.url}
                   onClick={() => handleQuickAdd(feed)}
-                  className="p-3 glass rounded-lg hover:bg-white/10 hover:scale-[1.02] transition-all duration-200 text-left touch-target"
+                  className="p-3 glass rounded-lg hover:frost-subtle hover:scale-[1.02] transition-all duration-200 text-left touch-target"
                 >
                   <div className="font-medium text-sm">{feed.title}</div>
                   <div className="text-xs text-ink/50 truncate mt-1">

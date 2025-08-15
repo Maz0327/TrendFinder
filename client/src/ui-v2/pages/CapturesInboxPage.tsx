@@ -101,8 +101,8 @@ export default function CapturesInboxPage() {
                 onClick={() => setViewMode('grid')}
                 className={`icon-container-sm rounded-lg transition-colors ${
                   viewMode === 'grid' 
-                    ? 'bg-blue-500/20 text-blue-400' 
-                    : 'hover:bg-white/10'
+                    ? 'frost-strong text-blue-400' 
+                    : 'hover:frost-subtle'
                 }`}
               >
                 <Grid className="w-4 h-4 stroke-1" />
@@ -111,8 +111,8 @@ export default function CapturesInboxPage() {
                 onClick={() => setViewMode('list')}
                 className={`icon-container-sm rounded-lg transition-colors ${
                   viewMode === 'list' 
-                    ? 'bg-blue-500/20 text-blue-400' 
-                    : 'hover:bg-white/10'
+                    ? 'frost-strong text-blue-400' 
+                    : 'hover:frost-subtle'
                 }`}
               >
                 <List className="w-4 h-4 stroke-1" />

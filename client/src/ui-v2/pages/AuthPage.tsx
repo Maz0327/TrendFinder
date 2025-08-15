@@ -17,7 +17,7 @@ export default function AuthPage() {
 
   if (isAuthenticated && user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+      <div className="min-h-screen flex items-center justify-center app-bg p-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -36,7 +36,7 @@ export default function AuthPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => navigate('/')}
-                className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+                className="flex-1 px-4 py-2 frost-strong hover:frost-card rounded-lg transition-colors text-ink"
               >
                 Continue to App
               </button>
@@ -55,7 +55,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+    <div className="min-h-screen flex items-center justify-center app-bg p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -73,7 +73,7 @@ export default function AuthPage() {
           
           <a
             href={getSignInUrl()}
-            className="inline-flex items-center gap-3 px-6 py-3 bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+            className="inline-flex items-center gap-3 px-6 py-3 frost-strong hover:frost-card rounded-lg font-medium transition-colors text-ink"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

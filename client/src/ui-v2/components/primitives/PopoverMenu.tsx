@@ -78,7 +78,7 @@ export function PopoverMenuItem({
     <motion.button
       className={cn(
         'w-full flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 rounded-lg text-left transition-all duration-200 touch-target min-w-0 leading-relaxed',
-        'hover:bg-white/10 focus:outline-none focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50',
+        'hover:frost-subtle focus:outline-none focus:frost-subtle focus:ring-2 focus:ring-blue-500/50',
         'text-ink',
         destructive && 'text-red-400 hover:bg-red-500/10'
       )}

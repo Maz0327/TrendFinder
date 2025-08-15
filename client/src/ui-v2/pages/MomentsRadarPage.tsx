@@ -153,7 +153,7 @@ export default function MomentsRadarPage() {
                   <div className="flex-1">
                     <div className="text-sm font-medium truncate">{moment.title}</div>
                   </div>
-                  <div className="w-32 bg-white/10 rounded-full h-2 overflow-hidden">
+                  <div className="w-32 frost-subtle rounded-full h-2 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
                       style={{ width: `${moment.intensity}%` }}

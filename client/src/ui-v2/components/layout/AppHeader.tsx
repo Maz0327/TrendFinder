@@ -170,7 +170,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                       className="w-8 h-8 rounded-full"
                     />
                   ) : (
-                    <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 frost-subtle rounded-full flex items-center justify-center">
                       <User className="w-4 h-4 stroke-1" />
                     </div>
                   )}
@@ -182,7 +182,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                 <SheetClose asChild>
                   <button
                     onClick={() => signOut()}
-                    className="w-full px-3 py-2 glass rounded-lg hover:bg-white/10 transition-colors text-sm"
+                    className="w-full px-3 py-2 glass rounded-lg hover:frost-subtle transition-colors text-sm"
                   >
                     Sign Out
                   </button>
@@ -193,13 +193,13 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
         </Sheet>
         
         <div className="flex items-center gap-1 md:gap-2">
-          <button className="p-1.5 md:p-2 flex items-center justify-center hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[36px] min-w-[36px] md:min-h-[40px] md:min-w-[40px]">
+          <button className="p-1.5 md:p-2 flex items-center justify-center hover:frost-subtle rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[36px] min-w-[36px] md:min-h-[40px] md:min-w-[40px]">
             <Search className="w-4 h-4 stroke-1" />
           </button>
           
-          <button className="p-1.5 md:p-2 flex items-center justify-center hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 relative min-h-[36px] min-w-[36px] md:min-h-[40px] md:min-w-[40px]">
+          <button className="p-1.5 md:p-2 flex items-center justify-center hover:frost-subtle rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 relative min-h-[36px] min-w-[36px] md:min-h-[40px] md:min-w-[40px]">
             <Bell className="w-4 h-4 stroke-1" />
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-gray-900"></span>
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full glass-border"></span>
           </button>
           
           <ThemeToggle />
@@ -207,7 +207,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
           <div className="hidden md:block">
             <PopoverMenu
               trigger={
-                <button className="flex items-center gap-1 md:gap-2 p-2 hover:bg-white/10 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[40px]">
+                <button className="flex items-center gap-1 md:gap-2 p-2 hover:frost-subtle rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[40px]">
                   {user?.avatarUrl ? (
                     <img 
                       src={user.avatarUrl} 
@@ -228,7 +228,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               <PopoverMenuItem icon={<Settings className="w-4 h-4" />}>
                 Settings
               </PopoverMenuItem>
-              <div className="border-t border-white/10 my-1"></div>
+              <div className="border-t glass-border my-1"></div>
               <PopoverMenuItem 
                 onClick={() => signOut()}
                 destructive
