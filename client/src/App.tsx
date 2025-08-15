@@ -30,7 +30,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="min-h-screen ui-v2 ui-v2-app-bg" style={{ color: 'rgb(var(--text))' }}>
+        <div className="min-h-screen text-zinc-100" style={{ backgroundColor: '#070707' }}>
           <Switch>
             {/* Public auth routes */}
             <Route path="/login" component={LoginPage} />
