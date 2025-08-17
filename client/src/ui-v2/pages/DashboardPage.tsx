@@ -19,14 +19,14 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const currentProjectId = null; // Default to showing all projects
   
-  const { captures } = useCaptures({ projectId: currentProjectId || undefined });
+  const { captures } = useCaptures({});
   const { moments } = useMoments({ projectId: currentProjectId || undefined });
   const { briefs } = useBriefs({ projectId: currentProjectId || undefined });
 
   const stats = [
     {
       label: "Today's Captures",
-      value: captures.filter(c => {
+      value: captures.filter((c: any) => {
         const today = new Date().toDateString();
         return new Date(c.createdAt).toDateString() === today;
       }).length,
