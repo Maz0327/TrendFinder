@@ -81,6 +81,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**August 17, 2025 - UI-V2 Glassmorphism Polish Complete**
+- **Visibility Issues Resolved**: Fixed critical CSS color syntax from invalid `rgba(var(--card), 0.6)` to proper `rgb(var(--card) / 0.8)` ✅
+- **Enhanced Blur Effects**: Increased backdrop-filter blur values (header: 20px, cards: 16px, strong: 24px, subtle: 12px) ✅
+- **Navigation Standardization**: Fixed profile dropdown and projects dropdown spacing and sizing for consistency ✅
+- **Color Palette Optimization**: Lightened background colors from RGB(12,12,14) to RGB(24,28,32) for better visibility ✅
+- **Design System Cohesion**: Achieved unified glassmorphism aesthetic across all UI-V2 components ✅
+
 **August 15, 2025 - Chrome Extension MV3 Implementation Complete**
 - **Complete Extension Structure**: Scaffolded full MV3 extension with service worker, content scripts, offscreen document, popup UI, and options page ✅
 - **Advanced Capture System**: User-drawn bounding box selection with screenshot and screen recording capabilities using CropTarget API ✅

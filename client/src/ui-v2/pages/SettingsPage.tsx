@@ -36,9 +36,9 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              {user?.avatarUrl ? (
+              {user?.avatar_url ? (
                 <img
-                  src={user.avatarUrl}
+                  src={user.avatar_url}
                   alt={user.name || user.email}
                   className="w-16 h-16 rounded-full"
                 />

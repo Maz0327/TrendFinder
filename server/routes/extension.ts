@@ -112,7 +112,7 @@ r.patch("/devices/:id", requireAuth, async (req: any, res, next) => {
     const device = await storage.getExtensionDevice(deviceId);
     if (!device || device.user_id !== userId) return res.status(404).json({ error: "not_found" });
     
-    if (label !== undefined) await storage.updateDeviceLabel(deviceId, label);
+    if (label !== undefined && label !== null) await storage.updateDeviceLabel(deviceId, label);
     if (revoke) await storage.revokeDevice(deviceId);
     res.status(204).end();
   } catch (e) { next(e); }
