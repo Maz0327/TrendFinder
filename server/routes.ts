@@ -48,7 +48,9 @@ import googleExportsRouter from "./routes/google-exports";
 import { setupSettingsRoutes } from "./routes/settings";
 import { setupAnnotationsRoutes } from "./routes/annotations";
 import { setupAnalyticsRoutes } from "./routes/analytics";
-import { setupSearchRoutes } from "./routes/search";
+import searchRouter from "./routes/search";
+import captureAnalysisRouter from "./routes/capture-analysis";
+import adminAnalysisRouter from "./routes/admin-analysis";
 import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
 import { productionMonitor } from "./monitoring/productionMonitor";
 import briefBlocksRouter from "./routes/brief-blocks";
@@ -420,7 +422,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Legacy route registration - now handled by new API routes above
   registerGoogleExportRoutes(app);
   setupAnalyticsRoutes(app);
-  setupSearchRoutes(app);
+  // Analysis Read-Model v1 routes
+  app.use("/api/captures", captureAnalysisRouter);
+  app.use("/api/search", searchRouter);
+  app.use("/api/admin", adminAnalysisRouter);
 
   // Get dashboard stats
   app.get("/api/stats", async (req, res) => {

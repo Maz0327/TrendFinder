@@ -9,6 +9,7 @@ import { useCaptures } from '../hooks/useCaptures';
 import { useProjectContext } from '../app/providers';
 import { Capture } from '../types';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
+import { ShotsPanel, CaptionsPanel, SimilarPanel, TranscriptPanel, AnalysisTrigger } from '../components/capture/AnalysisPanels';
 
 const statusColumns = [
   { id: 'new', title: 'New', color: 'frost-card text-ink' },
@@ -441,6 +442,22 @@ export default function CapturesInboxPage() {
                         </a>
                       </div>
                     )}
+
+                    {/* Analysis Read-Model Panels */}
+                    <div>
+                      <h3 className="font-semibold mb-4">Media Analysis</h3>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="space-y-4">
+                          <AnalysisTrigger captureId={capture.id} />
+                          <ShotsPanel captureId={capture.id} />
+                          <TranscriptPanel captureId={capture.id} />
+                        </div>
+                        <div className="space-y-4">
+                          <CaptionsPanel captureId={capture.id} />
+                          <SimilarPanel captureId={capture.id} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               })()}

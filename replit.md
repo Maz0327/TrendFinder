@@ -81,6 +81,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**August 17, 2025 - Analysis Read-Model v1 System Complete**
+- **Database Infrastructure**: Implemented comprehensive analysis tables with pgvector support for advanced text similarity search ✅
+- **Media Analysis Pipeline**: Created sophisticated worker system for shot segmentation, keyframe extraction, and grounded caption generation ✅
+- **AI Integration**: Built provider-agnostic AI services supporting Google Gemini and OpenAI for caption generation and text embeddings ✅
+- **Similarity Search**: Implemented k-NN cosine similarity search using pgvector for finding related captures ✅
+- **API Architecture**: Added complete read-model APIs for shots, keyframes, transcripts, OCR, detections, and captions ✅
+- **UI Integration**: Seamlessly integrated analysis panels into capture detail views using existing glassmorphism design ✅
+- **Admin Pipeline**: Created trigger endpoint for manual analysis pipeline execution and testing ✅
+- **Production Ready**: All components follow established patterns with proper error handling and authentication ✅
+
+**Key Analysis Features Implemented:**
+- **Shot Detection**: Automatic video segmentation with ffmpeg scene detection (fallback to single shot)
+- **Keyframe Extraction**: Smart sampling of representative frames per shot for visual analysis
+- **Grounded Captions**: Evidence-based summaries using transcript + OCR + visual data
+- **Text Embeddings**: OpenAI-powered semantic search for content similarity matching
+- **Vector Search**: Efficient similarity queries using pgvector IVFFLAT indexing
+- **Multi-provider AI**: Support for Google Gemini and OpenAI with graceful fallbacks
+
 **August 17, 2025 - UI-V2 Glassmorphism Polish Complete**
 - **Visibility Issues Resolved**: Fixed critical CSS color syntax from invalid `rgba(var(--card), 0.6)` to proper `rgb(var(--card) / 0.8)` ✅
 - **Enhanced Blur Effects**: Increased backdrop-filter blur values (header: 20px, cards: 16px, strong: 24px, subtle: 12px) ✅
