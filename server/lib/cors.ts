@@ -19,6 +19,11 @@ const getAllowedOrigins = (): string[] => {
     defaults.push(...replitDomains);
   }
 
+  // Add Chrome extension origin if configured
+  if (process.env.CHROME_EXTENSION_ID) {
+    defaults.push(`chrome-extension://${process.env.CHROME_EXTENSION_ID}`);
+  }
+
   return defaults;
 };
 
