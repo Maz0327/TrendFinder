@@ -10,6 +10,9 @@ import BriefCanvasPage from '../pages/BriefCanvasPage';
 import FeedsPage from '../pages/FeedsPage';
 import SettingsPage from '../pages/SettingsPage';
 import NotFoundPage from '../pages/NotFoundPage';
+import { ProjectUploadPage } from '../pages/ProjectUploadPage';
+import { TruthLabPage } from '../pages/TruthLabPage';
+import { TruthDetailPage } from '../pages/TruthDetailPage';
 
 export const routes: RouteObject[] = [
   {
@@ -27,6 +30,10 @@ export const routes: RouteObject[] = [
       {
         path: 'projects',
         element: <ProjectsPage />,
+      },
+      {
+        path: 'projects/:projectId/upload',
+        element: <ProjectUploadPage />,
       },
       {
         path: 'captures',
@@ -47,6 +54,14 @@ export const routes: RouteObject[] = [
       {
         path: 'feeds',
         element: <FeedsPage />,
+      },
+      {
+        path: 'truth-lab',
+        element: <TruthLabPage />,
+      },
+      {
+        path: 'truth-lab/:id',
+        element: <TruthDetailPage />,
       },
       {
         path: 'settings',
