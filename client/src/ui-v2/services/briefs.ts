@@ -27,3 +27,9 @@ export function updateBrief(id: ID, patch: Partial<Brief>) {
 export function exportBriefToSlides(id: ID) {
   return api.post<{ ok: true; slideUrl?: string }>(`/briefs/${id}/export/slides`);
 }
+
+// Some pages may import deleteBrief or removeBrief — provide both
+export function deleteBrief(id: ID) {
+  return api.del<{ ok: true }>(`/briefs/${id}`);
+}
+export const removeBrief = deleteBrief;

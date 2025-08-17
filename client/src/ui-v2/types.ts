@@ -37,6 +37,19 @@ export interface Brief {
   status?: string | null;
   created_at?: string;
   updated_at?: string;
+  slides?: any[];
+}
+
+export interface BriefDetail extends Brief {
+  slides: any[];
+}
+
+export interface Slide {
+  id: string;
+  brief_id: string;
+  title?: string;
+  order_index: number;
+  blocks: any[];
 }
 
 export interface UserFeed {

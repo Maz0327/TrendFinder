@@ -9,7 +9,8 @@
     "node_modules",
     "build",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "client/src/_legacy/**/*"
   ],
   "compilerOptions": {
     "target": "ES2018",

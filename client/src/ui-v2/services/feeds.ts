@@ -19,3 +19,9 @@ export function createFeed(payload: { feed_url: string; title?: string | null; p
 export function updateFeed(id: ID, patch: Partial<UserFeed>) {
   return api.patch<UserFeed>(`/user-feeds/${id}`, patch);
 }
+
+// Provide deletes under both names in case of import variance
+export function deleteFeed(id: ID) {
+  return api.del<{ ok: true }>(`/user-feeds/${id}`);
+}
+export const removeFeed = deleteFeed;

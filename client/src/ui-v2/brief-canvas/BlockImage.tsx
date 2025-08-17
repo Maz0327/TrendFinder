@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/ui-v2/lib/utils';
-import { Block } from '../types';
+import { Block } from './types';
 import { useCanvasStore } from './useCanvasStore';
 import { ExternalLink } from 'lucide-react';
 

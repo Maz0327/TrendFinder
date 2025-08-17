@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/ui-v2/lib/utils';
-import { Block } from '../types';
+import { Block } from './types';
 import { useCanvasStore } from './useCanvasStore';
 
 interface BlockTextProps {

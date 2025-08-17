@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, createContext, useContext, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { IS_MOCK_MODE } from "../services/http";
-import { useAuth } from "../hooks/useAuth";
+import { IS_MOCK_MODE } from "../lib/api";
+import { useAuth, AuthProvider } from "../hooks/useAuth";
 
 const qc = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -72,7 +72,9 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={qc}>
       <ThemeProvider>
         <ProjectProvider>
-          <AuthBoundary>{children}</AuthBoundary>
+          <AuthProvider>
+            <AuthBoundary>{children}</AuthBoundary>
+          </AuthProvider>
         </ProjectProvider>
       </ThemeProvider>
     </QueryClientProvider>

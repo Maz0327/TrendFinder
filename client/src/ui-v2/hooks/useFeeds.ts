@@ -1,47 +1,37 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { feedsService } from '../services/feeds';
-import { Feed } from '../types';
+import { listFeeds, createFeed, updateFeed, deleteFeed } from '../services/feeds';
+import { UserFeed } from '../types';
 
 export function useFeeds() {
   const queryClient = useQueryClient();
 
   const { data: feeds = [], isLoading, error } = useQuery({
     queryKey: ['feeds'],
-    queryFn: feedsService.list,
+    queryFn: () => listFeeds(),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
   const createMutation = useMutation({
-    mutationFn: feedsService.create,
+    mutationFn: createFeed,
     onSuccess: (newFeed) => {
-      queryClient.setQueryData(['feeds'], (old: Feed[] = []) => [newFeed, ...old]);
+      queryClient.setQueryData(['feeds'], (old: UserFeed[] = []) => [newFeed, ...old]);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<Feed>) =>
-      feedsService.update(id, data),
+    mutationFn: ({ id, ...data }: { id: string } & Partial<UserFeed>) =>
+      updateFeed(id, data),
     onSuccess: (updatedFeed) => {
-      queryClient.setQueryData(['feeds'], (old: Feed[] = []) =>
-        old.map((f) => (f.id === updatedFeed.id ? updatedFeed : f))
-      );
-    },
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      feedsService.toggle(id, isActive),
-    onSuccess: (updatedFeed) => {
-      queryClient.setQueryData(['feeds'], (old: Feed[] = []) =>
+      queryClient.setQueryData(['feeds'], (old: UserFeed[] = []) =>
         old.map((f) => (f.id === updatedFeed.id ? updatedFeed : f))
       );
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: feedsService.delete,
+    mutationFn: deleteFeed,
     onSuccess: (_, deletedId) => {
-      queryClient.setQueryData(['feeds'], (old: Feed[] = []) =>
+      queryClient.setQueryData(['feeds'], (old: UserFeed[] = []) =>
         old.filter((f) => f.id !== deletedId)
       );
     },
@@ -53,11 +43,9 @@ export function useFeeds() {
     error,
     createFeed: createMutation.mutateAsync,
     updateFeed: updateMutation.mutateAsync,
-    toggleFeed: toggleMutation.mutateAsync,
     deleteFeed: deleteMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
-    isToggling: toggleMutation.isPending,
     isDeleting: deleteMutation.isPending,
   };
 }
