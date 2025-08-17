@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { LogIn, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -7,13 +7,13 @@ import { GlassCard } from '../components/primitives/GlassCard';
 
 export default function AuthPage() {
   const { user, isAuthenticated, getSignInUrl, signOut, isSigningOut } = useAuth();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/', { replace: true });
+      setLocation('/');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, setLocation]);
 
   if (isAuthenticated && user) {
     return (
@@ -35,7 +35,7 @@ export default function AuthPage() {
             
             <div className="flex gap-3">
               <button
-                onClick={() => navigate('/')}
+                onClick={() => setLocation('/')}
                 className="flex-1 px-4 py-2 frost-strong hover:frost-card rounded-lg transition-colors text-ink"
               >
                 Continue to App

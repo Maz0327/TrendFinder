@@ -60,8 +60,14 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
   // If we have a user (including mock user), show the app
   if (user) return <>{children}</>;
   
-  // If no user and not mock mode, show sign in
-  if (!IS_MOCK_MODE) return <div className="p-6 text-ink">Please sign in.</div>;
+  // If no user and not mock mode, redirect to login
+  if (!IS_MOCK_MODE) {
+    // Use window.location to redirect to login page
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.href = '/login';
+      return <div className="p-6 text-ink">Redirecting to login...</div>;
+    }
+  }
   
   // Fallback for mock mode without user - should not happen
   return <>{children}</>;
