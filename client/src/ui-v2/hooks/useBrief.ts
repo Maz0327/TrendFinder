@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { briefsService, jobsService } from '../services/briefs';
+import { getBriefWithDetails, updateBrief, exportBriefToSlides } from '../../services/briefs';
 import { BriefDetail } from '../types';
 
 export function useBrief(id: string) {
@@ -7,13 +7,13 @@ export function useBrief(id: string) {
 
   const { data: brief, isLoading, error } = useQuery({
     queryKey: ['briefs', id],
-    queryFn: () => briefsService.get(id),
+    queryFn: () => getBriefWithDetails(id),
     enabled: !!id,
     staleTime: 30 * 1000, // 30 seconds
   });
 
   const saveMutation = useMutation({
-    mutationFn: (briefDetail: BriefDetail) => briefsService.save(id, briefDetail),
+    mutationFn: (briefDetail: BriefDetail) => updateBrief(id, briefDetail),
     onSuccess: (updatedBrief) => {
       queryClient.setQueryData(['briefs', id], updatedBrief);
       // Also update the brief in the list
@@ -34,7 +34,7 @@ export function useBrief(id: string) {
   });
 
   const exportMutation = useMutation({
-    mutationFn: () => briefsService.export(id),
+    mutationFn: () => exportBriefToSlides(id),
   });
 
   return {

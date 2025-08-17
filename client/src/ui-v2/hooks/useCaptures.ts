@@ -1,72 +1,40 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { capturesService, CapturesListParams } from '../services/captures';
-import { Capture } from '../types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listCaptures, getCapture, updateCapture, uploadCapture } from "../services/captures";
+import type { Capture, Paginated, ID } from "../types";
 
-export function useCaptures(params: CapturesListParams) {
-  const queryClient = useQueryClient();
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['captures', params],
-    queryFn: () => capturesService.list(params),
-    staleTime: 30 * 1000, // 30 seconds
+export function useCaptures(params?: { page?: number; pageSize?: number; q?: string; tags?: string[]; projectId?: ID }) {
+  return useQuery({
+    queryKey: ["captures", params],
+    queryFn: () => listCaptures(params),
   });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<Capture>) =>
-      capturesService.update(id, data),
-    onSuccess: (updatedCapture) => {
-      // Update the capture in all relevant queries
-      queryClient.setQueriesData(
-        { queryKey: ['captures'] },
-        (old: any) => {
-          if (!old?.items) return old;
-          return {
-            ...old,
-            items: old.items.map((c: Capture) =>
-              c.id === updatedCapture.id ? updatedCapture : c
-            ),
-          };
-        }
-      );
-    },
-  });
-
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: Capture['status'] }) =>
-      capturesService.updateStatus(id, status),
-    onSuccess: (updatedCapture) => {
-      queryClient.setQueriesData(
-        { queryKey: ['captures'] },
-        (old: any) => {
-          if (!old?.items) return old;
-          return {
-            ...old,
-            items: old.items.map((c: Capture) =>
-              c.id === updatedCapture.id ? updatedCapture : c
-            ),
-          };
-        }
-      );
-    },
-  });
-
-  return {
-    captures: data?.items || [],
-    total: data?.total || 0,
-    page: data?.page || 1,
-    limit: data?.limit || 20,
-    isLoading,
-    error,
-    updateCapture: updateMutation.mutateAsync,
-    updateStatus: updateStatusMutation.mutateAsync,
-    isUpdating: updateMutation.isPending || updateStatusMutation.isPending,
-  };
 }
 
-export function useCapture(id: string) {
+export function useCapture(id: ID) {
   return useQuery({
-    queryKey: ['captures', id],
-    queryFn: () => capturesService.get(id),
+    queryKey: ["capture", id],
+    queryFn: () => getCapture(id),
     enabled: !!id,
+  });
+}
+
+export function useUpdateCapture(id: ID) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<Capture>) => updateCapture(id, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["captures"] });
+      qc.invalidateQueries({ queryKey: ["capture", id] });
+    },
+  });
+}
+
+export function useUploadCaptures() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { files: File[]; project_id?: ID | null; notes?: string }) =>
+      uploadCapture(input.files, { project_id: input.project_id, notes: input.notes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["captures"] });
+    },
   });
 }

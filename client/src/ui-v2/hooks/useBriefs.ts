@@ -1,23 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { briefsService, BriefsListParams } from '../services/briefs';
+import { listBriefs, createBrief, updateBrief, deleteBrief } from '../../services/briefs';
 import { Brief } from '../types';
+
+type BriefsListParams = { projectId?: string; q?: string; tags?: string[]; page?: number; pageSize?: number };
 
 export function useBriefs(params: BriefsListParams) {
   const queryClient = useQueryClient();
 
   const { data: briefs = [], isLoading, error } = useQuery({
     queryKey: ['briefs', params],
-    queryFn: () => briefsService.list(params),
+    queryFn: () => listBriefs(params),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
   const createMutation = useMutation({
-    mutationFn: briefsService.create,
+    mutationFn: createBrief,
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...data }: { id: string } & Partial<Brief>) =>
-      briefsService.update(id, data),
+      updateBrief(id, data),
     onSuccess: (updatedBrief) => {
       queryClient.setQueriesData(
         { queryKey: ['briefs'] },
@@ -28,7 +30,7 @@ export function useBriefs(params: BriefsListParams) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: briefsService.delete,
+    mutationFn: (id: string) => deleteBrief(id),
     onSuccess: (_, deletedId) => {
       queryClient.setQueriesData(
         { queryKey: ['briefs'] },

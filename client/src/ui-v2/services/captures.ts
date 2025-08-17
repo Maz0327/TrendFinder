@@ -1,65 +1,25 @@
-import { api, IS_MOCK_MODE } from './http';
+import { api } from "../lib/api";
+import type { ID, Capture, Paginated } from "../types";
 
-export interface CapturesListParams {
-  page?: number;
-  pageSize?: number;
-  status?: string;
+export function listCaptures(params?: { page?: number; pageSize?: number; q?: string; tags?: string[]; projectId?: ID }) {
+  const qp: Record<string, any> = { ...params };
+  if (params?.tags) qp.tags = params.tags.join(",");
+  return api.get<Paginated<Capture>>("/captures", qp);
 }
 
-export const capturesService = {
-  async list(params: CapturesListParams = {}) {
-    if (IS_MOCK_MODE) {
-      return { data: [], total: 0, page: 1, pageSize: 20 };
-    }
-    const qp = new URLSearchParams();
-    if (params.page) qp.set('page', String(params.page));
-    if (params.pageSize) qp.set('pageSize', String(params.pageSize));
-    if (params.status) qp.set('status', params.status);
-    return api.request(`/api/captures?${qp}`);
-  },
-
-  async get(id: string) {
-    if (IS_MOCK_MODE) {
-      return { id, title: 'Mock Capture', project_id: 'mock', created_at: new Date().toISOString() };
-    }
-    return api.request(`/api/captures/${id}`);
-  },
-
-  async update(id: string, data: any) {
-    if (IS_MOCK_MODE) {
-      return { id, ...data, updated_at: new Date().toISOString() };
-    }
-    return api.request(`/api/captures/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
-  },
-
-  async updateStatus(id: string, status: string) {
-    return this.update(id, { status });
-  }
-};
-
-export async function uploadCaptures(projectId: string, items: { file: File; note?: string; title?: string }[]) {
-  if (IS_MOCK_MODE) {
-    return { ok: true, created: items.map((x,i)=>({ id:`mock-${i}`, title:x.title||x.file.name, project_id:projectId, created_at:new Date().toISOString() })) };
-  }
-  const fd = new FormData();
-  for (const it of items) {
-    fd.append('files', it.file);
-    if (it.note) fd.append('notes', it.note);
-    if (it.title) fd.append('titles', it.title);
-  }
-  return api.request<{ ok:boolean; created:any[] }>(`/api/projects/${projectId}/captures/upload`, { method: 'POST', body: fd });
+export function getCapture(id: ID) {
+  return api.get<Capture>(`/captures/${id}`);
 }
 
-export async function getCaptures(projectId: string) {
-  if (IS_MOCK_MODE) {
-    return { data: [] };
-  }
-  return api.request(`/api/projects/${projectId}/captures`);
+export function updateCapture(id: ID, patch: Partial<Capture>) {
+  return api.patch<Capture>(`/captures/${id}`, patch);
 }
 
-export async function getCapture(id: string) {
-  if (IS_MOCK_MODE) {
-    return { id, title: 'Mock Capture', project_id: 'mock', created_at: new Date().toISOString() };
-  }
-  return api.request(`/api/captures/${id}`);
+// upload via form-data (server stores to Supabase storage)
+export function uploadCapture(files: File[], meta?: { project_id?: ID | null; notes?: string }) {
+  const form = new FormData();
+  files.forEach((f) => form.append("files", f));
+  if (meta?.project_id) form.set("project_id", meta.project_id);
+  if (meta?.notes) form.set("notes", meta.notes);
+  return api.post<{ uploaded: Capture[] }>("/captures/upload", form);
 }

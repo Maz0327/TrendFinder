@@ -1,100 +1,84 @@
 export type ID = string;
 
-export interface User {
-  id: ID;
-  email: string;
-  name?: string | null;
-  avatarUrl?: string | null;
+export interface Paginated<T> {
+  data: T[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
 
 export interface Project {
   id: ID;
   name: string;
-  description?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  created_at?: string;
 }
 
 export interface Capture {
   id: ID;
-  projectId: ID;
-  userId: ID;
+  project_id?: ID | null;
+  user_id?: ID;
   title: string;
-  content: string;
+  content?: string | null;
   platform?: string | null;
   url?: string | null;
-  tags: string[];
-  status: 'new' | 'keep' | 'trash';
-  imageUrl?: string | null;
-  videoUrl?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Moment {
-  id: ID;
-  title: string;
-  description: string;
-  intensity: number;
-  tags: string[];
-  platforms: string[];
-  createdAt: string;
-  updatedAt: string;
+  file_path?: string | null;
+  file_size?: number | null;
+  file_type?: string | null;
+  tags?: string[];
+  created_at?: string;
+  updated_at?: string;
+  analysis?: any; // expanded by read-model API
 }
 
 export interface Brief {
   id: ID;
-  projectId: ID;
+  project_id?: ID | null;
   title: string;
-  status: 'draft' | 'in_review' | 'final';
-  tags: string[];
-  slideCount: number;
-  updatedAt: string;
-  createdAt: string;
+  status?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface BriefDetail extends Brief {
-  slides: Slide[];
-}
-
-export interface Slide {
+export interface UserFeed {
   id: ID;
+  project_id?: ID | null;
+  // user_id is injected on the server; not required in client payloads
+  feed_url: string;
   title?: string | null;
-  blocks: Block[];
-  captureRefs?: ID[];
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TruthCheckInput {
+  kind: "url" | "text" | "image";
+  url?: string;
+  text?: string;
+  imageFileId?: string; // storage/file ref if uploaded
+  project_id?: ID | null;
+}
+
+export interface TruthCheckResult {
+  id: ID;
+  verdict: "true" | "false" | "uncertain";
+  confidence: number; // 0..1
+  summary: string;
+  evidence: Array<{ type: "link" | "quote" | "image"; value: string }>;
+  created_at: string;
 }
 
 export interface Block {
   id: ID;
-  type: 'text' | 'image' | 'note';
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  rotation?: number;
-  text?: string;
+  type: string;
+  content: any;
+  position?: { x: number; y: number };
+  x?: number;
+  y?: number;
   src?: string;
-  alt?: string | null;
-  align?: 'left' | 'center' | 'right';
+  alt?: string;
+  text?: string;
   fontSize?: number;
-  weight?: number;
-  sourceCaptureId?: ID | null;
-}
-
-export interface Feed {
-  id: ID;
-  userId: ID;
-  projectId?: ID | null;
-  feedUrl: string;
-  title?: string | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Job {
-  id: ID;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  result?: any;
-  error?: string;
+  weight?: string;
+  align?: string;
+  sourceCaptureId?: string;
 }

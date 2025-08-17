@@ -24,7 +24,7 @@ function ExtensionIntegration() {
   const queryClient = useQueryClient();
 
   // Fetch extension devices
-  const { data: devices = [], isLoading: devicesLoading } = useQuery({
+  const { data: devices = [], isLoading: devicesLoading } = useQuery<ExtensionDevice[]>({
     queryKey: ["/api/extension/devices"],
   });
 
@@ -33,7 +33,7 @@ function ExtensionIntegration() {
     mutationFn: async (label: string) => {
       return await apiRequest("/api/extension/pair", {
         method: "POST",
-        body: { label: label || null },
+        body: JSON.stringify({ label: label || null }),
       });
     },
     onSuccess: (data) => {
@@ -60,7 +60,7 @@ function ExtensionIntegration() {
     mutationFn: async (deviceId: string) => {
       return await apiRequest(`/api/extension/devices/${deviceId}`, {
         method: "PATCH",
-        body: { revoke: true },
+        body: JSON.stringify({ revoke: true }),
       });
     },
     onSuccess: () => {

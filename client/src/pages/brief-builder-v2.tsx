@@ -54,7 +54,7 @@ export default function BriefBuilderV2() {
     setSelectedCaptures(mockCaptures);
   }, []);
 
-  const handleExportToSlides = async (briefId: string, options?: { templateId?: string }) => {
+  const handleExportToSlides = async (options: { title: string; outline: any[] }) => {
     setIsExporting(true);
     
     try {
@@ -63,38 +63,23 @@ export default function BriefBuilderV2() {
         description: "Creating your Google Slides presentation"
       });
 
-      const result = await exportBriefToSlides(briefId, options);
+      const result = await exportBriefToSlides('mock-brief-id', { templateId: 'default' });
 
       toast({
         title: "Export successful!",
-        description: "Your brief is ready in Google Slides"
+        description: `Your brief is ready: ${result.slideUrl}`,
       });
 
-      // Open the slides in a new tab if URL is provided
-      if (result.slideUrl) {
-        window.open(result.slideUrl, '_blank');
-      }
+      // Open the slides in a new tab
+      window.open(result.slideUrl, '_blank');
       
     } catch (error: any) {
       console.error('Export failed:', error);
-      
-      if (error.message?.includes('Google') || error.message?.includes('401')) {
-        toast({
-          title: "Google connection required",
-          description: "Please connect your Google account to export briefs",
-          variant: "destructive"
-        });
-        // Redirect to Google OAuth
-        setTimeout(() => {
-          window.location.href = '/api/auth/google/start?redirect=' + encodeURIComponent(window.location.pathname);
-        }, 2000);
-      } else {
-        toast({
-          title: "Export failed",
-          description: error.message || "Failed to export to Google Slides",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Export failed",
+        description: error.message || "Failed to export to Google Slides",
+        variant: "destructive"
+      });
     } finally {
       setIsExporting(false);
       setShowPreBriefReview(false);
@@ -113,7 +98,7 @@ export default function BriefBuilderV2() {
         
         <div className="flex gap-3">
           <Button
-            onClick={() => handleExportToSlides("demo-brief-id")}
+            onClick={() => setShowPreBriefReview(true)}
             disabled={selectedCaptures.length === 0 || isExporting}
             className="bg-blue-600 hover:bg-blue-700"
           >

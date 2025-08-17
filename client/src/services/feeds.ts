@@ -12,7 +12,7 @@ export async function listUserFeeds(params?: { projectId?: string }) {
   return api.get<UserFeed[]>("/feeds", params); // Feeds API returns simple array, not paginated
 }
 
-export async function createUserFeed(payload: UserFeedInsert) {
+export async function createUserFeed(payload: Omit<UserFeedInsert, "user_id">) {
   return api.post<UserFeed>("/feeds", payload);
 }
 

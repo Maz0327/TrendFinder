@@ -21,7 +21,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/',
-    element: <AppShell />,
+    element: <AppShell><div /></AppShell>,
     children: [
       {
         index: true,

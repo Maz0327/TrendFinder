@@ -1,77 +1,75 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// client/src/ui-v2/lib/api.ts
+export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
-export class ApiError extends Error {
-  constructor(public status: number, message: string, public data?: any) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+type Json = Record<string, any> | any[];
+type Query = Record<string, string | number | boolean | undefined>;
 
-function getAuthToken(): string | null {
+const API_BASE =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
+  "/api";
+
+export const IS_MOCK_MODE =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_UIV2_MOCK === "1") ||
+  false;
+
+// Token is stored by host app after auth; UI-v2 just reads it
+function getToken(): string | null {
   try {
-    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+    return localStorage.getItem("sb-access-token");
   } catch {
     return null;
   }
 }
 
-async function request<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const token = getAuthToken();
-  
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
+function toQuery(params?: Query): string {
+  if (!params) return "";
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) q.set(k, String(v));
   });
+  const s = q.toString();
+  return s ? `?${s}` : "";
+}
 
-  if (!response.ok) {
-    let errorData;
-    try {
-      errorData = await response.json();
-    } catch {
-      errorData = { message: response.statusText };
-    }
-    throw new ApiError(response.status, errorData.message || 'Request failed', errorData);
+async function request<T>(
+  method: HttpMethod,
+  path: string,
+  body?: Json | FormData,
+  headers?: HeadersInit,
+): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const h = new Headers(headers || {});
+  const token = getToken();
+  if (token) h.set("Authorization", `Bearer ${token}`);
+
+  const init: RequestInit = { method, headers: h };
+
+  if (body instanceof FormData) {
+    init.body = body;
+  } else if (body !== undefined) {
+    if (!h.has("Content-Type")) h.set("Content-Type", "application/json");
+    init.body = JSON.stringify(body);
   }
 
-  // Handle empty responses
-  if (response.status === 204 || response.headers.get('content-length') === '0') {
-    return undefined as T;
+  const res = await fetch(url, init);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
   }
-
-  return response.json();
+  if (res.status === 204) return undefined as unknown as T;
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) return (await res.json()) as T;
+  // Non-JSON fallback
+  return (await res.text()) as unknown as T;
 }
 
 export const api = {
-  get: <T>(endpoint: string, options?: RequestInit) => 
-    request<T>(endpoint, { method: 'GET', ...options }),
-    
-  post: <T>(endpoint: string, data?: any, options?: RequestInit) => 
-    request<T>(endpoint, { 
-      method: 'POST', 
-      body: data ? JSON.stringify(data) : undefined,
-      ...options 
-    }),
-    
-  patch: <T>(endpoint: string, data?: any, options?: RequestInit) => 
-    request<T>(endpoint, { 
-      method: 'PATCH', 
-      body: data ? JSON.stringify(data) : undefined,
-      ...options 
-    }),
-    
-  del: <T>(endpoint: string, options?: RequestInit) => 
-    request<T>(endpoint, { method: 'DELETE', ...options }),
+  get: <T>(path: string, params?: Query, headers?: HeadersInit) =>
+    request<T>("GET", `${path}${toQuery(params)}`, undefined, headers),
+  post: <T>(path: string, body?: Json | FormData, headers?: HeadersInit) =>
+    request<T>("POST", path, body, headers),
+  patch: <T>(path: string, body?: Json | FormData, headers?: HeadersInit) =>
+    request<T>("PATCH", path, body, headers),
+  del: <T>(path: string, body?: Json | FormData, headers?: HeadersInit) =>
+    request<T>("DELETE", path, body, headers),
 };

@@ -1,32 +1,60 @@
-import { useEffect, useState } from "react";
-import { IS_MOCK_MODE, api } from "../services/http";
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { api, IS_MOCK_MODE } from "../lib/api";
 
-export type AuthUser = { id: string; email?: string; name?: string; avatar_url?: string };
+interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+}
 
-export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+type AuthCtx = {
+  user: AuthUser | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  isSigningOut: boolean;
+  getSignInUrl: () => string;
+  signOut: () => Promise<void>;
+};
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        if (IS_MOCK_MODE) {
-          if (mounted) setUser({ id: "mock-user", email: "demo@local" });
-        } else {
-          const me = await api.request<AuthUser | null>("/auth/user");
-          if (mounted) setUser(me);
-        }
-      } catch {
-        if (IS_MOCK_MODE && mounted) setUser({ id: "mock-user", email: "demo@local" });
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
+const Ctx = createContext<AuthCtx | null>(null);
+
+function token() {
+  try { return localStorage.getItem("sb-access-token"); } catch { return null; }
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const isAuthenticated = !!token();
+
+  const getSignInUrl = useCallback(() => {
+    if (IS_MOCK_MODE) return "/auth/mock-login";
+    return "/auth/login"; // fallback: server should redirect to Supabase/Google
   }, []);
 
-  return { user, loading, isAuthenticated: !!user };
+  const signOut = useCallback(async () => {
+    setIsSigningOut(true);
+    try {
+      try { await api.post("/auth/logout"); } catch { /* ignore */ }
+      localStorage.removeItem("sb-access-token");
+      location.assign("/"); // force reload to clear state
+    } finally {
+      setIsSigningOut(false);
+    }
+  }, []);
+
+  const user: AuthUser | null = isAuthenticated 
+    ? { id: "test", email: "test@example.com", name: "Test User" }
+    : null;
+
+  const value = useMemo<AuthCtx>(() => ({
+    user, loading: false, isAuthenticated, isSigningOut, getSignInUrl, signOut
+  }), [user, isAuthenticated, isSigningOut, getSignInUrl, signOut]);
+
+  return React.createElement(Ctx.Provider, { value }, children);
+}
+
+export function useAuth() {
+  const v = useContext(Ctx);
+  if (!v) throw new Error("useAuth must be used within AuthProvider");
+  return v;
 }
