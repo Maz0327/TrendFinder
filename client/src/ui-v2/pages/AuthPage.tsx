@@ -166,33 +166,33 @@ export default function AuthPage() {
           {/* Email Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4 mb-6">
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ink/40" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-black/60" />
               <input
                 type="email"
                 name="email"
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 bg-app/50 border border-ink/10 rounded-lg focus:border-ink/30 focus:outline-none text-ink placeholder-ink/40"
+                className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-black placeholder-black/50"
                 required
               />
             </div>
 
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ink/40" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-black/60" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-12 py-3 bg-app/50 border border-ink/10 rounded-lg focus:border-ink/30 focus:outline-none text-ink placeholder-ink/40"
+                className="w-full pl-10 pr-12 py-3 bg-white border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-black placeholder-black/50"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-ink/40 hover:text-ink/60"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-black/60 hover:text-black/80"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -200,14 +200,14 @@ export default function AuthPage() {
 
             {mode === 'register' && (
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ink/40" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-black/60" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="confirmPassword"
                   placeholder="Confirm password"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 bg-app/50 border border-ink/10 rounded-lg focus:border-ink/30 focus:outline-none text-ink placeholder-ink/40"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-black placeholder-black/50"
                   required
                 />
               </div>
