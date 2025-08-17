@@ -61,6 +61,10 @@ import momentsRoutesNew from './routes/moments';
 import extTokenRoutes from './routes/ext-tokens';
 import extCaptureRoutes from './routes/ext-capture';
 
+// Upload + Truth Lab + Visual Check
+import { capturesUpload } from './routes/captures-upload';
+import { truthRouter } from './routes/truth';
+
 // Initialize AI services
 const liveBrightData = new LiveBrightDataService();
 const aiAnalyzer = new AIAnalyzer();
@@ -162,6 +166,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Brief Canvas routers (fixed auth middleware)
   app.use(briefBlocksRouter);
   app.use(uploadsRouter);
+  
+  // Upload + Truth Lab + Visual Check Routes
+  app.use(capturesUpload);
+  app.use(truthRouter);
 
   // Media Analysis router
   const mediaAnalysisRouter = (await import("./routes/media-analysis")).default;
