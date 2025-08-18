@@ -1,17 +1,15 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { mapProject } from "../lib/mappers";
-import { getUserFromRequest } from "./auth";
+import { requireAuth } from "../middleware/auth";
+import type { AuthedRequest } from "../middleware/auth";
 
 export function registerProjectsRoutes(app: Express) {
   
   // Get all projects for user
-  app.get('/api/projects', async (req: Request, res: Response) => {
+  app.get('/api/projects', requireAuth, async (req: AuthedRequest, res: Response) => {
     try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
+      const user = req.user!;
 
       const projects = await storage.listProjects(user.id);
       const projectDTOs = projects.map(mapProject);
@@ -24,12 +22,9 @@ export function registerProjectsRoutes(app: Express) {
   });
 
   // Create new project
-  app.post('/api/projects', async (req: Request, res: Response) => {
+  app.post('/api/projects', requireAuth, async (req: AuthedRequest, res: Response) => {
     try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
+      const user = req.user!;
 
       const { name, description } = req.body;
       if (!name) {
@@ -37,7 +32,7 @@ export function registerProjectsRoutes(app: Express) {
       }
 
       const project = await storage.createProject({
-        user_id: user.id,
+        userId: user.id,
         name,
         description: description || null
       });
@@ -50,20 +45,16 @@ export function registerProjectsRoutes(app: Express) {
   });
 
   // Update project
-  app.patch('/api/projects/:id', async (req: Request, res: Response) => {
+  app.patch('/api/projects/:id', requireAuth, async (req: AuthedRequest, res: Response) => {
     try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
+      const user = req.user!;
 
       const { id } = req.params;
       const { name, description } = req.body;
       
       const project = await storage.updateProject(id, {
         name,
-        description,
-        updated_at: new Date().toISOString()
+        description
       });
 
       if (!project) {
@@ -78,12 +69,9 @@ export function registerProjectsRoutes(app: Express) {
   });
 
   // Delete project (optional for now)
-  app.delete('/api/projects/:id', async (req: Request, res: Response) => {
+  app.delete('/api/projects/:id', requireAuth, async (req: AuthedRequest, res: Response) => {
     try {
-      const user = getUserFromRequest(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
+      const user = req.user!;
 
       const { id } = req.params;
       await storage.deleteProject(id);

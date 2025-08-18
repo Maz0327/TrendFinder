@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Express } from 'express';
 import type { Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { storage } from '../storage';
@@ -42,5 +42,9 @@ r.get('/similar', requireAuth, async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to search similar captures' });
   }
 });
+
+export function setupSearchRoutes(app: Express) {
+  app.use('/api/search', r);
+}
 
 export default r;
