@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listBriefs, createBrief, updateBrief, deleteBrief } from '../../services/briefs';
+import { listBriefs, createBrief, updateBrief, deleteBrief } from '../services/briefs';
 import { Brief } from '../types';
 
 type BriefsListParams = { projectId?: string; q?: string; tags?: string[]; page?: number; pageSize?: number };
