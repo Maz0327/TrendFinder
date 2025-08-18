@@ -55,7 +55,7 @@ export default function MobileNavBar() {
         {/* User Menu for Mobile */}
         {user && (
           <div
-            onClick={signOut}
+            onClick={() => signOut().catch(console.error)}
             className="flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 cursor-pointer"
           >
             <LogOut className="h-5 w-5 mb-1" />
