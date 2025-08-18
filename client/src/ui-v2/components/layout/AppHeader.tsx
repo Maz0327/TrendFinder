@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useLocation } from 'wouter';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Search, Bell, User, ChevronDown, Plus, Folder, Menu, X } from 'lucide-react';
 import { 
   Home, 
@@ -86,10 +86,10 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={cn(
+                className={({ isActive: active }) => cn(
                   'relative flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap min-h-[40px] flex-shrink-0',
                   'hover:bg-white/10 transition-colors',
-                  isActive 
+                  active || isActive
                     ? 'text-ink bg-white/10' 
                     : 'text-muted-ink hover:text-ink'
                 )}
