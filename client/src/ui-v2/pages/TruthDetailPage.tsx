@@ -128,10 +128,10 @@ export function TruthDetailPage() {
                 Truth Lab
               </Link>
               <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
-              <VerdictBadge verdict={truthCheck.verdict} />
+              <VerdictBadge verdict={truthCheck?.verdict || 'unverified'} />
             </div>
             
-            {truthCheck.status === 'error' && (
+            {truthCheck?.status === 'error' && (
               <button
                 onClick={handleRetry}
                 disabled={isRetrying}
@@ -152,19 +152,19 @@ export function TruthDetailPage() {
           <div className="flex items-start justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {truthCheck.kind.charAt(0).toUpperCase() + truthCheck.kind.slice(1)} Analysis
+                {truthCheck?.kind ? (truthCheck.kind.charAt(0).toUpperCase() + truthCheck.kind.slice(1)) : 'Content'} Analysis
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Analyzed on {formatDate(truthCheck.created_at)}
+                Analyzed on {truthCheck?.created_at ? formatDate(truthCheck.created_at) : 'Unknown date'}
               </p>
             </div>
             
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-              truthCheck.status === 'done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-              truthCheck.status === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+              truthCheck?.status === 'done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+              truthCheck?.status === 'error' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
               'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
             }`}>
-              {truthCheck.status}
+              {truthCheck?.status || 'unknown'}
             </span>
           </div>
 
