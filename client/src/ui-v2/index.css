@@ -1,5 +1,13 @@
 /* UI-V2 theme tokens and helpers (no @tailwind layers here) */
-:root { --radius: 16px; }
+:root { 
+  --radius: 16px; 
+  /* Default to dark theme variables */
+  --background: 24 28 32;
+  --card: 48 52 58;
+  --text: 241 244 248;
+  --muted-text: 148 163 184;
+  --ring: 99 102 241;
+}
 .theme-dark {
   --background: 24 28 32;
   --card: 48 52 58;

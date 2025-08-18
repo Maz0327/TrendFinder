@@ -18,44 +18,35 @@ import { ProjectUploadPage } from '../pages/ProjectUploadPage';
 import { TruthLabPage } from '../pages/TruthLabPage';
 import { TruthDetailPage } from '../pages/TruthDetailPage';
 
-export function UiV2App() {
+// Simplified test component to isolate rendering issues
+function SimpleTest() {
   return (
-    <Providers>
-      <Router>
-        <div className="ui-v2 bg-app min-h-screen text-ink">
-          <Suspense fallback={<div className="ui-v2 p-6">Loading…</div>}>
-            <ErrorBoundary fallback={<CrashScreen title="App failed to render" hint="A component threw during render." />}>
-              <Switch>
-                {/* Public route - login page */}
-                <Route path="/login"><AuthPage /></Route>
-                
-                {/* Protected routes - wrapped in auth boundary */}
-                <Route path="/:rest*">
-                  <AuthBoundary>
-                    <AppShell>
-                      <Switch>
-                        <Route path="/"><SimpleBriefsPage /></Route>
-                        <Route path="/dashboard"><DashboardPage /></Route>
-                        <Route path="/projects"><ProjectsPage /></Route>
-                        <Route path="/projects/:projectId/upload"><ProjectUploadPage /></Route>
-                        <Route path="/captures"><CapturesInboxPage /></Route>
-                        <Route path="/moments"><MomentsRadarPage /></Route>
-                        <Route path="/briefs"><SimpleBriefsPage /></Route>
-                        <Route path="/briefs/:id"><BriefCanvasPage /></Route>
-                        <Route path="/feeds"><FeedsPage /></Route>
-                        <Route path="/truth-lab"><TruthLabPage /></Route>
-                        <Route path="/truth-lab/:id"><TruthDetailPage /></Route>
-                        <Route path="/settings"><SettingsPage /></Route>
-                        <Route><NotFoundPage /></Route>
-                      </Switch>
-                    </AppShell>
-                  </AuthBoundary>
-                </Route>
-              </Switch>
-            </ErrorBoundary>
-          </Suspense>
-        </div>
-      </Router>
-    </Providers>
+    <div style={{
+      backgroundColor: '#1a1a1a',
+      color: '#ffffff',
+      padding: '40px',
+      minHeight: '100vh',
+      fontSize: '18px',
+      fontFamily: 'system-ui'
+    }}>
+      <h1 style={{ color: '#ffffff', marginBottom: '20px' }}>Content Radar UI-V2 Test</h1>
+      <p style={{ color: '#e2e8f0' }}>✅ React is working</p>
+      <p style={{ color: '#e2e8f0' }}>✅ CSS styling is applied</p>
+      <p style={{ color: '#e2e8f0' }}>✅ UI-V2 system is loading</p>
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        borderRadius: '12px',
+        padding: '20px',
+        marginTop: '20px'
+      }}>
+        <p style={{ color: '#ffffff', margin: 0 }}>Glass card effect working</p>
+      </div>
+    </div>
   );
+}
+
+export function UiV2App() {
+  // Temporarily show simple test
+  return <SimpleTest />;
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'wouter';
 import { Search, Bell, User, ChevronDown, Plus, Folder, Menu, X } from 'lucide-react';
 import { 
   Home, 

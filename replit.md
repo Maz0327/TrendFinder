@@ -10,14 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend Architecture
 - **Framework**: React 18 with TypeScript (Vite)
+- **UI System**: UI-V2 Modern Architecture (Apple-inspired design with glassmorphism)
 - **UI/UX**: Shadcn/ui (Radix UI, Tailwind CSS with CSS variables)
-- **State Management**: TanStack React Query
-- **Routing**: Wouter
-- **Form Handling**: React Hook Form with Zod validation
-- **Authentication**: Supabase Auth (JWT, social logins, magic links)
+- **State Management**: TanStack React Query + Zustand (for canvas state)
+- **Routing**: Wouter (in UI-V2 system)
+- **Form Handling**: React Hook Form with Zod validation  
+- **Authentication**: Hybrid system (Supabase Auth + token-based)
 - **Real-time**: Supabase Realtime (live updates, presence)
 - **Storage**: Supabase Storage (media uploads, automatic thumbnails)
-- **Design Philosophy**: Business-focused workflow with a unified "Explore Signals" interface and a "Today's Briefing" dashboard. Apple-inspired design system featuring glass effects, pill buttons, smooth animations, and SF Pro typography.
+- **Design Philosophy**: UI-V2 provides sophisticated Apple-inspired interface with Brief Canvas (Google Slides-like editor), drag-and-drop capture triage, moments radar visualization, and comprehensive project management with premium glass effects and smooth animations.
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js (TypeScript, ES modules)

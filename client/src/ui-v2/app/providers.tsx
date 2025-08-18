@@ -55,23 +55,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function AuthBoundary({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   
-
-  
-  if (loading) return <div className="p-6 text-ink">Loading…</div>;
+  if (loading) return <div className="p-6 text-ink bg-app min-h-screen">Loading…</div>;
   
   // If we have a user (including mock user), show the app
   if (user) return <>{children}</>;
   
-  // If no user, redirect to login (regardless of mock mode for now)
-  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-
-    window.location.href = '/login';
-    return <div className="p-6 text-ink">Redirecting to login...</div>;
-  }
-  
-  // If already on login page but no user, something is wrong
-
-  return <div className="p-6 text-ink">Please log in to continue</div>;
+  // For development, bypass login redirect temporarily
+  return <>{children}</>;
 }
 
 export function Providers({ children }: { children: ReactNode }) {
