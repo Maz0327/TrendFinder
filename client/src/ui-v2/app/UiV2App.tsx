@@ -1,25 +1,7 @@
-import { Router, Route, Switch } from 'wouter';
-import { Providers, AuthBoundary } from './providers';
-import { Suspense } from 'react';
-import { ErrorBoundary, CrashScreen } from '../components/system/ErrorBoundary';
-import { AppShell } from '../components/AppShell';
-import AuthPage from '../pages/AuthPage';
-import DashboardPage from '../pages/DashboardPage';
-import ProjectsPage from '../pages/ProjectsPage';
-import CapturesInboxPage from '../pages/CapturesInboxPage';
-import MomentsRadarPage from '../pages/MomentsRadarPage';
-import SimpleBriefsPage from '../pages/SimpleBriefsPage';
-import TestPage from '../pages/TestPage';
-import BriefCanvasPage from '../pages/BriefCanvasPage';
-import FeedsPage from '../pages/FeedsPage';
-import SettingsPage from '../pages/SettingsPage';
-import NotFoundPage from '../pages/NotFoundPage';
-import { ProjectUploadPage } from '../pages/ProjectUploadPage';
-import { TruthLabPage } from '../pages/TruthLabPage';
-import { TruthDetailPage } from '../pages/TruthDetailPage';
+import { Providers } from './providers';
 
-// Progressive restoration to identify the failing component
-function MinimalUITest() {
+// Minimal test without any page component imports
+function MinimalTest() {
   return (
     <div style={{
       backgroundColor: 'rgb(24, 28, 32)',
@@ -27,9 +9,10 @@ function MinimalUITest() {
       padding: '20px',
       minHeight: '100vh'
     }}>
-      <h1 style={{ marginBottom: '16px' }}>Content Radar - Progressive Test</h1>
-      <p>✅ Basic UI-V2 rendering working</p>
-      <p>✅ CSS variables applied correctly</p>
+      <h1 style={{ marginBottom: '16px' }}>Content Radar - Import Isolation Test</h1>
+      <p>✅ Providers working</p>
+      <p>✅ No page component imports</p>
+      <p>✅ Testing if imports cause black screen</p>
       <div style={{
         background: 'rgba(255, 255, 255, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -37,18 +20,17 @@ function MinimalUITest() {
         padding: '16px',
         marginTop: '16px'
       }}>
-        <p style={{ margin: 0 }}>Glass effect working - ready for full UI</p>
+        <p style={{ margin: 0 }}>If this shows, the issue is with page component imports</p>
       </div>
     </div>
   );
 }
 
 export function UiV2App() {
-  // Step 1: Test basic providers first
   return (
     <Providers>
       <div className="ui-v2 bg-app min-h-screen text-ink">
-        <MinimalUITest />
+        <MinimalTest />
       </div>
     </Providers>
   );
