@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 export const IS_MOCK_MODE =
   Boolean(import.meta.env.VITE_UIV2_MOCK) ||
   (typeof window !== "undefined" &&
