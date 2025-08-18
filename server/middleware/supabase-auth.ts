@@ -14,8 +14,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
   // Development mode: accept mock token
   if (token === "dev-mock-token") {
-    (req as any).user = { id: "dev-user", email: "dev@example.com" };
-    return next();
+    return res.status(401).json({ error: "Authentication required" });
   }
 
   const { data, error } = await supabase.auth.getUser(token);

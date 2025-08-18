@@ -19,11 +19,13 @@ export default function BriefsListPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newBriefTitle, setNewBriefTitle] = useState('');
 
-  const { briefs, createBrief, deleteBrief, isCreating, isLoading } = useBriefs({
+  const { briefs: briefsData, createBrief, deleteBrief, isCreating, isLoading } = useBriefs({
     projectId: currentProjectId || undefined,
     q: searchQuery,
     tags: selectedTags.length > 0 ? selectedTags : undefined,
   });
+
+  const briefs = Array.isArray((briefsData as any)?.items) ? (briefsData as any).items : Array.isArray(briefsData) ? (briefsData as any) : [];
 
   const handleCreateBrief = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +132,7 @@ export default function BriefsListPage() {
           <LoadingSkeleton count={6} variant="card" />
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {briefs.map((brief, index) => (
+            {briefs.map((brief: any, index: number) => (
               <motion.div
                 key={brief.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -183,9 +185,9 @@ export default function BriefsListPage() {
                     </div>
 
                     {/* Tags */}
-                    {brief.tags.length > 0 && (
+                    {(brief.tags || []).length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {brief.tags.slice(0, 3).map(tag => (
+                        {(brief.tags || []).slice(0, 3).map((tag: string) => (
                           <span
                             key={tag}
                             className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs"
@@ -208,7 +210,7 @@ export default function BriefsListPage() {
         ) : (
           <GlassCard>
             <div className="space-y-1">
-              {briefs.map((brief, index) => (
+              {briefs.map((brief: any, index: number) => (
                 <motion.div
                   key={brief.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -227,7 +229,7 @@ export default function BriefsListPage() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {brief.tags.slice(0, 2).map(tag => (
+                    {(brief.tags || []).slice(0, 2).map((tag: string) => (
                       <span
                         key={tag}
                         className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs"

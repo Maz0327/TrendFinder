@@ -24,8 +24,7 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
 
   // Development mode: accept mock token (NODE_ENV may be empty in development)
   if (token === "dev-mock-token") {
-    req.user = { id: "dev-user", email: "dev@example.com" };
-    return next();
+    return res.status(401).json({ error: "Authentication required" });
   }
 
   try {

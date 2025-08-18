@@ -63,7 +63,7 @@ import extCaptureRoutes from './routes/ext-capture';
 
 // Upload + Truth Lab + Visual Check
 import { capturesUpload } from './routes/captures-upload';
-import { truthRouter } from './routes/truth';
+import { registerTruthRoutes } from './routes/truth';
 
 // Initialize AI services
 const liveBrightData = new LiveBrightDataService();
@@ -169,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Upload + Truth Lab + Visual Check Routes
   app.use(capturesUpload);
-  app.use(truthRouter);
+  registerTruthRoutes(app);
 
   // Media Analysis router
   const mediaAnalysisRouter = (await import("./routes/media-analysis")).default;
