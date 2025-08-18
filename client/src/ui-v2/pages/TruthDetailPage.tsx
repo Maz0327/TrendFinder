@@ -13,6 +13,20 @@ export function TruthDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Debug: Log the params to see what we're getting
+  console.log('TruthDetailPage params:', params, 'id:', id);
+  
+  // Early return if no ID
+  if (!id) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="glass rounded-xl p-8 text-center">
+          <div className="text-ink-secondary">Loading truth check details...</div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (id) {

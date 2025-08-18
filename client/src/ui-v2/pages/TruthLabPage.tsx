@@ -3,9 +3,10 @@ import { Search, Clock, TrendingUp } from 'lucide-react';
 import { TruthTabs } from '../components/truth/TruthTabs';
 import { TruthResultCard } from '../components/truth/TruthResultCard';
 import { listTruthChecks } from '../services/truth';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 
 export function TruthLabPage() {
+  const [, navigate] = useLocation();
   const [recentChecks, setRecentChecks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -133,8 +134,8 @@ export function TruthLabPage() {
                     key={check.id}
                     truthCheck={check}
                     onClick={() => {
-                      // Navigate to detail page
-                      window.location.href = `/truth-lab/${check.id}`;
+                      // Navigate to detail page using wouter
+                      navigate(`/truth-lab/${check.id}`);
                     }}
                   />
                 ))}
