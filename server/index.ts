@@ -1,3 +1,5 @@
+import "./bootstrap/google-creds";
+
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -6,8 +8,17 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { debugLogger, errorHandler } from "./services/debug-logger";
 import { systemMonitor } from "./services/system-monitor";
-import { errorHandler as globalErrorHandler, notFoundHandler, asyncHandler } from "./middleware/errorHandler";
-import { requestSizeLimit, validateContentType, requestTimeout, apiRateLimit } from "./middleware/requestValidation";
+import {
+  errorHandler as globalErrorHandler,
+  notFoundHandler,
+  asyncHandler,
+} from "./middleware/errorHandler";
+import {
+  requestSizeLimit,
+  validateContentType,
+  requestTimeout,
+  apiRateLimit,
+} from "./middleware/requestValidation";
 import { requestLogger, errorLogger } from "./middleware/logging";
 import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
 import { extensionSecurity } from "./security/chromeExtensionSecurity";
@@ -18,20 +29,23 @@ const PgSession = connectPgSimple(session);
 // PostgreSQL connection pool for sessions
 const sessionPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 const app = express();
 
 // Trust proxy for Replit deployment
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Security headers
-import { securityMiddleware } from './lib/security';
+import { securityMiddleware } from "./lib/security";
 app.use(securityMiddleware);
 
 // Enhanced CORS with environment-driven origins
-import { corsMiddleware } from './lib/cors';
+import { corsMiddleware } from "./lib/cors";
 app.use(corsMiddleware);
 
 // Logging and monitoring middleware
@@ -41,120 +55,148 @@ app.use(productionMonitor.trackApiRequest);
 // Security and reliability middleware
 app.use(requestTimeout()); // 30s timeout
 app.use(requestSizeLimit); // Request size validation
-app.use(validateContentType(['application/json', 'application/x-www-form-urlencoded']));
+app.use(
+  validateContentType([
+    "application/json",
+    "application/x-www-form-urlencoded",
+  ]),
+);
 
 // Enhanced rate limiting
-import { publicLimiter, heavyLimiter, authLimiter } from './middleware/rateLimit';
-app.use('/api/', publicLimiter); // Apply to all API routes
-app.use('/api/auth/', authLimiter); // Stricter for auth routes
-app.use('/api/analysis/', heavyLimiter); // Stricter for heavy operations
-app.use('/api/captures/upload', heavyLimiter); // Upload rate limiting
+import {
+  publicLimiter,
+  heavyLimiter,
+  authLimiter,
+} from "./middleware/rateLimit";
+app.use("/api/", publicLimiter); // Apply to all API routes
+app.use("/api/auth/", authLimiter); // Stricter for auth routes
+app.use("/api/analysis/", heavyLimiter); // Stricter for heavy operations
+app.use("/api/captures/upload", heavyLimiter); // Upload rate limiting
 
 // Body size limits
-const JSON_LIMIT = process.env.JSON_LIMIT || '1mb';
+const JSON_LIMIT = process.env.JSON_LIMIT || "1mb";
 app.use(express.json({ limit: JSON_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: JSON_LIMIT }));
 
 // Enhanced CORS configuration for Replit/Bolt origins
-import cors from 'cors';
+import cors from "cors";
 
 const allow = [
-  process.env.VITE_SITE_URL,                 // e.g., https://workspace.XXX.repl.co
+  process.env.VITE_SITE_URL, // e.g., https://workspace.XXX.repl.co
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "https://localhost:5173",
-  "https://127.0.0.1:5173"
+  "https://127.0.0.1:5173",
 ];
 
 // Global CORS for API routes
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
-    if (allow.some(a => a && origin.startsWith(a))) return cb(null, true);
-    return cb(null, false);
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (allow.some((a) => a && origin.startsWith(a))) return cb(null, true);
+      return cb(null, false);
+    },
+    credentials: true,
+  }),
+);
 
 // Additional CORS for Chrome Extension
-app.use('/api/extension/', cors({
-  origin: ['chrome-extension://*', 'moz-extension://*'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-extension-token']
-}));
+app.use(
+  "/api/extension/",
+  cors({
+    origin: ["chrome-extension://*", "moz-extension://*"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-extension-token"],
+  }),
+);
 
 // Chrome Extension Security
-app.use('/api/extension/', extensionSecurity.validateExtensionOrigin);
-app.use('/api/extension/', extensionSecurity.extensionRateLimit);
-app.use('/api/extension/', extensionSecurity.authenticateExtension);
-app.use('/api/extension/', extensionSecurity.validateRequestSize);
-app.use('/api/extension/', extensionSecurity.setExtensionCSP);
+app.use("/api/extension/", extensionSecurity.validateExtensionOrigin);
+app.use("/api/extension/", extensionSecurity.extensionRateLimit);
+app.use("/api/extension/", extensionSecurity.authenticateExtension);
+app.use("/api/extension/", extensionSecurity.validateRequestSize);
+app.use("/api/extension/", extensionSecurity.setExtensionCSP);
 
 // Increase payload limits for visual analysis with base64 images
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 
 // PostgreSQL-backed session configuration
 app.use(
   session({
     store: new PgSession({
       pool: sessionPool,
-      tableName: 'session',
-      createTableIfMissing: false // We'll handle this via migration
+      tableName: "session",
+      createTableIfMissing: false, // We'll handle this via migration
     }),
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    }
-  })
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    },
+  }),
 );
 
 // Enhanced CORS headers for Chrome extension and credentials
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header("Access-Control-Allow-Credentials", "true");
   const origin = req.headers.origin;
-  
+
   // Allow Chrome extension origins
-  if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'))) {
-    res.header('Access-Control-Allow-Origin', origin);
+  if (
+    origin &&
+    (origin.startsWith("chrome-extension://") ||
+      origin.startsWith("moz-extension://"))
+  ) {
+    res.header("Access-Control-Allow-Origin", origin);
   } else {
     // Standard CORS for web clients
     const allowedOrigins = [
-      'http://localhost:5173', // Frontend dev server
-      'http://127.0.0.1:5173',
-      process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
-      process.env.REPL_SLUG && process.env.REPL_OWNER ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null
+      "http://localhost:5173", // Frontend dev server
+      "http://127.0.0.1:5173",
+      process.env.REPLIT_DEV_DOMAIN
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : null,
+      process.env.REPL_SLUG && process.env.REPL_OWNER
+        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+        : null,
     ].filter(Boolean);
-    
+
     if (!origin || allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin || 'http://localhost:5173');
+      res.header(
+        "Access-Control-Allow-Origin",
+        origin || "http://localhost:5173",
+      );
     }
   }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Ext-Token');
-  
-  if (req.method === 'OPTIONS') {
+
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Ext-Token",
+  );
+
+  if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
-  
+
   next();
 });
 
 // Process error handlers
-process.on('uncaughtException', (error) => {
-  debugLogger.error('Uncaught Exception:', error);
+process.on("uncaughtException", (error) => {
+  debugLogger.error("Uncaught Exception:", error);
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  debugLogger.error('Unhandled Rejection at:', promise, 'rejection');
+process.on("unhandledRejection", (reason, promise) => {
+  debugLogger.error("Unhandled Rejection at:", promise, "rejection");
 });
 
 app.use((req, res, next) => {
@@ -181,15 +223,25 @@ app.use((req, res, next) => {
       }
 
       log(logLine);
-      
+
       // Enhanced debug logging
-      debugLogger.apiCall(req, res, duration, res.statusCode >= 400 ? new Error(capturedJsonResponse?.message || 'Request failed') : undefined);
-      
+      debugLogger.apiCall(
+        req,
+        res,
+        duration,
+        res.statusCode >= 400
+          ? new Error(capturedJsonResponse?.message || "Request failed")
+          : undefined,
+      );
+
       // Record metrics for system monitoring
       const userId = (req as any).session?.userId;
-      const userAgent = req.get('User-Agent');
-      const errorMessage = res.statusCode >= 400 ? capturedJsonResponse?.error || 'Request failed' : undefined;
-      
+      const userAgent = req.get("User-Agent");
+      const errorMessage =
+        res.statusCode >= 400
+          ? capturedJsonResponse?.error || "Request failed"
+          : undefined;
+
       systemMonitor.recordRequest(
         req.method,
         path,
@@ -197,7 +249,7 @@ app.use((req, res, next) => {
         duration,
         userId,
         userAgent,
-        errorMessage
+        errorMessage,
       );
     }
   });
@@ -207,107 +259,116 @@ app.use((req, res, next) => {
 
 (async () => {
   // Debug endpoints (no admin required) for frontend debug panel
-  app.get('/api/debug/logs', async (req, res) => {
+  app.get("/api/debug/logs", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const level = req.query.level as string;
-      const validLevel = level && ['error', 'warn', 'info', 'debug'].includes(level) ? level as 'error' | 'warn' | 'info' | 'debug' : undefined;
+      const validLevel =
+        level && ["error", "warn", "info", "debug"].includes(level)
+          ? (level as "error" | "warn" | "info" | "debug")
+          : undefined;
       const logs = debugLogger.getRecentLogs(limit, validLevel);
-      res.json({ 
-        success: true, 
-        data: { logs, count: logs.length, level, limit }
+      res.json({
+        success: true,
+        data: { logs, count: logs.length, level, limit },
       });
     } catch (error: any) {
-      debugLogger.error('Failed to retrieve debug logs', error);
-      res.status(500).json({ 
-        success: false, 
-        error: "Failed to retrieve debug logs"
+      debugLogger.error("Failed to retrieve debug logs", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve debug logs",
       });
     }
   });
 
-  app.get('/api/debug/errors', async (req, res) => {
+  app.get("/api/debug/errors", async (req, res) => {
     try {
       const errorSummary = debugLogger.getErrorSummary();
-      res.json({ 
-        success: true, 
-        data: errorSummary
+      res.json({
+        success: true,
+        data: errorSummary,
       });
     } catch (error: any) {
-      debugLogger.error('Failed to retrieve error summary', error);
-      res.status(500).json({ 
-        success: false, 
-        error: "Failed to retrieve error summary"
+      debugLogger.error("Failed to retrieve error summary", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve error summary",
       });
     }
   });
 
-  app.get('/api/debug/performance', async (req, res) => {
+  app.get("/api/debug/performance", async (req, res) => {
     try {
       const metrics = debugLogger.getPerformanceMetrics();
-      res.json({ 
-        success: true, 
-        data: { metrics }
+      res.json({
+        success: true,
+        data: { metrics },
       });
     } catch (error: any) {
-      debugLogger.error('Failed to retrieve performance metrics', error);
-      res.status(500).json({ 
-        success: false, 
-        error: "Failed to retrieve performance metrics"
+      debugLogger.error("Failed to retrieve performance metrics", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve performance metrics",
       });
     }
   });
 
   // Health endpoint moved to routes.ts to avoid duplication
 
-  app.get('/api/system/metrics', async (req, res) => {
+  app.get("/api/system/metrics", async (req, res) => {
     try {
       const hours = parseInt(req.query.hours as string) || 1;
       const metrics = systemMonitor.getMetricsHistory(hours);
-      res.json({ 
-        success: true, 
-        data: { metrics, hours }
+      res.json({
+        success: true,
+        data: { metrics, hours },
       });
     } catch (error: any) {
-      debugLogger.error('Failed to retrieve system metrics', error);
-      res.status(500).json({ 
-        success: false, 
-        error: "Failed to retrieve system metrics"
+      debugLogger.error("Failed to retrieve system metrics", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve system metrics",
       });
     }
   });
 
-  app.get('/api/system/requests', async (req, res) => {
+  app.get("/api/system/requests", async (req, res) => {
     try {
       const stats = systemMonitor.getRequestStats();
-      res.json({ 
-        success: true, 
-        data: stats
+      res.json({
+        success: true,
+        data: stats,
       });
     } catch (error: any) {
-      debugLogger.error('Failed to retrieve request stats', error);
-      res.status(500).json({ 
-        success: false, 
-        error: "Failed to retrieve request stats"
+      debugLogger.error("Failed to retrieve request stats", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve request stats",
       });
     }
   });
 
   // Use Supabase database if SUPABASE_DATABASE_URL is available
-  const DATABASE_URL = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
-  console.log("🔗 Database URL source:", process.env.SUPABASE_DATABASE_URL ? "Supabase" : "Neon");
-  
+  const DATABASE_URL =
+    process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+  console.log(
+    "🔗 Database URL source:",
+    process.env.SUPABASE_DATABASE_URL ? "Supabase" : "Neon",
+  );
+
   // Health and documentation endpoints (Block 10)
-  const { healthzEndpoint, readyzEndpoint } = await import('./lib/health');
-  const docsRouter = (await import('./routes/docs')).default;
-  app.get('/healthz', healthzEndpoint);
-  app.get('/readyz', readyzEndpoint);
-  app.use('/api', docsRouter);
-  
+  const { healthzEndpoint, readyzEndpoint } = await import("./lib/health");
+  const docsRouter = (await import("./routes/docs")).default;
+  app.get("/healthz", healthzEndpoint);
+  app.get("/readyz", readyzEndpoint);
+  app.use("/api", docsRouter);
+
   const server = await registerRoutes(app);
 
   // Start Moments Aggregator Worker (Task Block 8A)
-  const { startMomentsAggregator } = await import("./workers/moments-aggregator");
+  const { startMomentsAggregator } = await import(
+    "./workers/moments-aggregator"
+  );
   startMomentsAggregator();
 
   // importantly only setup vite in development and after
@@ -322,9 +383,12 @@ app.use((req, res, next) => {
   // Global error handling middleware - MUST be after Vite setup
   app.use(errorLogger);
   app.use(globalErrorHandler);
-  
+
   // Add global error handler from Block 10
-  const { globalErrorHandler: block10ErrorHandler, notFoundHandler: block10NotFoundHandler } = await import('./middleware/globalError');
+  const {
+    globalErrorHandler: block10ErrorHandler,
+    notFoundHandler: block10NotFoundHandler,
+  } = await import("./middleware/globalError");
   app.use(block10ErrorHandler);
 
   // 404 handler for unmatched routes - LAST middleware
@@ -335,12 +399,15 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  const port = parseInt(process.env.PORT || "5000", 10);
+  server.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+    },
+  );
 })();
