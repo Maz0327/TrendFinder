@@ -1,4 +1,9 @@
 import { ReactNode, useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const qc = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+});
 
 // Test ThemeProvider only - the most critical provider for styling
 function ThemeProvider({ children }: { children: ReactNode }) {
@@ -20,8 +25,8 @@ function ThemeProvider({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// Test with ThemeProvider restored
-function ThemeProviderTest() {
+// Test with QueryClient + ThemeProvider
+function QueryClientTest() {
   return (
     <div style={{
       backgroundColor: 'rgb(24, 28, 32)',
@@ -29,10 +34,11 @@ function ThemeProviderTest() {
       padding: '20px',
       minHeight: '100vh'
     }}>
-      <h1 style={{ marginBottom: '16px' }}>Content Radar - ThemeProvider Test</h1>
+      <h1 style={{ marginBottom: '16px' }}>Content Radar - QueryClient Test</h1>
       <p>✅ React working</p>
       <p>✅ CSS working</p>
-      <p>✅ ThemeProvider restored</p>
+      <p>✅ ThemeProvider working</p>
+      <p>✅ QueryClientProvider added</p>
       <div style={{
         background: 'rgba(255, 255, 255, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -40,7 +46,7 @@ function ThemeProviderTest() {
         padding: '16px',
         marginTop: '16px'
       }}>
-        <p style={{ margin: 0 }}>Testing if ThemeProvider causes issues</p>
+        <p style={{ margin: 0 }}>Testing if QueryClient causes issues</p>
       </div>
     </div>
   );
@@ -48,10 +54,12 @@ function ThemeProviderTest() {
 
 export function UiV2App() {
   return (
-    <ThemeProvider>
-      <div className="ui-v2 bg-app min-h-screen text-ink">
-        <ThemeProviderTest />
-      </div>
-    </ThemeProvider>
+    <QueryClientProvider client={qc}>
+      <ThemeProvider>
+        <div className="ui-v2 bg-app min-h-screen text-ink">
+          <QueryClientTest />
+        </div>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
