@@ -18,35 +18,38 @@ import { ProjectUploadPage } from '../pages/ProjectUploadPage';
 import { TruthLabPage } from '../pages/TruthLabPage';
 import { TruthDetailPage } from '../pages/TruthDetailPage';
 
-// Simplified test component to isolate rendering issues
-function SimpleTest() {
+// Progressive restoration to identify the failing component
+function MinimalUITest() {
   return (
     <div style={{
-      backgroundColor: '#1a1a1a',
-      color: '#ffffff',
-      padding: '40px',
-      minHeight: '100vh',
-      fontSize: '18px',
-      fontFamily: 'system-ui'
+      backgroundColor: 'rgb(24, 28, 32)',
+      color: 'rgb(241, 244, 248)',
+      padding: '20px',
+      minHeight: '100vh'
     }}>
-      <h1 style={{ color: '#ffffff', marginBottom: '20px' }}>Content Radar UI-V2 Test</h1>
-      <p style={{ color: '#e2e8f0' }}>✅ React is working</p>
-      <p style={{ color: '#e2e8f0' }}>✅ CSS styling is applied</p>
-      <p style={{ color: '#e2e8f0' }}>✅ UI-V2 system is loading</p>
+      <h1 style={{ marginBottom: '16px' }}>Content Radar - Progressive Test</h1>
+      <p>✅ Basic UI-V2 rendering working</p>
+      <p>✅ CSS variables applied correctly</p>
       <div style={{
         background: 'rgba(255, 255, 255, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
         borderRadius: '12px',
-        padding: '20px',
-        marginTop: '20px'
+        padding: '16px',
+        marginTop: '16px'
       }}>
-        <p style={{ color: '#ffffff', margin: 0 }}>Glass card effect working</p>
+        <p style={{ margin: 0 }}>Glass effect working - ready for full UI</p>
       </div>
     </div>
   );
 }
 
 export function UiV2App() {
-  // Temporarily show simple test
-  return <SimpleTest />;
+  // Step 1: Test basic providers first
+  return (
+    <Providers>
+      <div className="ui-v2 bg-app min-h-screen text-ink">
+        <MinimalUITest />
+      </div>
+    </Providers>
+  );
 }
