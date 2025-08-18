@@ -20,21 +20,21 @@ import { TruthDetailPage } from '../pages/TruthDetailPage';
 
 export function UiV2App() {
   return (
-    <div>
+    <Providers>
       <Router>
         <div className="ui-v2 bg-app min-h-screen text-ink">
           <Suspense fallback={<div className="ui-v2 p-6">Loading…</div>}>
-            <ErrorBoundary fallback={<CrashScreen title="Dashboard failed to render" hint="A page threw during render." />}>
+            <ErrorBoundary fallback={<CrashScreen title="App failed to render" hint="A component threw during render." />}>
               <Switch>
                 {/* Public route - login page */}
                 <Route path="/login"><AuthPage /></Route>
                 
                 {/* Protected routes - wrapped in auth boundary */}
                 <Route path="/:rest*">
-                  <div className="min-h-screen bg-white">
-                    <Switch>
-                      {/* Bypass auth for testing */}
-                      <Route path="/"><TestPage /></Route>
+                  <AuthBoundary>
+                    <AppShell>
+                      <Switch>
+                        <Route path="/"><SimpleBriefsPage /></Route>
                         <Route path="/dashboard"><DashboardPage /></Route>
                         <Route path="/projects"><ProjectsPage /></Route>
                         <Route path="/projects/:projectId/upload"><ProjectUploadPage /></Route>
@@ -46,15 +46,16 @@ export function UiV2App() {
                         <Route path="/truth-lab"><TruthLabPage /></Route>
                         <Route path="/truth-lab/:id"><TruthDetailPage /></Route>
                         <Route path="/settings"><SettingsPage /></Route>
-                      <Route><div style={{padding: '20px', color: 'black'}}>404 Not Found</div></Route>
-                    </Switch>
-                  </div>
+                        <Route><NotFoundPage /></Route>
+                      </Switch>
+                    </AppShell>
+                  </AuthBoundary>
                 </Route>
               </Switch>
             </ErrorBoundary>
           </Suspense>
         </div>
       </Router>
-    </div>
+    </Providers>
   );
 }
