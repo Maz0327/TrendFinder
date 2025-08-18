@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Router, Route, Switch } from 'wouter';
 import { Providers } from './providers';
 import { AppShell } from '../components/AppShell';
 import AuthPage from '../pages/AuthPage';
@@ -34,20 +34,20 @@ function AppRouter() {
 
   return (
     <AppShell>
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/projects/:projectId/upload" element={<ProjectUploadPage />} />
-        <Route path="/captures" element={<CapturesInboxPage />} />
-        <Route path="/moments" element={<MomentsRadarPage />} />
-        <Route path="/briefs" element={<SimpleBriefsPage />} />
-        <Route path="/briefs/:id" element={<BriefCanvasPage />} />
-        <Route path="/feeds" element={<FeedsPage />} />
-        <Route path="/truth-lab" element={<TruthLabPage />} />
-        <Route path="/truth-lab/:id" element={<TruthDetailPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+      <Switch>
+        <Route path="/" component={DashboardPage} />
+        <Route path="/projects" component={ProjectsPage} />
+        <Route path="/projects/:projectId/upload" component={ProjectUploadPage} />
+        <Route path="/captures" component={CapturesInboxPage} />
+        <Route path="/moments" component={MomentsRadarPage} />
+        <Route path="/briefs" component={SimpleBriefsPage} />
+        <Route path="/briefs/:id" component={BriefCanvasPage} />
+        <Route path="/feeds" component={FeedsPage} />
+        <Route path="/truth-lab" component={TruthLabPage} />
+        <Route path="/truth-lab/:id" component={TruthDetailPage} />
+        <Route path="/settings" component={SettingsPage} />
+        <Route component={NotFoundPage} />
+      </Switch>
     </AppShell>
   );
 }
@@ -55,11 +55,11 @@ function AppRouter() {
 export function UiV2App() {
   return (
     <Providers>
-      <BrowserRouter>
+      <Router>
         <div className="ui-v2">
           <AppRouter />
         </div>
-      </BrowserRouter>
+      </Router>
     </Providers>
   );
 }

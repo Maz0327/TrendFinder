@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { Plus, Search, Grid, List, MoreVertical, Edit, Trash2, FileText } from 'lucide-react';
 import { GlassCard } from '../components/primitives/GlassCard';
 import { SearchInput } from '../components/forms/SearchInput';
@@ -11,7 +11,7 @@ import { useProjectContext } from '../app/providers';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 
 export default function BriefsListPage() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { currentProjectId } = useProjectContext() || { currentProjectId: null };
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -35,7 +35,7 @@ export default function BriefsListPage() {
         title: newBriefTitle.trim(),
         tags: selectedTags,
       }).then((brief) => {
-        navigate(`/briefs/${brief.id}`);
+        setLocation(`/briefs/${brief.id}`);
         setNewBriefTitle('');
         setShowCreateModal(false);
       }).catch((error) => {

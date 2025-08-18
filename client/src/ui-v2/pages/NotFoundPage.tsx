@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { Home, ArrowLeft } from 'lucide-react';
 import { GlassCard } from '../components/primitives/GlassCard';
 
 export default function NotFoundPage() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   return (
     <div className="min-h-screen flex items-center justify-center app-bg p-6">
@@ -25,14 +25,14 @@ export default function NotFoundPage() {
           
           <div className="flex gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => window.history.back()}
               className="flex items-center gap-2 px-4 py-2 glass glass-hover rounded-lg transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Go Back
             </button>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => setLocation('/')}
               className="flex items-center gap-2 px-4 py-2 frost-strong glass-hover rounded-lg transition-colors"
             >
               <Home className="w-4 h-4" />

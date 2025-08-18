@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'wouter';
 import { 
   TrendingUp, 
   FileText, 
@@ -16,7 +16,7 @@ import { useMoments } from '../hooks/useMoments';
 import { useBriefs } from '../hooks/useBriefs';
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const currentProjectId = null; // Default to showing all projects
   
   const capturesQuery = useCaptures({});
@@ -73,21 +73,21 @@ export default function DashboardPage() {
       title: 'New Brief',
       description: 'Start a fresh strategic brief',
       icon: Plus,
-      action: () => navigate('/briefs'),
+      action: () => setLocation('/briefs'),
       color: 'frost-strong',
     },
     {
       title: 'Review Captures',
       description: 'Triage your latest captures',
       icon: Inbox,
-      action: () => navigate('/captures'),
+      action: () => setLocation('/captures'),
       color: 'frost-card',
     },
     {
       title: 'Explore Moments',
       description: 'Discover cultural trends',
       icon: Zap,
-      action: () => navigate('/moments'),
+      action: () => setLocation('/moments'),
       color: 'frost-subtle',
     },
   ];
@@ -180,7 +180,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-base md:text-lg font-semibold tracking-tight px-1 text-ink/90">Recent Briefs</h2>
               <button
-                onClick={() => navigate('/briefs')}
+                onClick={() => setLocation('/briefs')}
                 className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-all duration-200 hover:underline"
               >
                 View all →
@@ -196,7 +196,7 @@ export default function DashboardPage() {
                   transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
                 >
                   <GlassCard hover>
-                    <div className="cursor-pointer" onClick={() => navigate(`/briefs/${brief.id}`)}>
+                    <div className="cursor-pointer" onClick={() => setLocation(`/briefs/${brief.id}`)}>
                     <div className="space-y-3">
                       <div className="flex items-start justify-between">
                         <h3 className="text-sm md:text-base font-semibold line-clamp-2 leading-tight">{brief.title}</h3>
