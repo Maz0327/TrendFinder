@@ -5,6 +5,7 @@ interface AuthUser {
   id: string;
   email: string;
   name?: string;
+  avatar_url?: string;
 }
 
 type AuthCtx = {
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const user: AuthUser | null = isAuthenticated 
-    ? { id: "user_1", email: "admin@contentراdar.com", name: "Content Radar Admin" }
+    ? { id: "user_1", email: "admin@contentradار.com", name: "Content Radar Admin", avatar_url: undefined }
     : null;
 
   const value = useMemo<AuthCtx>(() => ({

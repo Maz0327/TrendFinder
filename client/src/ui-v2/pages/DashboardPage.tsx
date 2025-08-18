@@ -26,8 +26,9 @@ export default function DashboardPage() {
   // Null-safety guards to prevent crashes - matching actual hook return types
   const captures = Array.isArray(capturesQuery?.data?.data) ? capturesQuery.data.data : [];
   const moments = Array.isArray(momentsHook?.moments) ? momentsHook.moments : [];
-  const briefs = Array.isArray(briefsHook?.briefs?.items) ? briefsHook.briefs.items : 
-    Array.isArray(briefsHook?.briefs) ? briefsHook.briefs : [];
+  const briefsData = briefsHook?.briefs;
+  const briefs = briefsData && 'items' in briefsData ? briefsData.items : 
+    Array.isArray(briefsData) ? briefsData : [];
 
   const stats = [
     {

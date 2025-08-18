@@ -19,7 +19,13 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
 
   if (!token) {
-    return res.status(401).json({ error: "Not authenticated" });
+    return res.status(401).json({ error: "Missing bearer token" });
+  }
+
+  // Development mode: accept mock token
+  if (token === "dev-mock-token" && process.env.NODE_ENV === "development") {
+    req.user = { id: "dev-user", email: "dev@example.com" };
+    return next();
   }
 
   try {
