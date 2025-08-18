@@ -24,7 +24,10 @@ function token() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const isAuthenticated = !!token();
+  const currentToken = token();
+  const isAuthenticated = !!currentToken;
+
+
 
   const getSignInUrl = useCallback(() => {
     if (IS_MOCK_MODE) return "/auth/mock-login";

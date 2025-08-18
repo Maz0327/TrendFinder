@@ -55,22 +55,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function AuthBoundary({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   
+
+  
   if (loading) return <div className="p-6 text-ink">Loading…</div>;
   
   // If we have a user (including mock user), show the app
   if (user) return <>{children}</>;
   
-  // If no user and not mock mode, redirect to login
-  if (!IS_MOCK_MODE) {
-    // Use window.location to redirect to login page
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-      window.location.href = '/login';
-      return <div className="p-6 text-ink">Redirecting to login...</div>;
-    }
+  // If no user, redirect to login (regardless of mock mode for now)
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+
+    window.location.href = '/login';
+    return <div className="p-6 text-ink">Redirecting to login...</div>;
   }
   
-  // Fallback for mock mode without user - should not happen
-  return <>{children}</>;
+  // If already on login page but no user, something is wrong
+
+  return <div className="p-6 text-ink">Please log in to continue</div>;
 }
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -79,10 +80,11 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeProvider>
         <ProjectProvider>
           <AuthProvider>
-            <AuthBoundary>{children}</AuthBoundary>
+            {children}
           </AuthProvider>
         </ProjectProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
 }
+

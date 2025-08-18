@@ -1,5 +1,5 @@
 import { Router, Route, Switch } from 'wouter';
-import { Providers } from './providers';
+import { Providers, AuthBoundary } from './providers';
 import { AppShell } from '../components/AppShell';
 import AuthPage from '../pages/AuthPage';
 import DashboardPage from '../pages/DashboardPage';
@@ -21,24 +21,29 @@ export function UiV2App() {
       <Router>
         <div className="ui-v2 bg-app min-h-screen text-ink">
           <Switch>
+            {/* Public route - login page */}
             <Route path="/login"><AuthPage /></Route>
+            
+            {/* Protected routes - wrapped in auth boundary */}
             <Route path="/:rest*">
-              <AppShell>
-                <Switch>
-                  <Route path="/"><DashboardPage /></Route>
-                  <Route path="/projects"><ProjectsPage /></Route>
-                  <Route path="/projects/:projectId/upload"><ProjectUploadPage /></Route>
-                  <Route path="/captures"><CapturesInboxPage /></Route>
-                  <Route path="/moments"><MomentsRadarPage /></Route>
-                  <Route path="/briefs"><BriefsListPage /></Route>
-                  <Route path="/briefs/:id"><BriefCanvasPage /></Route>
-                  <Route path="/feeds"><FeedsPage /></Route>
-                  <Route path="/truth-lab"><TruthLabPage /></Route>
-                  <Route path="/truth-lab/:id"><TruthDetailPage /></Route>
-                  <Route path="/settings"><SettingsPage /></Route>
-                  <Route><NotFoundPage /></Route>
-                </Switch>
-              </AppShell>
+              <AuthBoundary>
+                <AppShell>
+                  <Switch>
+                    <Route path="/"><DashboardPage /></Route>
+                    <Route path="/projects"><ProjectsPage /></Route>
+                    <Route path="/projects/:projectId/upload"><ProjectUploadPage /></Route>
+                    <Route path="/captures"><CapturesInboxPage /></Route>
+                    <Route path="/moments"><MomentsRadarPage /></Route>
+                    <Route path="/briefs"><BriefsListPage /></Route>
+                    <Route path="/briefs/:id"><BriefCanvasPage /></Route>
+                    <Route path="/feeds"><FeedsPage /></Route>
+                    <Route path="/truth-lab"><TruthLabPage /></Route>
+                    <Route path="/truth-lab/:id"><TruthDetailPage /></Route>
+                    <Route path="/settings"><SettingsPage /></Route>
+                    <Route><NotFoundPage /></Route>
+                  </Switch>
+                </AppShell>
+              </AuthBoundary>
             </Route>
           </Switch>
         </div>

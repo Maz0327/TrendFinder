@@ -19,9 +19,13 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const currentProjectId = null; // Default to showing all projects
   
-  const { captures } = useCaptures({});
-  const { moments } = useMoments({ projectId: currentProjectId || undefined });
-  const { briefs } = useBriefs({ projectId: currentProjectId || undefined });
+  const { data: capturesData } = useCaptures({});
+  const { data: momentsData } = useMoments({ projectId: currentProjectId || undefined });
+  const { data: briefsData } = useBriefs({ projectId: currentProjectId || undefined });
+
+  const captures = capturesData?.items || [];
+  const moments = momentsData || [];
+  const briefs = briefsData?.items || [];
 
   const stats = [
     {
@@ -45,7 +49,7 @@ export default function DashboardPage() {
     },
     {
       label: 'Draft Briefs',
-      value: briefs.filter(b => b.status === 'draft').length,
+      value: briefs.filter((b: any) => b.status === 'draft').length,
       change: 'Continue editing',
       icon: FileText,
       color: 'text-ink',
