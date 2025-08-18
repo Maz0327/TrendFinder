@@ -6,7 +6,10 @@ import SimpleBriefsPage from './ui-v2/pages/SimpleBriefsPage'
 
 function WorkingApp() {
   return (
-    <div className="ui-v2 theme-light min-h-screen" style={{ backgroundColor: '#f8f9fb', color: '#0f172a' }}>
+    <div className="min-h-screen" style={{ 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: '#ffffff'
+    }}>
       <div className="container mx-auto px-4 py-8">
         <SimpleBriefsPage />
       </div>
