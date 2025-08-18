@@ -238,7 +238,7 @@ export default function CapturesInboxPage() {
                               )}
                               
                               <div className="flex flex-wrap gap-1 justify-end">
-                                {capture.tags.slice(0, 1).map(tag => (
+                                {capture.tags?.slice(0, 1).map((tag: string) => (
                                   <span
                                     key={tag}
                                     className="px-2 py-1 frost-subtle text-ink rounded text-xs font-medium"
@@ -246,9 +246,9 @@ export default function CapturesInboxPage() {
                                     {tag}
                                   </span>
                                 ))}
-                                {capture.tags.length > 1 && (
+                                {(capture.tags?.length || 0) > 1 && (
                                   <span className="px-2 py-1 frost-card rounded text-xs font-medium">
-                                    +{capture.tags.length - 1}
+                                    +{(capture.tags?.length || 0) - 1}
                                   </span>
                                 )}
                               </div>
@@ -299,7 +299,7 @@ export default function CapturesInboxPage() {
                               )}
                               
                               <div className="flex gap-1">
-                                {capture.tags.slice(0, 2).map(tag => (
+                                {capture.tags?.slice(0, 2).map((tag: string) => (
                                   <span
                                     key={tag}
                                     className="px-2 py-1 frost-subtle text-ink rounded text-xs font-medium"
