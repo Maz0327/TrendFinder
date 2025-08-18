@@ -24,6 +24,7 @@ const navItems = [
   { to: '/moments', icon: Radar, label: 'Moments' },
   { to: '/briefs', icon: FileText, label: 'Briefs' },
   { to: '/feeds', icon: Rss, label: 'Feeds' },
+  { to: '/truth-lab', icon: Search, label: 'Truth Lab' },
   { to: '/projects', icon: FolderOpen, label: 'Projects' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];

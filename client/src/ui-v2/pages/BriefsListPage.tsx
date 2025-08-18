@@ -33,7 +33,6 @@ export default function BriefsListPage() {
       createBrief({
         project_id: currentProjectId,
         title: newBriefTitle.trim(),
-        tags: selectedTags,
       }).then((brief) => {
         setLocation(`/briefs/${brief.id}`);
         setNewBriefTitle('');
