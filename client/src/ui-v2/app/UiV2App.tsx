@@ -1,6 +1,7 @@
-import { ReactNode, useEffect, createContext, useContext, useState } from "react";
+import { ReactNode, useEffect, createContext, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "../hooks/useAuth";
+import { Router } from 'wouter';
+import { AuthProvider, useAuth } from "../hooks/useAuth";
 
 const qc = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -24,7 +25,6 @@ function ProjectProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Test ThemeProvider only - the most critical provider for styling
 function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const el = document.documentElement;
@@ -44,8 +44,8 @@ function ThemeProvider({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// Test with ALL providers added
-function AllProvidersTest() {
+// Test with JUST Router component - no Route/Switch/Suspense
+function JustRouterTest() {
   return (
     <div style={{
       backgroundColor: 'rgb(24, 28, 32)',
@@ -53,13 +53,9 @@ function AllProvidersTest() {
       padding: '20px',
       minHeight: '100vh'
     }}>
-      <h1 style={{ marginBottom: '16px' }}>Content Radar - All Providers Test</h1>
-      <p>✅ React working</p>
-      <p>✅ CSS working</p>
-      <p>✅ ThemeProvider working</p>
-      <p>✅ QueryClientProvider working</p>
-      <p>✅ AuthProvider working</p>
-      <p>✅ ProjectProvider added</p>
+      <h1 style={{ marginBottom: '16px' }}>Content Radar - Just Router Test</h1>
+      <p>✅ All providers working</p>
+      <p>✅ Router component only (no Route/Switch/Suspense)</p>
       <div style={{
         background: 'rgba(255, 255, 255, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -67,7 +63,7 @@ function AllProvidersTest() {
         padding: '16px',
         marginTop: '16px'
       }}>
-        <p style={{ margin: 0 }}>All providers working - ready for routing components</p>
+        <p style={{ margin: 0 }}>Testing if Router by itself causes issues</p>
       </div>
     </div>
   );
@@ -79,9 +75,11 @@ export function UiV2App() {
       <ThemeProvider>
         <ProjectProvider>
           <AuthProvider>
-            <div className="ui-v2 bg-app min-h-screen text-ink">
-              <AllProvidersTest />
-            </div>
+            <Router>
+              <div className="ui-v2 bg-app min-h-screen text-ink">
+                <JustRouterTest />
+              </div>
+            </Router>
           </AuthProvider>
         </ProjectProvider>
       </ThemeProvider>
