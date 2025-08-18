@@ -1,12 +1,14 @@
 import { Router, Route, Switch } from 'wouter';
 import { Providers, AuthBoundary } from './providers';
+import { Suspense } from 'react';
+import { ErrorBoundary, CrashScreen } from '../components/system/ErrorBoundary';
 import { AppShell } from '../components/AppShell';
 import AuthPage from '../pages/AuthPage';
 import DashboardPage from '../pages/DashboardPage';
 import ProjectsPage from '../pages/ProjectsPage';
 import CapturesInboxPage from '../pages/CapturesInboxPage';
 import MomentsRadarPage from '../pages/MomentsRadarPage';
-import BriefsListPage from '../pages/BriefsListPage';
+import SimpleBriefsPage from '../pages/SimpleBriefsPage';
 import BriefCanvasPage from '../pages/BriefCanvasPage';
 import FeedsPage from '../pages/FeedsPage';
 import SettingsPage from '../pages/SettingsPage';
@@ -20,32 +22,38 @@ export function UiV2App() {
     <Providers>
       <Router>
         <div className="ui-v2 bg-app min-h-screen text-ink">
-          <Switch>
-            {/* Public route - login page */}
-            <Route path="/login"><AuthPage /></Route>
-            
-            {/* Protected routes - wrapped in auth boundary */}
-            <Route path="/:rest*">
-              <AuthBoundary>
-                <AppShell>
-                  <Switch>
-                    <Route path="/"><DashboardPage /></Route>
-                    <Route path="/projects"><ProjectsPage /></Route>
-                    <Route path="/projects/:projectId/upload"><ProjectUploadPage /></Route>
-                    <Route path="/captures"><CapturesInboxPage /></Route>
-                    <Route path="/moments"><MomentsRadarPage /></Route>
-                    <Route path="/briefs"><BriefsListPage /></Route>
-                    <Route path="/briefs/:id"><BriefCanvasPage /></Route>
-                    <Route path="/feeds"><FeedsPage /></Route>
-                    <Route path="/truth-lab"><TruthLabPage /></Route>
-                    <Route path="/truth-lab/:id"><TruthDetailPage /></Route>
-                    <Route path="/settings"><SettingsPage /></Route>
-                    <Route><NotFoundPage /></Route>
-                  </Switch>
-                </AppShell>
-              </AuthBoundary>
-            </Route>
-          </Switch>
+          <Suspense fallback={<div className="ui-v2 p-6">Loading…</div>}>
+            <ErrorBoundary fallback={<CrashScreen title="Dashboard failed to render" hint="A page threw during render." />}>
+              <Switch>
+                {/* Public route - login page */}
+                <Route path="/login"><AuthPage /></Route>
+                
+                {/* Protected routes - wrapped in auth boundary */}
+                <Route path="/:rest*">
+                  <AuthBoundary>
+                    <AppShell>
+                      <Switch>
+                        {/* Redirect to stable page while we fix dashboard */}
+                        <Route path="/"><SimpleBriefsPage /></Route>
+                        <Route path="/dashboard"><DashboardPage /></Route>
+                        <Route path="/projects"><ProjectsPage /></Route>
+                        <Route path="/projects/:projectId/upload"><ProjectUploadPage /></Route>
+                        <Route path="/captures"><CapturesInboxPage /></Route>
+                        <Route path="/moments"><MomentsRadarPage /></Route>
+                        <Route path="/briefs"><SimpleBriefsPage /></Route>
+                        <Route path="/briefs/:id"><BriefCanvasPage /></Route>
+                        <Route path="/feeds"><FeedsPage /></Route>
+                        <Route path="/truth-lab"><TruthLabPage /></Route>
+                        <Route path="/truth-lab/:id"><TruthDetailPage /></Route>
+                        <Route path="/settings"><SettingsPage /></Route>
+                        <Route><NotFoundPage /></Route>
+                      </Switch>
+                    </AppShell>
+                  </AuthBoundary>
+                </Route>
+              </Switch>
+            </ErrorBoundary>
+          </Suspense>
         </div>
       </Router>
     </Providers>

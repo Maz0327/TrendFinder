@@ -19,13 +19,15 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const currentProjectId = null; // Default to showing all projects
   
-  const { data: capturesData } = useCaptures({});
-  const { data: momentsData } = useMoments({ projectId: currentProjectId || undefined });
-  const { data: briefsData } = useBriefs({ projectId: currentProjectId || undefined });
+  const capturesQuery = useCaptures({});
+  const momentsHook = useMoments({ projectId: currentProjectId || undefined });
+  const briefsHook = useBriefs({ projectId: currentProjectId || undefined });
 
-  const captures = capturesData?.items || [];
-  const moments = momentsData || [];
-  const briefs = briefsData?.items || [];
+  // Null-safety guards to prevent crashes - matching actual hook return types
+  const captures = Array.isArray(capturesQuery?.data?.data) ? capturesQuery.data.data : [];
+  const moments = Array.isArray(momentsHook?.moments) ? momentsHook.moments : [];
+  const briefs = Array.isArray(briefsHook?.briefs?.items) ? briefsHook.briefs.items : 
+    Array.isArray(briefsHook?.briefs) ? briefsHook.briefs : [];
 
   const stats = [
     {
@@ -41,7 +43,7 @@ export default function DashboardPage() {
     },
     {
       label: 'Active Moments',
-      value: moments.filter(m => m.intensity > 50).length,
+      value: moments.filter((m: any) => typeof m?.intensity === 'number' && m.intensity > 50).length,
       change: '2 trending up',
       icon: Radar,
       color: 'text-ink',
@@ -89,7 +91,14 @@ export default function DashboardPage() {
     },
   ];
 
-  const recentBriefs = briefs.slice(0, 3);
+  const recentBriefs = Array.isArray(briefs) ? briefs.slice(0, 3).map((brief: any) => ({
+    id: brief?.id || '',
+    title: brief?.title || 'Untitled Brief',
+    status: brief?.status || 'draft',
+    slideCount: typeof brief?.slideCount === 'number' ? brief.slideCount : 0,
+    updatedAt: brief?.updatedAt || new Date().toISOString(),
+    tags: Array.isArray(brief?.tags) ? brief.tags : []
+  })) : [];
 
   return (
     <div className="space-y-8">
@@ -178,7 +187,7 @@ export default function DashboardPage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-              {recentBriefs.map((brief, index) => (
+              {recentBriefs.map((brief: any, index: number) => (
                 <motion.div
                   key={brief.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -209,7 +218,7 @@ export default function DashboardPage() {
                       
                       {brief.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {brief.tags.slice(0, 2).map((tag) => (
+                          {brief.tags.slice(0, 2).map((tag: string) => (
                             <span
                               key={tag}
                               className="px-2 py-1 bg-white/10 rounded text-xs font-medium"

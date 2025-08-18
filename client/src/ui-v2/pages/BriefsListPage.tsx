@@ -12,7 +12,7 @@ import { LoadingSkeleton } from '../components/LoadingSkeleton';
 
 export default function BriefsListPage() {
   const navigate = useNavigate();
-  const { currentProjectId } = useProjectContext();
+  const { currentProjectId } = useProjectContext() || { currentProjectId: null };
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
