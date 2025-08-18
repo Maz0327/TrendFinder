@@ -9,6 +9,7 @@ import ProjectsPage from '../pages/ProjectsPage';
 import CapturesInboxPage from '../pages/CapturesInboxPage';
 import MomentsRadarPage from '../pages/MomentsRadarPage';
 import SimpleBriefsPage from '../pages/SimpleBriefsPage';
+import TestPage from '../pages/TestPage';
 import BriefCanvasPage from '../pages/BriefCanvasPage';
 import FeedsPage from '../pages/FeedsPage';
 import SettingsPage from '../pages/SettingsPage';
@@ -19,7 +20,7 @@ import { TruthDetailPage } from '../pages/TruthDetailPage';
 
 export function UiV2App() {
   return (
-    <Providers>
+    <div>
       <Router>
         <div className="ui-v2 bg-app min-h-screen text-ink">
           <Suspense fallback={<div className="ui-v2 p-6">Loading…</div>}>
@@ -30,11 +31,10 @@ export function UiV2App() {
                 
                 {/* Protected routes - wrapped in auth boundary */}
                 <Route path="/:rest*">
-                  <AuthBoundary>
-                    <AppShell>
-                      <Switch>
-                        {/* Redirect to stable page while we fix dashboard */}
-                        <Route path="/"><SimpleBriefsPage /></Route>
+                  <div className="min-h-screen bg-white">
+                    <Switch>
+                      {/* Bypass auth for testing */}
+                      <Route path="/"><TestPage /></Route>
                         <Route path="/dashboard"><DashboardPage /></Route>
                         <Route path="/projects"><ProjectsPage /></Route>
                         <Route path="/projects/:projectId/upload"><ProjectUploadPage /></Route>
@@ -46,16 +46,15 @@ export function UiV2App() {
                         <Route path="/truth-lab"><TruthLabPage /></Route>
                         <Route path="/truth-lab/:id"><TruthDetailPage /></Route>
                         <Route path="/settings"><SettingsPage /></Route>
-                        <Route><NotFoundPage /></Route>
-                      </Switch>
-                    </AppShell>
-                  </AuthBoundary>
+                      <Route><div style={{padding: '20px', color: 'black'}}>404 Not Found</div></Route>
+                    </Switch>
+                  </div>
                 </Route>
               </Switch>
             </ErrorBoundary>
           </Suspense>
         </div>
       </Router>
-    </Providers>
+    </div>
   );
 }

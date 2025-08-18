@@ -5,7 +5,7 @@ import DashboardPage from '../pages/DashboardPage';
 import ProjectsPage from '../pages/ProjectsPage';
 import CapturesInboxPage from '../pages/CapturesInboxPage';
 import MomentsRadarPage from '../pages/MomentsRadarPage';
-import BriefsListPage from '../pages/BriefsListPage';
+import SimpleBriefsPage from '../pages/SimpleBriefsPage';
 import BriefCanvasPage from '../pages/BriefCanvasPage';
 import FeedsPage from '../pages/FeedsPage';
 import SettingsPage from '../pages/SettingsPage';
@@ -45,7 +45,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: 'briefs',
-        element: <BriefsListPage />,
+        element: <SimpleBriefsPage />,
       },
       {
         path: 'briefs/:id',
