@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useLocation } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Search, Bell, User, ChevronDown, Plus, Folder, Menu, X } from 'lucide-react';
 import { 
   Home, 
@@ -34,8 +34,8 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
-  const { user } = useAuth();
-  const location = useLocation();
+  const { user, signOut } = useAuth();
+  const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -79,17 +79,17 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.to || 
-              (item.to !== '/' && location.pathname.startsWith(item.to));
+            const isActive = location === item.to || 
+              (item.to !== '/' && location && location.startsWith(item.to));
             
             return (
-              <NavLink
+              <Link
                 key={item.to}
-                to={item.to}
-                className={({ isActive: active }) => cn(
+                href={item.to}
+                className={cn(
                   'relative flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap min-h-[40px] flex-shrink-0',
                   'hover:bg-white/10 transition-colors',
-                  active || isActive
+                  isActive
                     ? 'text-ink bg-white/10' 
                     : 'text-muted-ink hover:text-ink'
                 )}
@@ -104,7 +104,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
-              </NavLink>
+              </Link>
             );
           })}
         </nav>
@@ -136,25 +136,25 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               {/* Navigation */}
               <nav className="flex-1 py-4 space-y-1">
                 {navItems.map((item) => {
-                  const isActive = location.pathname === item.to || 
-                    (item.to !== '/' && location.pathname.startsWith(item.to));
+                  const isActive = location === item.to || 
+                    (item.to !== '/' && location && location.startsWith(item.to));
                   
                   return (
                     <SheetClose key={item.to} asChild>
-                      <NavLink
-                        to={item.to}
-                       className={({ isActive: routerIsActive }) => cn(
+                      <Link
+                        href={item.to}
+                       className={cn(
                          'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full text-sm min-h-[44px]',
                          'hover:bg-white/10',
                          'text-left font-medium',
-                         routerIsActive 
+                         isActive 
                            ? 'text-ink bg-white/10 border border-blue-500/30' 
                            : 'text-muted-ink hover:text-ink'
                        )}
                       >
                        <item.icon className="w-4 h-4 flex-shrink-0" />
                         <span className="font-medium text-sm">{item.label}</span>
-                      </NavLink>
+                      </Link>
                     </SheetClose>
                   );
                 })}
@@ -181,7 +181,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                 </div>
                 <SheetClose asChild>
                   <button
-                    onClick={() => {/* Sign out in mock mode */}}
+                    onClick={() => signOut().catch(console.error)}
                     className="w-full px-3 py-2 glass rounded-lg hover:frost-subtle transition-colors text-sm"
                   >
                     Sign Out
