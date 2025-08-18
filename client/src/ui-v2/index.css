@@ -1,54 +1,77 @@
-/* UI-V2 theme tokens and helpers (no @tailwind layers here) */
+/* UI-V2 Complete Design System */
 :root { 
   --radius: 16px; 
-  /* Default to dark theme variables */
+  /* Advanced color system */
   --background: 24 28 32;
+  --foreground: 241 244 248;
   --card: 48 52 58;
-  --text: 241 244 248;
-  --muted-text: 148 163 184;
+  --card-foreground: 241 244 248;
+  --popover: 48 52 58;
+  --popover-foreground: 241 244 248;
+  --primary: 99 102 241;
+  --primary-foreground: 255 255 255;
+  --secondary: 71 85 105;
+  --secondary-foreground: 241 244 248;
+  --muted: 71 85 105;
+  --muted-foreground: 148 163 184;
+  --accent: 99 102 241;
+  --accent-foreground: 255 255 255;
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --border: 71 85 105;
+  --input: 71 85 105;
   --ring: 99 102 241;
 }
+
 .theme-dark {
   --background: 24 28 32;
+  --foreground: 241 244 248;
   --card: 48 52 58;
-  --text: 241 244 248;
-  --muted-text: 148 163 184;
+  --card-foreground: 241 244 248;
+  --popover: 48 52 58;
+  --popover-foreground: 241 244 248;
+  --primary: 99 102 241;
+  --primary-foreground: 255 255 255;
+  --secondary: 71 85 105;
+  --secondary-foreground: 241 244 248;
+  --muted: 71 85 105;
+  --muted-foreground: 148 163 184;
+  --accent: 99 102 241;
+  --accent-foreground: 255 255 255;
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --border: 71 85 105;
+  --input: 71 85 105;
   --ring: 99 102 241;
 }
+
 .theme-light {
   --background: 248 249 251;
+  --foreground: 15 23 42;
   --card: 255 255 255;
-  --text: 15 23 42;
-  --muted-text: 71 85 105;
+  --card-foreground: 15 23 42;
+  --popover: 255 255 255;
+  --popover-foreground: 15 23 42;
+  --primary: 37 99 235;
+  --primary-foreground: 255 255 255;
+  --secondary: 226 232 240;
+  --secondary-foreground: 15 23 42;
+  --muted: 226 232 240;
+  --muted-foreground: 71 85 105;
+  --accent: 37 99 235;
+  --accent-foreground: 255 255 255;
+  --destructive: 220 38 38;
+  --destructive-foreground: 255 255 255;
+  --border: 226 232 240;
+  --input: 226 232 240;
   --ring: 37 99 235;
 }
+
+/* Core UI classes */
 .bg-app { background-color: rgb(var(--background)); }
 .bg-card { background-color: rgb(var(--card)); }
-.text-ink { color: rgb(var(--text)); }
-.text-muted-ink { color: rgb(var(--muted-text)); }
-.ring-brand { box-shadow: 0 0 0 1px rgba(var(--ring) / 0.25); }
-
-/* Glassmorphism components */
-.glass-header { 
-  background: rgb(var(--card) / 0.8); 
-  backdrop-filter: blur(20px); 
-  border-bottom: 1px solid rgb(var(--text) / 0.1); 
-}
-.frost-card { 
-  background: rgb(var(--card) / 0.8); 
-  backdrop-filter: blur(16px); 
-  border: 1px solid rgb(var(--text) / 0.15); 
-  border-radius: var(--radius); 
-}
-.frost-strong { 
-  background: rgb(var(--card) / 0.95); 
-  backdrop-filter: blur(24px); 
-}
-.frost-subtle { 
-  background: rgb(var(--card) / 0.6); 
-  backdrop-filter: blur(12px); 
-}
-.frost-hover:hover { 
-  background: rgb(var(--card) / 0.9); 
-  backdrop-filter: blur(20px); 
-}
+.bg-glass { background-color: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); }
+.bg-glass-heavy { background-color: rgba(255, 255, 255, 0.15); backdrop-filter: blur(30px); }
+.text-ink { color: rgb(var(--foreground)); }
+.text-ink-light { color: rgb(var(--muted-foreground)); }
+.border-border { border-color: rgb(var(--border)); }
