@@ -1,7 +1,10 @@
-import { Providers } from './providers';
+// Test with minimal providers - no QueryClient or complex providers
+function MinimalProviders({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
 
-// Minimal test without any page component imports
-function MinimalTest() {
+// Test with basic content only
+function BasicContentTest() {
   return (
     <div style={{
       backgroundColor: 'rgb(24, 28, 32)',
@@ -9,10 +12,10 @@ function MinimalTest() {
       padding: '20px',
       minHeight: '100vh'
     }}>
-      <h1 style={{ marginBottom: '16px' }}>Content Radar - Import Isolation Test</h1>
-      <p>✅ Providers working</p>
-      <p>✅ No page component imports</p>
-      <p>✅ Testing if imports cause black screen</p>
+      <h1 style={{ marginBottom: '16px' }}>Content Radar - Minimal Providers Test</h1>
+      <p>✅ React working</p>
+      <p>✅ CSS working</p>
+      <p>✅ No complex providers</p>
       <div style={{
         background: 'rgba(255, 255, 255, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -20,7 +23,7 @@ function MinimalTest() {
         padding: '16px',
         marginTop: '16px'
       }}>
-        <p style={{ margin: 0 }}>If this shows, the issue is with page component imports</p>
+        <p style={{ margin: 0 }}>Testing if Providers component causes the failure</p>
       </div>
     </div>
   );
@@ -28,10 +31,10 @@ function MinimalTest() {
 
 export function UiV2App() {
   return (
-    <Providers>
+    <MinimalProviders>
       <div className="ui-v2 bg-app min-h-screen text-ink">
-        <MinimalTest />
+        <BasicContentTest />
       </div>
-    </Providers>
+    </MinimalProviders>
   );
 }
