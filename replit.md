@@ -14,7 +14,8 @@ Preferred communication style: Simple, everyday language.
 - **Navigation System Fixed**: Converted entire routing system from react-router-dom to wouter, fixing all navigation functionality
 - **Truth Lab Made Visible**: Added Truth Lab to main navigation with comprehensive visual analysis features (confidence bars, verdict badges, multi-modal verification)
 - **All TypeScript Errors Resolved**: Fixed remaining schema mismatches and navigation references
-- **System Status**: Complete UI-V2 architecture with all features working, navigation system fully operational, Truth Lab visual analysis accessible
+- **Truth Lab Backend Foundation (A1)**: Implemented complete backend infrastructure with URL extraction, OpenAI text analysis, 5-layer truth framework, strategic intelligence, cohort detection, PostgreSQL storage, and comprehensive API endpoints
+- **System Status**: Complete UI-V2 architecture with Truth Lab fully functional end-to-end (frontend + backend), all smoke tests passing
 
 ## System Architecture
 
@@ -40,7 +41,7 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: Hybrid (Supabase JWT with PostgreSQL session fallback)
 - **API Design**: Auto-generated Supabase APIs with RESTful fallback
 - **Security**: Row Level Security policies for multi-tenant data isolation
-- **Core Logic**: 11-table schema supporting Strategic Intelligence, and a "Truth Analysis Engine" with GPT-5 reasoning across four layers (Fact → Observation → Insight → Human Truth).
+- **Core Logic**: 12-table schema supporting Strategic Intelligence, and a "Truth Analysis Engine" with OpenAI GPT-4o-mini reasoning across five layers (Fact → Observation → Insight → Human Truth → Cultural Moment) plus strategic analysis and cohort detection.
 
 ### Key Components
 - **DSD Signal Drop System**: Strategic brief builder using Define→Shift→Deliver methodology.

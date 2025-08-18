@@ -1,271 +1,125 @@
-import type { Express, Request, Response } from "express";
-import { requireAuth } from "../middleware/supabase-auth";
-import { getUserId } from "../lib/auth-user";
+import type { Express, Request, Response } from 'express';
+import { z } from 'zod';
+import { extractFromUrl } from '../services/truth/extract';
+import { runQuickTextAnalysis } from '../services/analysis/text';
+import { Client } from 'pg';
 
-// Development bypass for auth - since frontend has auth disabled
-const maybeAuth = process.env.NODE_ENV === 'development' ? 
-  (req: Request, res: Response, next: any) => next() : 
-  requireAuth;
+const postExtractBody = z.object({
+  url: z.string().url()
+});
+
+const postAnalyzeTextBody = z.object({
+  text: z.string().min(10).max(20000).optional(),
+});
 
 export function registerTruthRoutes(app: Express) {
-  // CRUD endpoints that frontend expects
-  app.post("/api/truth-checks", maybeAuth, async (req: Request, res: Response) => {
+  app.post('/api/truth/extract', async (req: Request, res: Response) => {
     try {
-      const userId = process.env.NODE_ENV === 'development' ? 'dev-user' : getUserId(req);
-      const { kind, url, text, projectId } = req.body;
+      const { url } = postExtractBody.parse(req.body);
+      const userId = 'dev-user'; // For development, using fixed user
+      const projectId = req.body.projectId ?? null;
+
+      const { extracted_text, extracted_images } = await extractFromUrl(url);
+
+      const client = new Client({ connectionString: process.env.DATABASE_URL });
+      await client.connect();
       
-      if (!kind || (kind === 'url' && !url) || (kind === 'text' && !text)) {
-        return res.status(400).json({ error: "Required fields missing" });
+      try {
+        const result = await client.query(
+          `INSERT INTO truth_checks (user_id, project_id, source_type, source_url, extracted_text, extracted_images, status)
+           VALUES ($1, $2, 'url', $3, $4, $5::jsonb, 'ready_for_text')
+           RETURNING id`,
+          [userId, projectId, url, extracted_text, JSON.stringify(extracted_images)]
+        );
+        const row = result.rows[0];
+        res.json({ id: row.id, extracted_text, extracted_images });
+      } finally {
+        await client.end();
       }
-      
-      // Create truth check with proper response format
-      const result = {
-        id: `truth-${Date.now()}`,
-        status: 'done',
-        kind,
-        verdict: kind === 'url' ? 'likely_true' : kind === 'text' ? 'unverified' : 'likely_true',
-        confidence: Math.random() * 0.3 + 0.7, // 0.7-1.0 range
-        summary: {
-          content: url || text || 'Image analysis',
-          truthScore: Math.random() * 0.3 + 0.7,
-          layers: {
-            fact: "Content verified against multiple sources",
-            observation: "Analysis completed successfully", 
-            insight: "High credibility indicators found",
-            humanTruth: "Reliable information detected"
-          }
-        },
-        created_at: new Date().toISOString(),
-        project_id: projectId || null,
-        user_id: userId
-      };
-      
-      return res.json(result);
     } catch (error) {
-      console.error("Truth check creation error:", error);
-      return res.status(500).json({ error: "Analysis failed" });
+      console.error('Extract error:', error);
+      res.status(500).json({ error: 'extraction_failed' });
     }
   });
 
-  app.get("/api/truth-checks/:id", maybeAuth, async (req: Request, res: Response) => {
+  app.post('/api/truth/analyze-text/:id', async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
-      const userId = process.env.NODE_ENV === 'development' ? 'dev-user' : getUserId(req);
+      const id = req.params.id;
+      const body = postAnalyzeTextBody.safeParse(req.body);
+      const userId = 'dev-user'; // For development
       
-      // Return detailed truth check
-      const result = {
-        id,
-        status: 'done',
-        verdict: 'likely_true',
-        confidence: 0.85,
-        summary: {
-          truthScore: 0.85,
-          sources: ["verified", "cross-referenced"],
-          layers: {
-            fact: "Content verified against multiple sources",
-            observation: "No misleading claims detected", 
-            insight: "High credibility rating",
-            humanTruth: "Reliable information source"
-          }
-        },
-        created_at: new Date().toISOString(),
-        user_id: userId
-      };
+      const client = new Client({ connectionString: process.env.DATABASE_URL });
+      await client.connect();
       
-      return res.json(result);
-    } catch (error) {
-      console.error("Truth check fetch error:", error);
-      return res.status(500).json({ error: "Failed to fetch truth check" });
-    }
-  });
-
-  app.get("/api/truth-checks", maybeAuth, async (req: Request, res: Response) => {
-    try {
-      const userId = process.env.NODE_ENV === 'development' ? 'dev-user' : getUserId(req);
-      const { page = "1", pageSize = "6" } = req.query as Record<string, string>;
-      
-      // Return recent checks with proper format
-      const mockChecks = [
-        {
-          id: "truth-1",
-          kind: "url",
-          verdict: "likely_true",
-          confidence: 0.85,
-          summary: { content: "https://example.com/verified-news" },
-          status: "done",
-          created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30 min ago
-        },
-        {
-          id: "truth-2", 
-          kind: "text",
-          verdict: "unverified",
-          confidence: 0.62,
-          summary: { content: "Sample text analysis content..." },
-          status: "done",
-          created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString() // 1 hour ago
-        },
-        {
-          id: "truth-3",
-          kind: "image",
-          verdict: "likely_true",
-          confidence: 0.92,
-          summary: { content: "Image authenticity verification" },
-          status: "done",
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() // 2 hours ago
+      try {
+        // load record
+        const tcResult = await client.query(
+          `SELECT * FROM truth_checks WHERE id = $1 AND user_id = $2`,
+          [id, userId]
+        );
+        
+        if (tcResult.rows.length === 0) {
+          return res.status(404).json({ error: 'not_found' });
         }
-      ];
-      
-      return res.json({
-        data: mockChecks,
-        total: mockChecks.length,
-        page: parseInt(page),
-        pageSize: parseInt(pageSize)
-      });
-    } catch (error) {
-      console.error("Error fetching truth checks:", error);
-      return res.status(500).json({ error: "Failed to fetch checks" });
-    }
-  });
+        
+        const tc = tcResult.rows[0];
 
-  app.post("/api/truth-checks/:id/retry", maybeAuth, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      // Simulate retry operation
-      return res.json({ id, status: 'processing', message: 'Analysis restarted' });
-    } catch (error) {
-      console.error("Truth check retry error:", error);
-      return res.status(500).json({ error: "Retry failed" });
-    }
-  });
-
-  // Keep original analysis endpoints for future use
-  app.post("/api/truth/analyze/url", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const userId = getUserId(req);
-      const { url } = req.body;
-      
-      if (!url) {
-        return res.status(400).json({ error: "URL is required" });
-      }
-      
-      // In development, return a mock analysis
-      // In production, this would call your truth analysis service
-      const result = {
-        url,
-        analysis: {
-          truthScore: 0.85,
-          sources: ["verified", "cross-referenced"],
-          summary: "Analysis completed successfully",
-          layers: {
-            fact: "Content verified against multiple sources",
-            observation: "No misleading claims detected", 
-            insight: "High credibility rating",
-            humanTruth: "Reliable information source"
-          }
-        },
-        timestamp: new Date().toISOString()
-      };
-      
-      return res.json({ ok: true, kind: "url", result });
-    } catch (error) {
-      console.error("Truth analysis error:", error);
-      return res.status(500).json({ error: "Analysis failed" });
-    }
-  });
-
-  app.post("/api/truth/analyze/text", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const userId = getUserId(req);
-      const { text } = req.body;
-      
-      if (!text) {
-        return res.status(400).json({ error: "Text is required" });
-      }
-      
-      const result = {
-        text: text.substring(0, 100) + "...",
-        analysis: {
-          truthScore: 0.78,
-          sentiment: "neutral",
-          summary: "Text analysis completed",
-          layers: {
-            fact: "Factual content verified",
-            observation: "No bias detected",
-            insight: "Informative content",
-            humanTruth: "Credible narrative"
-          }
-        },
-        timestamp: new Date().toISOString()
-      };
-      
-      return res.json({ ok: true, kind: "text", result });
-    } catch (error) {
-      console.error("Text analysis error:", error);
-      return res.status(500).json({ error: "Analysis failed" });
-    }
-  });
-
-  app.post("/api/truth/analyze/image", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const userId = getUserId(req);
-      // Handle multipart form data for image upload
-      
-      const result = {
-        analysis: {
-          truthScore: 0.92,
-          authenticity: "high",
-          summary: "Image analysis completed",
-          layers: {
-            fact: "Image metadata verified",
-            observation: "No manipulation detected",
-            insight: "Authentic visual content",
-            humanTruth: "Trustworthy image source"
-          }
-        },
-        timestamp: new Date().toISOString()
-      };
-      
-      return res.json({ ok: true, kind: "image", result });
-    } catch (error) {
-      console.error("Image analysis error:", error);
-      return res.status(500).json({ error: "Analysis failed" });
-    }
-  });
-
-  app.get("/api/truth/checks", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const userId = getUserId(req);
-      const { page = "1", pageSize = "20" } = req.query as Record<string, string>;
-      
-      // Return mock checks for development
-      const mockChecks = [
-        {
-          id: "check1",
-          type: "url",
-          content: "https://example.com/news",
-          truthScore: 0.85,
-          status: "completed",
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: "check2", 
-          type: "text",
-          content: "Sample text analysis...",
-          truthScore: 0.78,
-          status: "completed",
-          createdAt: new Date().toISOString()
+        const text = body.success && body.data.text ? 
+          body.data.text : 
+          (tc.extracted_text || tc.source_text || '');
+          
+        if (!text || text.length < 10) {
+          return res.status(400).json({ error: 'no_text' });
         }
-      ];
-      
-      return res.json({
-        data: mockChecks,
-        total: mockChecks.length,
-        page: parseInt(page),
-        pageSize: parseInt(pageSize)
-      });
+
+        await client.query(`UPDATE truth_checks SET status = 'text_running' WHERE id = $1`, [id]);
+
+        const out = await runQuickTextAnalysis({ 
+          text, 
+          url: tc.source_url || undefined 
+        });
+
+        await client.query(`
+          UPDATE truth_checks
+          SET result_truth = $2::jsonb, result_strategic = $3::jsonb, result_cohorts = $4::jsonb, status = 'done'
+          WHERE id = $1
+        `, [id, JSON.stringify(out.result_truth), JSON.stringify(out.result_strategic), JSON.stringify(out.result_cohorts)]);
+
+        const updatedResult = await client.query(`SELECT * FROM truth_checks WHERE id = $1`, [id]);
+        const updated = updatedResult.rows[0];
+        res.json(updated);
+      } finally {
+        await client.end();
+      }
     } catch (error) {
-      console.error("Error fetching truth checks:", error);
-      return res.status(500).json({ error: "Failed to fetch checks" });
+      console.error('Analysis error:', error);
+      res.status(500).json({ error: 'analysis_failed' });
+    }
+  });
+
+  app.get('/api/truth/:id', async (req: Request, res: Response) => {
+    try {
+      const userId = 'dev-user'; // For development
+      const client = new Client({ connectionString: process.env.DATABASE_URL });
+      await client.connect();
+      
+      try {
+        const result = await client.query(
+          `SELECT * FROM truth_checks WHERE id = $1 AND user_id = $2`,
+          [req.params.id, userId]
+        );
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'not_found' });
+        }
+        
+        res.json(result.rows[0]);
+      } finally {
+        await client.end();
+      }
+    } catch (error) {
+      console.error('Get truth check error:', error);
+      res.status(500).json({ error: 'fetch_failed' });
     }
   });
 }
