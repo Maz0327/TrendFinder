@@ -74,4 +74,44 @@
 .bg-glass-heavy { background-color: rgba(255, 255, 255, 0.15); backdrop-filter: blur(30px); }
 .text-ink { color: rgb(var(--foreground)); }
 .text-ink-light { color: rgb(var(--muted-foreground)); }
+.text-muted-ink { color: rgb(var(--muted-foreground)); }
 .border-border { border-color: rgb(var(--border)); }
+
+/* Glassmorphism Classes */
+.frost-card { 
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius);
+}
+
+.frost-strong { 
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius);
+}
+
+.frost-subtle { 
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+}
+
+.frost-hover:hover { 
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.frost-ring:focus { 
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+}
+
+.glass-header {
+  background: rgba(var(--background), 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(var(--border), 0.5);
+}

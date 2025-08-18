@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listCaptures, getCapture, updateCapture, uploadCapture } from "../services/captures";
 import type { Capture, Paginated, ID } from "../types";
 
-export function useCaptures(params?: { page?: number; pageSize?: number; q?: string; tags?: string[]; projectId?: ID }) {
+export function useCaptures(params?: { page?: number; pageSize?: number; q?: string; tags?: string[]; projectId?: ID; platform?: string }) {
   return useQuery({
     queryKey: ["captures", params],
     queryFn: () => listCaptures(params),

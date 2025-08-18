@@ -6,6 +6,7 @@ import { SearchInput } from '../components/forms/SearchInput';
 import { TagInput } from '../components/forms/TagInput';
 import { PopoverMenu, PopoverMenuItem } from '../components/primitives/PopoverMenu';
 import { useCaptures } from '../hooks/useCaptures';
+import { updateCapture } from '../services/captures';
 import { useProjectContext } from '../app/providers';
 import { Capture } from '../types';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
@@ -25,22 +26,38 @@ export default function CapturesInboxPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  const { captures, updateStatus, updateCapture, isLoading } = useCaptures({
+  const capturesQuery = useCaptures({
     projectId: currentProjectId || undefined,
     q: searchQuery,
     tags: selectedTags.length > 0 ? selectedTags : undefined,
     platform: selectedPlatform || undefined,
   });
 
+  const captures = capturesQuery?.data?.data || [];
+  const isLoading = capturesQuery?.isLoading || false;
+
+  // Create updateStatus function using the updateCapture service
+  const updateStatus = async (captureId: string, status: 'new' | 'keep' | 'trash') => {
+    try {
+      await updateCapture(captureId, { status });
+    } catch (error) {
+      console.error('Failed to update capture status:', error);
+    }
+  };
+
   // Get unique platforms and tags for filters
   const { platforms, allTags } = useMemo(() => {
     const platformSet = new Set<string>();
     const tagSet = new Set<string>();
 
-    captures.forEach(capture => {
-      if (capture.platform) platformSet.add(capture.platform);
-      capture.tags.forEach(tag => tagSet.add(tag));
-    });
+    if (Array.isArray(captures)) {
+      captures.forEach(capture => {
+        if (capture.platform) platformSet.add(capture.platform);
+        if (Array.isArray(capture.tags)) {
+          capture.tags.forEach(tag => tagSet.add(tag));
+        }
+      });
+    }
 
     return {
       platforms: Array.from(platformSet).sort(),
@@ -50,15 +67,20 @@ export default function CapturesInboxPage() {
 
   // Group captures by status
   const capturesByStatus = useMemo(() => {
-    const groups: Record<string, Capture[]> = {
+    const groups: Record<string, any[]> = {
       new: [],
       keep: [],
       trash: [],
     };
 
-    captures.forEach(capture => {
-      groups[capture.status].push(capture);
-    });
+    if (Array.isArray(captures)) {
+      captures.forEach(capture => {
+        const status = capture.status || 'new';
+        if (groups[status]) {
+          groups[status].push(capture);
+        }
+      });
+    }
 
     return groups;
   }, [captures]);

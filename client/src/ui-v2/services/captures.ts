@@ -1,7 +1,7 @@
 import { api } from "../lib/api";
 import type { ID, Capture, Paginated } from "../types";
 
-export function listCaptures(params?: { page?: number; pageSize?: number; q?: string; tags?: string[]; projectId?: ID }) {
+export function listCaptures(params?: { page?: number; pageSize?: number; q?: string; tags?: string[]; projectId?: ID; platform?: string }) {
   const qp: Record<string, any> = { ...params };
   if (params?.tags) qp.tags = params.tags.join(",");
   return api.get<Paginated<Capture>>("/captures", qp);

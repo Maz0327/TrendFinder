@@ -24,6 +24,9 @@ export interface Capture {
   file_path?: string | null;
   file_size?: number | null;
   file_type?: string | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  status?: 'new' | 'keep' | 'trash';
   tags?: string[];
   created_at?: string;
   updated_at?: string;
