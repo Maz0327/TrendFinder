@@ -22,9 +22,26 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      setLocation('/');
+      // Redirect authenticated users to dashboard immediately
+      window.location.href = '/';
     }
-  }, [isAuthenticated, setLocation]);
+  }, [isAuthenticated]);
+
+  // Handle OAuth callback token
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const errorParam = urlParams.get('error');
+    
+    if (token) {
+      localStorage.setItem('sb-access-token', token);
+      // Clean URL and redirect to dashboard
+      window.history.replaceState({}, document.title, '/login');
+      window.location.href = '/';
+    } else if (errorParam) {
+      setError('Authentication failed. Please try again.');
+    }
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -61,11 +78,12 @@ export default function AuthPage() {
         const response = await api.post('/auth/login', {
           email: formData.email,
           password: formData.password
-        });
+        }) as { access_token?: string; user?: any };
         
         if (response.access_token) {
           localStorage.setItem('sb-access-token', response.access_token);
-          setLocation('/');
+          // Force a page reload to trigger auth state update
+          window.location.href = '/';
         }
       }
     } catch (err: any) {
@@ -234,6 +252,10 @@ export default function AuthPage() {
           <a
             href={getSignInUrl()}
             className="flex items-center justify-center gap-3 w-full px-6 py-3 frost-strong hover:frost-card rounded-lg font-medium transition-colors text-ink"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = getSignInUrl();
+            }}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

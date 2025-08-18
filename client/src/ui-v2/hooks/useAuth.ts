@@ -28,7 +28,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const getSignInUrl = useCallback(() => {
     if (IS_MOCK_MODE) return "/auth/mock-login";
-    return "/auth/login"; // fallback: server should redirect to Supabase/Google
+    // For Google OAuth, redirect to server endpoint that handles Supabase auth
+    return "/api/auth/google/start"; 
   }, []);
 
   const signOut = useCallback(async () => {

@@ -155,10 +155,68 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Google auth start - placeholder for UI
-  app.post('/api/auth/google/start', async (req: Request, res: Response) => {
-    // This is handled by existing Supabase auth flow on client
-    res.json({ ok: true, message: 'Use Supabase auth flow on client' });
+  // Google auth start - redirect to Supabase OAuth
+  app.get('/api/auth/google/start', async (req: Request, res: Response) => {
+    try {
+      const supabase = createClient(
+        process.env.VITE_SUPABASE_URL!,
+        process.env.VITE_SUPABASE_ANON_KEY!
+      );
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${req.protocol}://${req.get('host')}/auth/callback`
+        }
+      });
+
+      if (error) {
+        console.error('Google auth error:', error);
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      if (data.url) {
+        return res.redirect(data.url);
+      }
+
+      return res.redirect('/login?error=oauth_failed');
+    } catch (error) {
+      console.error('Google auth error:', error);
+      res.redirect('/login?error=oauth_failed');
+    }
+  });
+
+  // OAuth callback handler
+  app.get('/auth/callback', async (req: Request, res: Response) => {
+    const { code, state } = req.query;
+    
+    if (!code) {
+      return res.redirect('/login?error=oauth_failed');
+    }
+
+    try {
+      const supabase = createClient(
+        process.env.VITE_SUPABASE_URL!,
+        process.env.VITE_SUPABASE_ANON_KEY!
+      );
+
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code as string);
+
+      if (error) {
+        console.error('OAuth callback error:', error);
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      if (data.session) {
+        // Set the session token in a secure way and redirect to dashboard
+        res.redirect(`/login?token=${data.session.access_token}`);
+      } else {
+        res.redirect('/login?error=oauth_failed');
+      }
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      res.redirect('/login?error=oauth_failed');
+    }
   });
 }
 
