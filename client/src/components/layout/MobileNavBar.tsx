@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "../../ui-v2/hooks/useAuth";
 import {
   Home,
   Globe,
@@ -26,7 +26,7 @@ const navigation = [
 
 export default function MobileNavBar() {
   const [location] = useLocation();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
@@ -55,7 +55,7 @@ export default function MobileNavBar() {
         {/* User Menu for Mobile */}
         {user && (
           <div
-            onClick={logout}
+            onClick={signOut}
             className="flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 cursor-pointer"
           >
             <LogOut className="h-5 w-5 mb-1" />

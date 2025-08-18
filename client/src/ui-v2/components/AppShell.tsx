@@ -1,4 +1,4 @@
-import { AppHeader } from './layout/AppHeader';
+import { AppHeader } from './layout/SimpleAppHeader';
 import { SideNav } from './SideNav';
 import { PageHeader } from './PageHeader';
 
