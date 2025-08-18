@@ -6,7 +6,7 @@ import SimpleBriefsPage from './ui-v2/pages/SimpleBriefsPage'
 
 function WorkingApp() {
   return (
-    <div className="ui-v2 bg-app min-h-screen text-ink">
+    <div className="ui-v2 theme-light min-h-screen" style={{ backgroundColor: '#f8f9fb', color: '#0f172a' }}>
       <div className="container mx-auto px-4 py-8">
         <SimpleBriefsPage />
       </div>
