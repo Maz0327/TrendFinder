@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'wouter';
+import { useRoute } from 'wouter';
 import { ArrowLeft, ExternalLink, RefreshCw, Copy, CheckCircle } from 'lucide-react';
 import { VerdictBadge } from '../components/truth/VerdictBadge';
 import { ConfidenceBar } from '../components/truth/ConfidenceBar';
@@ -7,7 +7,8 @@ import { getTruthCheck, retryTruthCheck } from '../services/truth';
 import { Link } from 'wouter';
 
 export function TruthDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const [, params] = useRoute('/truth-lab/:id');
+  const id = params?.id;
   const [truthCheck, setTruthCheck] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
