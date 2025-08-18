@@ -31,7 +31,7 @@ export default function BriefsListPage() {
     e.preventDefault();
     if (newBriefTitle.trim() && currentProjectId) {
       createBrief({
-        projectId: currentProjectId,
+        project_id: currentProjectId,
         title: newBriefTitle.trim(),
         tags: selectedTags,
       }).then((brief) => {
@@ -139,7 +139,7 @@ export default function BriefsListPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                <GlassCard hover onClick={() => navigate(`/briefs/${brief.id}`)}>
+                <GlassCard hover onClick={() => setLocation(`/briefs/${brief.id}`)}>
                   <div className="space-y-4">
                     {/* Header */}
                     <div className="flex items-start justify-between">
@@ -161,7 +161,7 @@ export default function BriefsListPage() {
                           align="right"
                         >
                           <PopoverMenuItem
-                            onClick={() => navigate(`/briefs/${brief.id}`)}
+                            onClick={() => setLocation(`/briefs/${brief.id}`)}
                             icon={<Edit className="w-4 h-4" />}
                           >
                             Edit Brief
@@ -217,7 +217,7 @@ export default function BriefsListPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.03 }}
                   className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-lg cursor-pointer group transition-colors"
-                  onClick={() => navigate(`/briefs/${brief.id}`)}
+                  onClick={() => setLocation(`/briefs/${brief.id}`)}
                 >
                   <FileText className="w-5 h-5 text-ink/50" />
                   
@@ -254,7 +254,7 @@ export default function BriefsListPage() {
                       align="right"
                     >
                       <PopoverMenuItem
-                        onClick={() => navigate(`/briefs/${brief.id}`)}
+                        onClick={() => setLocation(`/briefs/${brief.id}`)}
                         icon={<Edit className="w-4 h-4" />}
                       >
                         Edit Brief
