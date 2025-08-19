@@ -1,4 +1,9 @@
+// At the very top
 import "./bootstrap/google-creds";
+
+// Optional: add a log so you always know
+console.log(`🚀 Server running in ${process.env.NODE_ENV} mode`);
+console.log(`🔒 Mock mode: ${process.env.MOCK_MODE}`);
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";

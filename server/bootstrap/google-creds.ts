@@ -1,24 +1,29 @@
-// server/bootstrap/google-creds.ts
-import fs from "node:fs";
+import fs from "fs";
 
-const b64 = process.env.GCP_SA_KEY_JSON_B64;
-
-// Only write once, and only if not already set
-if (b64 && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+(function writeCreds() {
+  const raw = process.env.GCP_SA_KEY_JSON_RAW;
+  const b64 = process.env.GCP_SA_KEY_JSON_B64;
+  if (!raw && !b64) {
+    console.warn("[google-creds] No GCP_SA_KEY_JSON_* secret set; Vision will try ADC/metadata.");
+    return;
+  }
+  let json: string;
   try {
-    const json = Buffer.from(b64, "base64").toString("utf8");
-    const path = "/tmp/gcp-sa.json";
-    fs.writeFileSync(path, json, { encoding: "utf8" });
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = path;
-    console.log(
-      "[google-creds] Wrote /tmp/gcp-sa.json and set GOOGLE_APPLICATION_CREDENTIALS",
-    );
-  } catch (err) {
-    console.error("[google-creds] Failed to write creds:", err);
+    json = raw ?? Buffer.from(b64!, "base64").toString("utf8");
+    const parsed = JSON.parse(json);
+    if (parsed.type !== "service_account") {
+      console.warn("[google-creds] JSON present but not a service_account");
+    }
+  } catch (e) {
+    console.error("[google-creds] Invalid JSON in secrets:", (e as Error).message);
+    return;
   }
-} else {
-  if (!b64) console.warn("[google-creds] GCP_SA_KEY_JSON_B64 not set");
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    console.log("[google-creds] GOOGLE_APPLICATION_CREDENTIALS already set");
-  }
-}
+  const path = "/tmp/gcp-sa.json";
+  fs.writeFileSync(path, json);
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = path;
+  try {
+    const { project_id } = JSON.parse(json);
+    if (project_id) process.env.GOOGLE_CLOUD_PROJECT = project_id;
+  } catch {}
+  console.log("[google-creds] Wrote", path, "and set GOOGLE_APPLICATION_CREDENTIALS");
+})();
