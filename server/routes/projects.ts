@@ -11,7 +11,7 @@ export function registerProjectsRoutes(app: Express) {
     try {
       const user = req.user!;
 
-      const projects = await storage.listProjects(user.id);
+      const projects = await storage.getProjects(user.id);
       const projectDTOs = projects.map(mapProject);
       
       res.json(projectDTOs);

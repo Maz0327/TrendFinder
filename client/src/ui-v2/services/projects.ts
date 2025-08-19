@@ -24,7 +24,7 @@ export const projectsService = {
       await new Promise(resolve => setTimeout(resolve, 300));
       return mockProjects;
     }
-    return api.request<Project[]>('/projects');
+    return api.request<Project[]>('/api/projects');
   },
 
   async create(data: { name: string; description?: string }): Promise<Project> {
@@ -40,7 +40,7 @@ export const projectsService = {
       mockProjects.push(newProject);
       return newProject;
     }
-    return api.request<Project>('/projects', {
+    return api.request<Project>('/api/projects', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -56,7 +56,7 @@ export const projectsService = {
       }
       throw new Error('Project not found');
     }
-    return api.request<Project>(`/projects/${id}`, {
+    return api.request<Project>(`/api/projects/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
@@ -71,6 +71,6 @@ export const projectsService = {
       }
       return;
     }
-    await api.request(`/projects/${id}`, { method: 'DELETE' });
+    await api.request(`/api/projects/${id}`, { method: 'DELETE' });
   },
 };
