@@ -1,76 +1,43 @@
-import { api, IS_MOCK_MODE } from './http';
-import { Project } from '../types/dto';
+import { api, IS_MOCK_MODE } from '../lib/api';
+import type { ID, Project } from '../types';
 
-const mockProjects: Project[] = [
-  {
-    id: 'proj-1',
-    name: 'Q1 Fashion Trends',
-    description: 'Analyzing emerging fashion trends for spring collection',
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-20T14:30:00Z',
-  },
-  {
-    id: 'proj-2',
-    name: 'Gen Z Social Behavior',
-    description: 'Understanding Gen Z engagement patterns across platforms',
-    createdAt: '2024-01-10T09:00:00Z',
-    updatedAt: '2024-01-18T16:45:00Z',
-  },
-];
+export function listProjects() {
+  if (IS_MOCK_MODE) {
+    return Promise.resolve([
+      { id: 'proj-1', name: 'Sample Project', created_at: '2024-01-01T00:00:00Z' }
+    ]);
+  }
+  return api.get('/projects').then(res => res.rows || res.data || []);
+}
 
-export const projectsService = {
-  async list(): Promise<Project[]> {
-    if (IS_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return mockProjects;
-    }
-    return api.request<Project[]>('/api/projects');
-  },
+export function getProject(id: ID) {
+  if (IS_MOCK_MODE) {
+    return Promise.resolve({ id, name: 'Sample Project', created_at: '2024-01-01T00:00:00Z' });
+  }
+  return api.get(`/projects/${id}`);
+}
 
-  async create(data: { name: string; description?: string }): Promise<Project> {
-    if (IS_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const newProject: Project = {
-        id: Date.now().toString(),
-        name: data.name,
-        description: data.description,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      mockProjects.push(newProject);
-      return newProject;
-    }
-    return api.request<Project>('/api/projects', {
-      method: 'POST',
-      body: JSON.stringify(data),
+export function createProject(payload: { name: string }) {
+  if (IS_MOCK_MODE) {
+    return Promise.resolve({ 
+      id: `proj-${Date.now()}`, 
+      name: payload.name, 
+      created_at: new Date().toISOString() 
     });
-  },
+  }
+  return api.post('/projects', payload);
+}
 
-  async update(id: string, data: Partial<Project>): Promise<Project> {
-    if (IS_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const index = mockProjects.findIndex(p => p.id === id);
-      if (index >= 0) {
-        mockProjects[index] = { ...mockProjects[index], ...data, updatedAt: new Date().toISOString() };
-        return mockProjects[index];
-      }
-      throw new Error('Project not found');
-    }
-    return api.request<Project>(`/api/projects/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
+export function updateProject(id: ID, patch: Partial<Project>) {
+  if (IS_MOCK_MODE) {
+    return Promise.resolve({ id, ...patch, created_at: '2024-01-01T00:00:00Z' });
+  }
+  return api.patch(`/projects/${id}`, patch);
+}
 
-  async delete(id: string): Promise<void> {
-    if (IS_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const index = mockProjects.findIndex(p => p.id === id);
-      if (index >= 0) {
-        mockProjects.splice(index, 1);
-      }
-      return;
-    }
-    await api.request(`/api/projects/${id}`, { method: 'DELETE' });
-  },
-};
+export function deleteProject(id: ID) {
+  if (IS_MOCK_MODE) {
+    return Promise.resolve({ success: true });
+  }
+  return api.del(`/projects/${id}`);
+}

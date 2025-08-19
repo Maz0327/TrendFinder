@@ -1,60 +1,39 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '../../lib/utils';
 
 interface PopoverMenuProps {
-  trigger: React.ReactNode;
-  children: React.ReactNode;
-  align?: 'left' | 'right' | 'center';
-  className?: string;
+  trigger: ReactNode;
+  children: ReactNode;
 }
 
-export function PopoverMenu({ 
-  trigger, 
-  children, 
-  align = 'left',
-  className 
-}: PopoverMenuProps) {
+export function PopoverMenu({ trigger, children }: PopoverMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div className="relative">
       <div onClick={() => setIsOpen(!isOpen)}>
         {trigger}
       </div>
       
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            className={cn(
-              'absolute top-full mt-2 z-50 frost-card frost-strong p-3 min-w-[200px] md:min-w-56',
-              align === 'right' && 'right-0',
-              align === 'center' && 'left-1/2 -translate-x-1/2',
-              align === 'left' && 'left-0',
-              'max-w-[90vw]', // Prevent overflow on mobile
-              className
-            )}
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ duration: 0.15 }}
-          >
-            {children}
-          </motion.div>
+          <>
+            <div 
+              className="fixed inset-0 z-10" 
+              onClick={() => setIsOpen(false)}
+            />
+            <motion.div
+              className="absolute top-full left-0 mt-2 min-w-[200px] z-20 frost-card rounded-lg shadow-lg border border-white/10"
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="py-2">
+                {children}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -62,32 +41,19 @@ export function PopoverMenu({
 }
 
 interface PopoverMenuItemProps {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick?: () => void;
-  icon?: React.ReactNode;
-  destructive?: boolean;
+  icon?: ReactNode;
 }
 
-export function PopoverMenuItem({ 
-  children, 
-  onClick, 
-  icon, 
-  destructive = false 
-}: PopoverMenuItemProps) {
+export function PopoverMenuItem({ children, onClick, icon }: PopoverMenuItemProps) {
   return (
-    <motion.button
-      className={cn(
-        'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 touch-target min-w-0',
-        'hover:frost-subtle focus:outline-none focus:frost-subtle focus:ring-2 focus:ring-blue-500/50',
-        'text-ink text-sm font-medium',
-        destructive && 'text-red-400 hover:bg-red-500/10'
-      )}
+    <button
       onClick={onClick}
-      whileHover={{ x: 2, scale: 1.01 }}
-      whileTap={{ scale: 0.98 }}
+      className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors flex items-center gap-2 text-ink"
     >
-      {icon && <span className="w-4 h-4 flex-shrink-0 text-ink">{icon}</span>}
-      <span className="truncate">{children}</span>
-    </motion.button>
+      {icon && <div className="flex-shrink-0">{icon}</div>}
+      <span>{children}</span>
+    </button>
   );
 }

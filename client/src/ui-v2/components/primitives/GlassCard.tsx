@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { cn } from '@/ui-v2/lib/cn';
+import { cn } from '../../lib/cn';
 
 interface GlassCardProps {
   children: React.ReactNode;

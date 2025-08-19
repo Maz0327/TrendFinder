@@ -1,16 +1,35 @@
-import { Moon, Sun } from "lucide-react";
-import { useTheme } from "../../hooks/useTheme";
+import { Moon, Sun } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
-export function ThemeToggle({ className = "" }: { className?: string }) {
-  const { theme, toggle } = useTheme();
+export function ThemeToggle() {
+  const [theme, setTheme] = useState('dark');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme') || 'dark';
+    setTheme(saved);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    const el = document.documentElement;
+    el.classList.remove('theme-dark', 'theme-light');
+    el.classList.add(newTheme === 'light' ? 'theme-light' : 'theme-dark');
+  };
+
   return (
     <button
-      onClick={toggle}
-      className={`frost-card frost-hover px-4 py-2.5 flex items-center gap-2 text-ink ${className}`}
-      aria-label="Toggle theme"
+      onClick={toggleTheme}
+      className="p-2 glass rounded-lg hover:frost-subtle transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
-      {theme === "dark" ? <Sun size={16} className="text-ink" /> : <Moon size={16} className="text-ink" />}
-      <span className="text-sm font-medium text-ink">{theme === "dark" ? "Light" : "Dark"}</span>
+      {theme === 'dark' ? (
+        <Sun className="w-4 h-4 stroke-1" />
+      ) : (
+        <Moon className="w-4 h-4 stroke-1" />
+      )}
     </button>
   );
 }

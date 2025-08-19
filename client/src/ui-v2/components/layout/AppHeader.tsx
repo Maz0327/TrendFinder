@@ -11,11 +11,11 @@ import {
   Settings,
   FolderOpen
 } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '../../../components/ui/sheet';
 import { ProjectSwitcher } from './ProjectSwitcher';
 import { PopoverMenu, PopoverMenuItem } from '../primitives/PopoverMenu';
 import { useAuth } from '../../hooks/useAuth';
-import { cn } from '../../lib/utils';
+import { cn } from '../../lib/cn';
 import { ThemeToggle } from '../primitives/ThemeToggle';
 
 const navItems = [
@@ -221,7 +221,7 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
                   <span className="text-sm hidden xl:block truncate max-w-[120px] font-medium">{user?.name || user?.email}</span>
                 </button>
               }
-              align="right"
+
             >
               <PopoverMenuItem icon={<User className="w-4 h-4" />}>
                 Profile
@@ -232,7 +232,6 @@ export function AppHeader({ title, breadcrumbs }: AppHeaderProps) {
               <div className="border-t border-white/10 my-2"></div>
               <PopoverMenuItem 
                 onClick={() => {/* Sign out in mock mode */}}
-                destructive
               >
                 Sign Out
               </PopoverMenuItem>

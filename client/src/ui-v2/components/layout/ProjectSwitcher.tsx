@@ -5,6 +5,7 @@ import { ChevronDown, Plus, Folder } from 'lucide-react';
 import { useProjects } from '../../hooks/useProjects';
 import { useProjectContext } from '../../app/providers';
 import { PopoverMenu, PopoverMenuItem } from '../primitives/PopoverMenu';
+import { Project } from '../../types';
 
 export function ProjectSwitcher() {
   const { projects, createProject, isCreating } = useProjects();
@@ -19,7 +20,7 @@ export function ProjectSwitcher() {
     }
   }, [currentProjectId, projects, setCurrentProjectId]);
 
-  const currentProject = projects.find(p => p.id === currentProjectId);
+  const currentProject = projects.find((p: Project) => p.id === currentProjectId);
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +46,7 @@ export function ProjectSwitcher() {
           </button>
         }
       >
-        {projects.map((project) => (
+        {projects.map((project: Project) => (
           <PopoverMenuItem
             key={project.id}
             onClick={() => setCurrentProjectId(project.id)}
