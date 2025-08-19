@@ -1046,12 +1046,12 @@ export class DatabaseStorage implements IStorage {
       let baseQuery = `
         SELECT DISTINCT
           c.id, c.project_id, c.user_id, c.title, c.content, c.url, c.platform,
-          c.screenshot_url, c.summary, c.tags, c.metadata, c.truth_analysis,
-          c.analysis_status, c.google_analysis, c.status, c.created_at, c.updated_at,
+          c.image_url, c.image_thumb_url, c.tags, c.note, c.ai_analysis,
+          c.analysis_status, c.dsd_tags, c.dsd_section, c.created_at,
           cla.analysis_id, cla.provider, cla.mode, cla.status as analysis_status_latest,
           cla.summary as analysis_summary, cla.labels as analysis_labels, 
           cla.analyzed_at,
-          GREATEST(c.updated_at, cla.analyzed_at) as last_modified
+          GREATEST(c.created_at, cla.analyzed_at) as last_modified
         FROM captures c
         LEFT JOIN capture_latest_analysis cla ON c.id = cla.capture_id
         WHERE c.user_id = $1
@@ -1155,12 +1155,12 @@ export class DatabaseStorage implements IStorage {
         url: row.url,
         platform: row.platform,
         screenshot_url: row.image_url,
-        summary: row.summary,
+        summary: row.note || '',
         tags: row.tags || [],
-        metadata: row.metadata || {},
-        status: row.status,
+        metadata: row.ai_analysis || {},
+        status: row.analysis_status || 'pending',
         created_at: row.created_at,
-        updated_at: row.updated_at,
+        updated_at: row.created_at,
         latest_analysis: row.analysis_id ? {
           status: row.analysis_status_latest,
           summary: row.analysis_summary,
@@ -1794,8 +1794,8 @@ export class DatabaseStorage implements IStorage {
       const result = await this.client.query(`
         SELECT 
           c.id, c.project_id, c.user_id, c.title, c.content, c.url, c.platform,
-          c.screenshot_url, c.summary, c.tags, c.metadata, c.truth_analysis,
-          c.analysis_status, c.google_analysis, c.status, c.created_at, c.updated_at,
+          c.image_url, c.image_thumb_url, c.tags, c.note, c.ai_analysis,
+          c.analysis_status, c.dsd_tags, c.dsd_section, c.created_at,
           cla.analysis_id, cla.provider, cla.mode, cla.status as analysis_status_latest,
           cla.summary as analysis_summary, cla.labels as analysis_labels, 
           cla.analyzed_at,
