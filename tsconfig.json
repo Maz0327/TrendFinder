@@ -33,10 +33,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "client/src/*"
+        "client/src/*",
+        "src/*"
       ],
       "@ui/*": [
-        "client/src/ui-v2/*"
+        "client/src/ui-v2/*",
+        "src/ui-v2/*"
       ],
       "@shared/*": [
         "./shared/*"

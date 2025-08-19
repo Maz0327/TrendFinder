@@ -1,14 +1,27 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import fs from "fs";
+
+const hasClient = fs.existsSync(path.resolve(__dirname, "client"));
+const root = hasClient ? path.resolve(__dirname, "client") : path.resolve(__dirname);
 
 export default defineConfig({
+  root,
   plugins: [react()],
-  server: {
-    host: true,
-    port: 5173
+  resolve: {
+    alias: {
+      "@": path.resolve(root, "src"),
+      "@ui": path.resolve(root, "src/ui-v2"),
+    },
   },
-  preview: {
-    host: true,
-    port: 5173
-  }
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: { "/api": "http://localhost:5000" },
+  },
+  build: {
+    outDir: hasClient ? path.resolve(__dirname, "client/dist") : "dist",
+    emptyOutDir: true,
+  },
 });
