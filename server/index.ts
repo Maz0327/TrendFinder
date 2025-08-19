@@ -3,7 +3,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { Pool } from "pg";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// Conditional imports moved to where they're used
 import { debugLogger, errorHandler } from "./services/debug-logger";
 import { systemMonitor } from "./services/system-monitor";
 import { requestLogger, errorLogger } from "./middleware/logging";
@@ -232,7 +232,7 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      console.log(logLine);
 
       // Enhanced debug logging
       debugLogger.apiCall(
@@ -384,10 +384,23 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (process.env.NODE_ENV === "development") {
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
-    serveStatic(app);
+    // Serve static files directly without importing from vite.ts
+    import("fs").then(fs => {
+      const distPath = path.resolve(import.meta.dirname, "public");
+      if (fs.existsSync(distPath)) {
+        app.use(express.static(distPath));
+        app.use("*", (_req, res) => {
+          res.sendFile(path.resolve(distPath, "index.html"));
+        });
+        console.log(`[server] serving static files from ${distPath}`);
+      } else {
+        console.log(`[server] static directory not found: ${distPath}`);
+      }
+    });
   }
 
   // Global error handling middleware - MUST be after Vite setup
@@ -411,14 +424,9 @@ app.use((req, res, next) => {
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
   
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`[server] listening on ${port} (NODE_ENV=${process.env.NODE_ENV})`);
+  });
+})();
 
-/** Export the Express app for external usage/testing */
-try { if (app) {} } catch {}
 export default app;
-
-
-/** Single, clean listener at the very end */
-app.listen(port, "0.0.0.0", () => {
-  const log = (...a:any[]) => console.log("[api]", ...a);
-  log(`listening on ${port} (NODE_ENV=${process.env.NODE_ENV})`);
-});
