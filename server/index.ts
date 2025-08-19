@@ -1,10 +1,3 @@
-// At the very top
-import "./bootstrap/google-creds";
-
-// Optional: add a log so you always know
-console.log(`🚀 Server running in ${process.env.NODE_ENV} mode`);
-console.log(`🔒 Mock mode: ${process.env.MOCK_MODE}`);
-
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -13,6 +6,25 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { debugLogger, errorHandler } from "./services/debug-logger";
 import { systemMonitor } from "./services/system-monitor";
+import { requestLogger, errorLogger } from "./middleware/logging";
+import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
+import { extensionSecurity } from "./security/chromeExtensionSecurity";
+import { productionMonitor } from "./monitoring/productionMonitor";
+import { securityMiddleware } from "./lib/security";
+import { corsMiddleware } from "./lib/cors";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+import express from "express";
+
+
+// At the very top
+import "./bootstrap/google-creds";
+
+// Optional: add a log so you always know
+console.log(`🚀 Server running in ${process.env.NODE_ENV} mode`);
+console.log(`🔒 Mock mode: ${process.env.MOCK_MODE}`);
+
 import {
   errorHandler as globalErrorHandler,
   notFoundHandler,
@@ -24,10 +36,6 @@ import {
   requestTimeout,
   apiRateLimit,
 } from "./middleware/requestValidation";
-import { requestLogger, errorLogger } from "./middleware/logging";
-import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
-import { extensionSecurity } from "./security/chromeExtensionSecurity";
-import { productionMonitor } from "./monitoring/productionMonitor";
 
 const PgSession = connectPgSimple(session);
 
@@ -46,11 +54,9 @@ const app = express();
 app.set("trust proxy", 1);
 
 // Security headers
-import { securityMiddleware } from "./lib/security";
 app.use(securityMiddleware);
 
 // Enhanced CORS with environment-driven origins
-import { corsMiddleware } from "./lib/cors";
 app.use(corsMiddleware);
 
 // Logging and monitoring middleware
@@ -84,7 +90,6 @@ app.use(express.json({ limit: JSON_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: JSON_LIMIT }));
 
 // Enhanced CORS configuration for Replit/Bolt origins
-import cors from "cors";
 
 const allow = [
   process.env.VITE_SITE_URL, // e.g., https://workspace.XXX.repl.co
@@ -414,5 +419,28 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
     },
-  );
+    
+    // === static UI + listener (production) ===
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    // Built client goes to ../client/dist (per your vite.config)
+    const clientDir = path.resolve(__dirname, "../client/dist");
+
+    // Serve static files for all non-API requests
+    app.use((req, _res, next) => (req.url.startsWith("/api/") ? next() : next()));
+    app.use(express.static(clientDir, { index: "index.html", maxAge: "1h" }));
+
+    // SPA fallback
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api/")) return next();
+      res.sendFile(path.join(clientDir, "index.html"));
+    });
+
+    // Bind to the Replit-assigned PORT in production
+    const port = parseInt(process.env.PORT || "5000", 10);
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`[server] listening on ${port} (NODE_ENV=${process.env.NODE_ENV})`);
+    });
 })();
