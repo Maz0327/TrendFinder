@@ -15,7 +15,7 @@ import { corsMiddleware } from "./lib/cors";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import express from "express";
 
 
 // At the very top
@@ -410,15 +410,37 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
-  
+  server.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+    },
+    
+    // === static UI + listener (production) ===
 
-/** Export the Express app for external usage/testing */
-try { if (app) {} } catch {}
-export default app;
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
 
+    // Built client goes to ../client/dist (per your vite.config)
+    const clientDir = path.resolve(__dirname, "../client/dist");
 
-/** Single, clean listener at the very end */
-app.listen(port, "0.0.0.0", () => {
-  const log = (...a:any[]) => console.log("[api]", ...a);
-  log(`listening on ${port} (NODE_ENV=${process.env.NODE_ENV})`);
-});
+    // Serve static files for all non-API requests
+    app.use((req, _res, next) => (req.url.startsWith("/api/") ? next() : next()));
+    app.use(express.static(clientDir, { index: "index.html", maxAge: "1h" }));
+
+    // SPA fallback
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api/")) return next();
+      res.sendFile(path.join(clientDir, "index.html"));
+    });
+
+    // Bind to the Replit-assigned PORT in production
+    const port = parseInt(process.env.PORT || "5000", 10);
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`[server] listening on ${port} (NODE_ENV=${process.env.NODE_ENV})`);
+    });
+})();
