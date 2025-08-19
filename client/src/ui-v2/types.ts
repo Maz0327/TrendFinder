@@ -98,3 +98,25 @@ export interface Block {
   align?: string;
   sourceCaptureId?: string;
 }
+
+export interface Moment {
+  id: ID;
+  title: string;
+  description: string;
+  intensity: number;
+  tags: string[];
+  platforms: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Moment {
+  id: ID;
+  title: string;
+  description: string;
+  intensity: number;
+  tags: string[];
+  platforms: string[];
+  createdAt: string;
+  updatedAt: string;
+}
