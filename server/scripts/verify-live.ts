@@ -41,7 +41,7 @@ async function main() {
   try {
     const missing = requiredEnv.filter((k) => !process.env[k]);
     const prod = process.env.NODE_ENV === "production";
-    const viteMock = process.env.VITE_UIV2_MOCK ?? "(not set in server env)";
+    const viteMock = process.env.MOCK_AUTH ?? "(not set in server env)";
     checks.push({
       name: "ENV: required vars present",
       ok: missing.length === 0,
@@ -55,7 +55,7 @@ async function main() {
     checks.push({
       name: "ENV: client mock flag (compile-time) visible to server env",
       ok: viteMock === "0" || viteMock === "(not set in server env)",
-      details: `VITE_UIV2_MOCK=${viteMock}`,
+      details: `MOCK_AUTH=${viteMock}`,
     });
   } catch (e: any) {
     checks.push({ name: "ENV checks", ok: false, details: e?.message });

@@ -1,0 +1,168 @@
+
+> rest-express@1.0.0 typecheck
+> tsc --noEmit
+
+client/src/__tests__/App.test.tsx(3,17): error TS2307: Cannot find module '../App' or its corresponding type declarations.
+client/src/components/auth/AuthDebug.tsx(4,25): error TS2307: Cannot find module '@/context/AuthContext' or its corresponding type declarations.
+client/src/components/auth/RequireAuth.tsx(3,25): error TS2307: Cannot find module '@/context/AuthContext' or its corresponding type declarations.
+client/src/components/layout/ProjectSwitcher.tsx(3,35): error TS2307: Cannot find module '@/context/ProjectContext' or its corresponding type declarations.
+client/src/components/layout/ProjectSwitcher.tsx(4,29): error TS2307: Cannot find module '@/hooks/useProjects' or its corresponding type declarations.
+client/src/hooks/use-auth.tsx(1,55): error TS2307: Cannot find module '../contexts/SupabaseAuthContext' or its corresponding type declarations.
+client/src/hooks/use-realtime.tsx(2,33): error TS2307: Cannot find module '../services/supabase-realtime' or its corresponding type declarations.
+client/src/hooks/use-realtime.tsx(3,33): error TS2307: Cannot find module '../contexts/SupabaseAuthContext' or its corresponding type declarations.
+client/src/hooks/use-realtime.tsx(15,8): error TS7006: Parameter 'capture' implicitly has an 'any' type.
+client/src/hooks/use-realtime.tsx(27,8): error TS7006: Parameter 'capture' implicitly has an 'any' type.
+client/src/hooks/use-realtime.tsx(32,8): error TS7006: Parameter 'id' implicitly has an 'any' type.
+client/src/hooks/use-realtime.tsx(50,8): error TS7006: Parameter 'moment' implicitly has an 'any' type.
+client/src/hooks/use-realtime.tsx(77,8): error TS7006: Parameter 'brief' implicitly has an 'any' type.
+client/src/hooks/use-storage.tsx(2,32): error TS2307: Cannot find module '../services/supabase-storage' or its corresponding type declarations.
+client/src/hooks/use-storage.tsx(3,33): error TS2307: Cannot find module '../contexts/SupabaseAuthContext' or its corresponding type declarations.
+client/src/hooks/use-storage.tsx(138,30): error TS7006: Parameter 'r' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/CanvasToolbar.tsx(49,7): error TS2322: Type 'number' is not assignable to type 'string'.
+client/src/ui-v2/brief-canvas/CanvasToolbar.tsx(58,7): error TS2353: Object literal may only specify known properties, and 'w' does not exist in type 'Omit<Block, "id">'.
+client/src/ui-v2/brief-canvas/CanvasToolbar.tsx(70,7): error TS2353: Object literal may only specify known properties, and 'w' does not exist in type 'Omit<Block, "id">'.
+client/src/ui-v2/brief-canvas/SlideList.tsx(86,21): error TS2322: Type '{ children: (false | Element)[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/brief-canvas/SlideList.tsx(99,25): error TS2322: Type '{ children: string; onClick: () => void; icon: Element; destructive: true; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuItemProps'.
+  Property 'destructive' does not exist on type 'IntrinsicAttributes & PopoverMenuItemProps'.
+client/src/ui-v2/brief-canvas/SlideThumb.tsx(34,7): error TS2322: Type '((e: DragEvent<Element>) => void) | undefined' is not assignable to type '((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void) | undefined'.
+  Type '(e: DragEvent<Element>) => void' is not assignable to type '(event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void'.
+    Types of parameters 'e' and 'event' are incompatible.
+      Type 'MouseEvent | TouchEvent | PointerEvent' is not assignable to type 'DragEvent<Element>'.
+        Type 'MouseEvent' is missing the following properties from type 'DragEvent<Element>': dataTransfer, nativeEvent, isDefaultPrevented, isPropagationStopped, persist
+client/src/ui-v2/brief-canvas/SlideViewport.tsx(59,15): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/SlideViewport.tsx(60,12): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/SlideViewport.tsx(63,46): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/SlideViewport.tsx(143,37): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/keyboard.ts(83,78): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/keyboard.ts(101,75): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(166,47): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(180,60): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(195,51): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(197,52): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(210,46): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(224,7): error TS2353: Object literal may only specify known properties, and 'captureRefs' does not exist in type 'Slide'.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(224,30): error TS2339: Property 'captureRefs' does not exist on type 'Partial<Slide>'.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(230,18): error TS2339: Property 'slideCount' does not exist on type '{ slides: any[]; id: string; project_id?: string | null | undefined; title: string; status?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }'.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(257,18): error TS2339: Property 'slideCount' does not exist on type '{ slides: any[]; id: string; project_id?: string | null | undefined; title: string; status?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }'.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(285,39): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(293,18): error TS2339: Property 'slideCount' does not exist on type '{ slides: any[]; id: string; project_id?: string | null | undefined; title: string; status?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }'.
+client/src/ui-v2/components/upload/UploadPanel.tsx(61,28): error TS2552: Cannot find name 'uploadCaptures'. Did you mean 'uploadCapture'?
+client/src/ui-v2/hooks/useBrief.ts(57,20): error TS2304: Cannot find name 'jobsService'.
+client/src/ui-v2/hooks/useBrief.ts(61,20): error TS2339: Property 'status' does not exist on type 'Query<any, Error, any, (string | undefined)[]>'.
+client/src/ui-v2/hooks/useBrief.ts(61,50): error TS2339: Property 'status' does not exist on type 'Query<any, Error, any, (string | undefined)[]>'.
+client/src/ui-v2/pages/BriefsListPage.tsx(160,27): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/BriefsListPage.tsx(171,29): error TS2322: Type '{ children: string; onClick: () => void; icon: Element; destructive: true; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuItemProps'.
+  Property 'destructive' does not exist on type 'IntrinsicAttributes & PopoverMenuItemProps'.
+client/src/ui-v2/pages/BriefsListPage.tsx(253,23): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/BriefsListPage.tsx(264,25): error TS2322: Type '{ children: string; onClick: () => void; icon: Element; destructive: true; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuItemProps'.
+  Property 'destructive' does not exist on type 'IntrinsicAttributes & PopoverMenuItemProps'.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(57,32): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(190,33): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(193,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(198,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(203,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(321,33): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(324,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(329,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(334,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(385,47): error TS7006: Parameter 'c' implicitly has an 'any' type.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(442,43): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+client/src/ui-v2/pages/FeedsPage.tsx(19,42): error TS2339: Property 'toggleFeed' does not exist on type '{ feeds: never[] | Paginated<UserFeed>; isLoading: boolean; error: Error | null; createFeed: UseMutateAsyncFunction<UserFeed, Error, { feed_url: string; title?: string | ... 1 more ... | undefined; project_id?: string | ... 1 more ... | undefined; }, unknown>; ... 4 more ...; isDeleting: boolean; }'.
+client/src/ui-v2/pages/FeedsPage.tsx(30,11): error TS2561: Object literal may only specify known properties, but 'feedUrl' does not exist in type '{ id: string; } & Partial<UserFeed>'. Did you mean to write 'feed_url'?
+client/src/ui-v2/pages/FeedsPage.tsx(40,11): error TS2561: Object literal may only specify known properties, but 'feedUrl' does not exist in type '{ feed_url: string; title?: string | null | undefined; project_id?: string | null | undefined; }'. Did you mean to write 'feed_url'?
+client/src/ui-v2/pages/FeedsPage.tsx(60,7): error TS2561: Object literal may only specify known properties, but 'feedUrl' does not exist in type '{ feed_url: string; title?: string | null | undefined; project_id?: string | null | undefined; }'. Did you mean to write 'feed_url'?
+client/src/ui-v2/pages/FeedsPage.tsx(121,70): error TS2339: Property 'filter' does not exist on type 'never[] | Paginated<UserFeed>'.
+  Property 'filter' does not exist on type 'Paginated<UserFeed>'.
+client/src/ui-v2/pages/FeedsPage.tsx(121,77): error TS7006: Parameter 'f' implicitly has an 'any' type.
+client/src/ui-v2/pages/FeedsPage.tsx(125,21): error TS2339: Property 'length' does not exist on type 'never[] | Paginated<UserFeed>'.
+  Property 'length' does not exist on type 'Paginated<UserFeed>'.
+client/src/ui-v2/pages/FeedsPage.tsx(143,22): error TS2339: Property 'map' does not exist on type 'never[] | Paginated<UserFeed>'.
+  Property 'map' does not exist on type 'Paginated<UserFeed>'.
+client/src/ui-v2/pages/FeedsPage.tsx(143,27): error TS7006: Parameter 'feed' implicitly has an 'any' type.
+client/src/ui-v2/pages/FeedsPage.tsx(143,33): error TS7006: Parameter 'index' implicitly has an 'any' type.
+client/src/ui-v2/pages/FeedsPage.tsx(204,27): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/FeedsPage.tsx(215,29): error TS2322: Type '{ children: string; onClick: () => void; icon: Element; destructive: true; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuItemProps'.
+  Property 'destructive' does not exist on type 'IntrinsicAttributes & PopoverMenuItemProps'.
+client/src/ui-v2/pages/ProjectsPage.tsx(11,36): error TS2339: Property 'updateProject' does not exist on type '{ projects: any; isLoading: boolean; error: Error | null; createProject: UseMutateAsyncFunction<unknown, Error, { name: string; }, unknown>; isCreating: boolean; }'.
+client/src/ui-v2/pages/ProjectsPage.tsx(11,51): error TS2339: Property 'deleteProject' does not exist on type '{ projects: any; isLoading: boolean; error: Error | null; createProject: UseMutateAsyncFunction<unknown, Error, { name: string; }, unknown>; isCreating: boolean; }'.
+client/src/ui-v2/pages/ProjectsPage.tsx(21,29): error TS18046: 'project' is of type 'unknown'.
+client/src/ui-v2/pages/ProjectsPage.tsx(36,17): error TS7006: Parameter 'error' implicitly has an 'any' type.
+client/src/ui-v2/pages/ProjectsPage.tsx(51,53): error TS7006: Parameter 'p' implicitly has an 'any' type.
+client/src/ui-v2/pages/ProjectsPage.tsx(54,17): error TS7006: Parameter 'error' implicitly has an 'any' type.
+client/src/ui-v2/pages/ProjectsPage.tsx(87,28): error TS7006: Parameter 'project' implicitly has an 'any' type.
+client/src/ui-v2/pages/ProjectsPage.tsx(87,37): error TS7006: Parameter 'index' implicitly has an 'any' type.
+client/src/ui-v2/pages/ProjectsPage.tsx(132,21): error TS2322: Type '{ children: (false | Element)[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/ProjectsPage.tsx(151,25): error TS2322: Type '{ children: string; onClick: () => void; icon: Element; destructive: true; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuItemProps'.
+  Property 'destructive' does not exist on type 'IntrinsicAttributes & PopoverMenuItemProps'.
+client/src/ui-v2/services/moments.ts(58,16): error TS2339: Property 'get' does not exist on type '{ request<T>(path: string, init?: RequestInit): Promise<T>; }'.
+client/src/ui-v2/services/moments.ts(68,16): error TS2339: Property 'get' does not exist on type '{ request<T>(path: string, init?: RequestInit): Promise<T>; }'.
+client/src/ui-v2/services/moments.ts(81,16): error TS2339: Property 'patch' does not exist on type '{ request<T>(path: string, init?: RequestInit): Promise<T>; }'.
+client/src/ui-v2/services/projects.ts(10,43): error TS18046: 'res' is of type 'unknown'.
+client/src/ui-v2/services/projects.ts(10,55): error TS18046: 'res' is of type 'unknown'.
+scripts/smoke-analysis.ts(6,22): error TS2307: Cannot find module 'form-data' or its corresponding type declarations.
+scripts/smoke-e2e.ts(59,40): error TS2339: Property 'access_token' does not exist on type 'GenerateLinkProperties'.
+scripts/smoke.ts(60,44): error TS18046: 'error' is of type 'unknown'.
+server/lib/cache.ts(41,32): error TS2683: 'this' implicitly has type 'any' because it does not have a type annotation.
+server/middleware/ext-auth.ts(37,15): error TS7006: Parameter 'err' implicitly has an 'any' type.
+server/middleware/validation.ts(43,7): error TS2322: Type 'T' is not assignable to type 'ParsedQs'.
+server/middleware/validation.ts(61,7): error TS2322: Type 'T' is not assignable to type 'ParamsDictionary'.
+server/prod-server.ts(9,28): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+server/prod-server.ts(29,10): error TS7006: Parameter 'req' implicitly has an 'any' type.
+server/prod-server.ts(29,15): error TS7006: Parameter '_res' implicitly has an 'any' type.
+server/prod-server.ts(29,21): error TS7006: Parameter 'next' implicitly has an 'any' type.
+server/prod-server.ts(31,15): error TS7006: Parameter 'req' implicitly has an 'any' type.
+server/prod-server.ts(31,20): error TS7006: Parameter 'res' implicitly has an 'any' type.
+server/prod-server.ts(31,25): error TS7006: Parameter 'next' implicitly has an 'any' type.
+server/routes/brief-canvas.ts(181,9): error TS18046: 'error' is of type 'unknown'.
+server/routes/brief-canvas.ts(182,44): error TS18046: 'error' is of type 'unknown'.
+server/routes/brief-canvas.ts(363,9): error TS18046: 'error' is of type 'unknown'.
+server/routes/brief-canvas.ts(364,44): error TS18046: 'error' is of type 'unknown'.
+server/routes/brief-canvas.ts(420,35): error TS18046: 'error' is of type 'unknown'.
+server/routes/captures-upload.ts(113,36): error TS7016: Could not find a declaration file for module 'pdf-parse'. '/home/runner/workspace/node_modules/.pnpm/pdf-parse@1.1.1/node_modules/pdf-parse/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/pdf-parse` if it exists or add a new declaration (.d.ts) file containing `declare module 'pdf-parse';`
+server/routes/export-jobs.ts(39,46): error TS2339: Property 'createSlidesDeck' does not exist on type 'GoogleSlidesService'.
+server/routes/ext-capture.ts(50,7): error TS2561: Object literal may only specify known properties, but 'user_id' does not exist in type '{ type: string; projectId: string; userId: string; summary?: string | null | undefined; title?: string | null | undefined; metadata?: Json | undefined; content?: string | null | undefined; ... 27 more ...; isDraft?: boolean | ... 1 more ... | undefined; }'. Did you mean to write 'userId'?
+server/routes/ext-capture.ts(64,50): error TS2307: Cannot find module '../services/analysis/enqueue' or its corresponding type declarations.
+server/routes/ext-capture.ts(72,80): error TS18046: 'enqueueError' is of type 'unknown'.
+server/routes/google-export.ts(43,22): error TS18048: 'req.user' is possibly 'undefined'.
+server/routes/google-export.ts(56,21): error TS2339: Property 'user_id' does not exist on type '{ id: string; title: string; status: string | null; projectId: string; description: string | null; createdAt: Date | null; updatedAt: Date | null; templateType: string | null; }'.
+server/routes/google-export.ts(76,62): error TS2339: Property 'define_section' does not exist on type '{ id: string; title: string; status: string | null; projectId: string; description: string | null; createdAt: Date | null; updatedAt: Date | null; templateType: string | null; }'.
+server/routes/google-export.ts(83,61): error TS2339: Property 'shift_section' does not exist on type '{ id: string; title: string; status: string | null; projectId: string; description: string | null; createdAt: Date | null; updatedAt: Date | null; templateType: string | null; }'.
+server/routes/google-export.ts(90,63): error TS2339: Property 'deliver_section' does not exist on type '{ id: string; title: string; status: string | null; projectId: string; description: string | null; createdAt: Date | null; updatedAt: Date | null; templateType: string | null; }'.
+server/routes/google-export.ts(102,30): error TS2339: Property 'client_profile_id' does not exist on type '{ id: string; title: string; status: string | null; projectId: string; description: string | null; createdAt: Date | null; updatedAt: Date | null; templateType: string | null; }'.
+server/routes/google-export.ts(110,9): error TS2353: Object literal may only specify known properties, and 'drive_file_id' does not exist in type 'Partial<{ title: string; projectId: string; status?: string | null | undefined; clientId?: string | null | undefined; defineContent?: { lifeLens?: string | undefined; rawBehavior?: string | undefined; channelVibes?: Record<...> | undefined; } | null | undefined; shiftContent?: { ...; } | ... 1 more ... | undefined; ...'.
+server/routes/google-export.ts(160,37): error TS18048: 'req.user' is possibly 'undefined'.
+server/services/google/drive.ts(32,9): error TS2353: Object literal may only specify known properties, and 'q' does not exist in type 'BodyResponseCallback<Schema$FileList>'.
+server/services/google/drive.ts(36,26): error TS2339: Property 'data' does not exist on type '{ data: { files: never[]; }; } | (Promise<{ data: { files: never[]; }; }> & void) | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<{ data: { files: never[]; }; }> & void'.
+server/services/google/drive.ts(36,55): error TS2339: Property 'data' does not exist on type '{ data: { files: never[]; }; } | (Promise<{ data: { files: never[]; }; }> & void) | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<{ data: { files: never[]; }; }> & void'.
+server/services/google/drive.ts(38,31): error TS2339: Property 'data' does not exist on type '{ data: { files: never[]; }; } | (Promise<{ data: { files: never[]; }; }> & void) | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<{ data: { files: never[]; }; }> & void'.
+server/services/google/drive.ts(44,9): error TS2353: Object literal may only specify known properties, and 'requestBody' does not exist in type 'BodyResponseCallback<Schema$File>'.
+server/services/google/drive.ts(51,29): error TS2339: Property 'data' does not exist on type '{ data: { id: string; webViewLink: string; }; } | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (Promise<{ data: { id: string; webViewLink: string; }; }> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<GaxiosResponseWithHTTP2<Readable>> & void'.
+server/services/google/drive.ts(65,9): error TS2353: Object literal may only specify known properties, and 'requestBody' does not exist in type 'BodyResponseCallback<Schema$File>'.
+server/services/google/drive.ts(74,26): error TS2339: Property 'data' does not exist on type '{ data: { id: string; webViewLink: string; }; } | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (Promise<{ data: { id: string; webViewLink: string; }; }> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<GaxiosResponseWithHTTP2<Readable>> & void'.
+server/services/google/drive.ts(75,31): error TS2339: Property 'data' does not exist on type '{ data: { id: string; webViewLink: string; }; } | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (Promise<{ data: { id: string; webViewLink: string; }; }> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<GaxiosResponseWithHTTP2<Readable>> & void'.
+server/services/google/drive.ts(90,9): error TS2353: Object literal may only specify known properties, and 'fileId' does not exist in type 'BodyResponseCallback<Schema$File>'.
+server/services/google/drive.ts(94,23): error TS2339: Property 'data' does not exist on type '{ data: { id: any; name: string; webViewLink: string; exportLinks: {}; }; } | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (Promise<{ ...; }> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<GaxiosResponseWithHTTP2<Readable>> & void'.
+server/services/google/slides.ts(64,9): error TS2353: Object literal may only specify known properties, and 'requestBody' does not exist in type 'BodyResponseCallback<Schema$Presentation>'.
+server/services/google/slides.ts(69,43): error TS2339: Property 'data' does not exist on type '{ data: { presentationId: string; title: any; }; } | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (Promise<{ data: { presentationId: string; title: any; }; }> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<GaxiosResponseWithHTTP2<Readable>> & void'.
+server/services/google/slides.ts(75,9): error TS2353: Object literal may only specify known properties, and 'fileId' does not exist in type 'BodyResponseCallback<Schema$File>'.
+server/services/google/slides.ts(88,11): error TS2353: Object literal may only specify known properties, and 'presentationId' does not exist in type 'BodyResponseCallback<Schema$Presentation>'.
+server/services/google/slides.ts(91,49): error TS2339: Property 'data' does not exist on type '{ data: { presentationId: any; slides: { objectId: string; }[]; }; } | (Promise<GaxiosResponseWithHTTP2<Readable>> & void) | (Promise<{ data: { presentationId: any; slides: { ...; }[]; }; }> & void) | (GaxiosResponseWithHTTP2<...> & { ...; })'.
+  Property 'data' does not exist on type 'Promise<GaxiosResponseWithHTTP2<Readable>> & void'.
+server/services/google/slides.ts(220,11): error TS2353: Object literal may only specify known properties, and 'presentationId' does not exist in type 'BodyResponseCallback<Schema$BatchUpdatePresentationResponse>'.
+server/workers/analysis/pipeline.ts(90,7): error TS2322: Type 'string' is not assignable to type '"google" | "openai" | "mock"'.

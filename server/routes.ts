@@ -17,7 +17,7 @@ import { ChromeExtensionService } from "./services/chromeExtensionService";
 import { FixedBrightDataService } from "./services/fixedBrightDataService";
 import { LiveBrightDataService } from "./services/liveBrightDataService";
 import { insertContentRadarSchema } from "@shared/supabase-schema";
-import { requireAuth, AuthedRequest } from "./middleware/auth";
+import { requireAuth, AuthedRequest } from "./middleware/supabase-auth";
 import { validateBody, ValidatedRequest } from "./middleware/validate";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";

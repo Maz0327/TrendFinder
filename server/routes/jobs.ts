@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, AuthedRequest } from "../middleware/supabase-auth";
 import { z } from "zod";
 import { validateBody, ValidatedRequest } from "../middleware/validate";
 import { dbQueue } from "../jobs/dbQueue";

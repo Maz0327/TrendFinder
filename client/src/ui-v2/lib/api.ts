@@ -8,7 +8,7 @@ const API_BASE =
   "/api";
 
 export const IS_MOCK_MODE =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_UIV2_MOCK === "1") || false;
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_MOCK_AUTH === "1") || false;
 
 function getToken(): string | null {
   try { 

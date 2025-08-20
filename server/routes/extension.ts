@@ -2,7 +2,7 @@ import { Router } from "express";
 import crypto from "crypto";
 import { z } from "zod";
 import { signExtensionAccess, signExtensionRefresh, verifyExtensionToken } from "../services/extension/tokens";
-import { requireAuth } from "../middleware/auth"; // your existing middleware that adds req.user
+import { requireAuth } from "../middleware/supabase-auth"; // your existing middleware that adds req.user
 import { storage } from "../storage";
 
 const r = Router();

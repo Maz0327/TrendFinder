@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAuth, AuthedRequest } from '../middleware/auth';
+import { requireAuth, AuthedRequest } from '../middleware/supabase-auth';
 import { supabaseAdmin } from '../lib/supabaseAdmin';
 import { recordBriefAsset } from '../storage';
 

@@ -1,8 +1,8 @@
 import { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { mapProject } from "../lib/mappers";
-import { requireAuth } from "../middleware/auth";
-import type { AuthedRequest } from "../middleware/auth";
+import { requireAuth } from "../middleware/supabase-auth";
+import type { AuthedRequest } from "../middleware/supabase-auth";
 
 export function registerProjectsRoutes(app: Express) {
   

@@ -4,7 +4,7 @@ import { supabaseAdmin } from "../lib/supabaseAdmin";
 import { getMediaProvider } from "./analysis";
 import { storage } from "../storage";
 import { toTags } from "./analysisTagMap";
-import type { AuthedRequest } from "../middleware/auth";
+import type { AuthedRequest } from "../middleware/supabase-auth";
 import multer from "multer";
 import { nanoid } from "nanoid";
 

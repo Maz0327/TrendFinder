@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, AuthedRequest } from "../middleware/supabase-auth";
 import { storage } from "../storage";
 import { GoogleSlidesService } from "../services/google/slides";
 import { z } from "zod";
