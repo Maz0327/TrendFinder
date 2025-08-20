@@ -1,193 +1,131 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Clock, TrendingUp } from 'lucide-react';
-import { TruthTabs } from '../components/truth/TruthTabs';
-import { TruthResultCard } from '../components/truth/TruthResultCard';
-import { listTruthChecks } from '../services/truth';
-import { Link, useLocation } from 'wouter';
+import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { extractSource, analyzeText, analyzeVisual, type TruthCheck } from "../services/truth";
+import { useProjectContext } from "../app/providers";
+
+type Tab = "url" | "text" | "visual";
 
 export function TruthLabPage() {
-  const [, navigate] = useLocation();
-  const [recentChecks, setRecentChecks] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { currentProjectId } = useProjectContext();
+  const [tab, setTab] = useState<Tab>("url");
+  const [url, setUrl] = useState("");
+  const [text, setText] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [check, setCheck] = useState<TruthCheck | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRecentChecks();
-  }, []);
-
-  const loadRecentChecks = async () => {
-    try {
-      const result = await listTruthChecks({ page: 1, pageSize: 6 }) as any;
-      setRecentChecks(result.data || []);
-    } catch (error) {
-      console.error('Failed to load recent checks:', error);
-    } finally {
-      setIsLoading(false);
+  const mExtract = useMutation({
+    mutationFn: async () => {
+      setError(null);
+      const body: any = { projectId: currentProjectId || undefined };
+      if (tab === "url") body.url = url;
+      if (tab === "text") body.text = text;
+      if (tab === "visual") body.imagePath = imageUrl;
+      const resp = await extractSource(body);
+      setCheck(resp.check);
+      return resp;
     }
-  };
+  });
 
-  const handleAnalysisStart = (result: any) => {
-    console.log('Analysis started:', result);
-    // Refresh the recent checks list
-    loadRecentChecks();
-  };
+  const mText = useMutation({
+    mutationFn: async (quick: boolean) => {
+      if (!check?.id) throw new Error("no check");
+      const resp = await analyzeText(check.id, { quick });
+      setCheck(resp.check);
+      return resp;
+    }
+  });
+
+  const mVisual = useMutation({
+    mutationFn: async (quick: boolean) => {
+      if (!check?.id) throw new Error("no check");
+      const resp = await analyzeVisual(check.id, { quick });
+      setCheck(resp.check);
+      return resp;
+    }
+  });
 
   return (
-    <div className="min-h-screen frost-subtle">
-      {/* Header */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="frost-subtle p-2 rounded-lg">
-              <Search className="w-6 h-6 text-blue-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Truth Lab
-            </h1>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Analyze URLs, text content, and images for truth and credibility verification
-          </p>
-        </div>
+    <div className="p-6 max-w-5xl mx-auto">
+      <h1 className="text-2xl font-semibold mb-4">Truth Lab</h1>
+
+      <div className="flex gap-2 mb-4">
+        <button className={`px-3 py-2 rounded ${tab==='url'?'bg-white/20':'bg-white/10'}`} onClick={()=>setTab("url")}>URL Extract</button>
+        <button className={`px-3 py-2 rounded ${tab==='text'?'bg-white/20':'bg-white/10'}`} onClick={()=>setTab("text")}>Text Analysis</button>
+        <button className={`px-3 py-2 rounded ${tab==='visual'?'bg-white/20':'bg-white/10'}`} onClick={()=>setTab("visual")}>Visual Check</button>
       </div>
 
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Analysis Panel */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Start New Analysis
-              </h2>
-              <TruthTabs onAnalysisStart={handleAnalysisStart} />
-            </div>
-
-            {/* Quick Stats */}
-            <div className="frost-card p-6">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                Analysis Insights
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="frost-subtle p-2 rounded-lg">
-                    <Clock className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Average Analysis Time
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      ~30 seconds per check
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <div className="frost-subtle p-2 rounded-lg">
-                    <TrendingUp className="w-4 h-4 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      Accuracy Rate
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      95%+ verification accuracy
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+      {tab === "url" && (
+        <div className="glass-card p-4">
+          <label className="block text-sm mb-2">Source URL</label>
+          <input className="w-full p-2 rounded bg-white/5 border border-white/10" placeholder="https://example.com/post" value={url} onChange={e=>setUrl(e.target.value)} />
+          <div className="mt-3 flex gap-2">
+            <button className="px-3 py-2 rounded bg-blue-600" disabled={mExtract.isPending} onClick={()=>mExtract.mutate()}>
+              {mExtract.isPending? "Extracting…" : "Extract"}
+            </button>
           </div>
+        </div>
+      )}
 
-          {/* Recent Analyses */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Recent Analyses
-              </h2>
-              <Link 
-                href="/truth-lab/history"
-                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
-                data-testid="view-all-analyses"
-              >
-                View All →
-              </Link>
-            </div>
+      {tab === "text" && (
+        <div className="glass-card p-4">
+          <label className="block text-sm mb-2">Paste text</label>
+          <textarea className="w-full p-2 h-40 rounded bg-white/5 border border-white/10" value={text} onChange={e=>setText(e.target.value)} />
+          <div className="mt-3 flex gap-2">
+            <button className="px-3 py-2 rounded bg-blue-600" disabled={mExtract.isPending} onClick={()=>mExtract.mutate()}>
+              {mExtract.isPending? "Save Text" : "Save Text"}
+            </button>
+          </div>
+        </div>
+      )}
 
-            {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="frost-card p-4 animate-pulse">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-lg" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4" />
-                        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/2" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : recentChecks.length > 0 ? (
-              <div className="space-y-4">
-                {recentChecks.map((check: any) => (
-                  <TruthResultCard
-                    key={check.id}
-                    truthCheck={check}
-                    onClick={() => {
-                      // Navigate to detail page using wouter
-                      navigate(`/truth-lab/${check.id}`);
-                    }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="frost-card p-8 text-center">
-                <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  No Analyses Yet
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  Start your first truth analysis using the panel on the left.
-                </p>
-              </div>
+      {tab === "visual" && (
+        <div className="glass-card p-4">
+          <label className="block text-sm mb-2">Image URL</label>
+          <input className="w-full p-2 rounded bg-white/5 border border-white/10" placeholder="https://..." value={imageUrl} onChange={e=>setImageUrl(e.target.value)} />
+          <div className="mt-3 flex gap-2">
+            <button className="px-3 py-2 rounded bg-blue-600" disabled={mExtract.isPending} onClick={()=>mExtract.mutate()}>
+              {mExtract.isPending? "Save" : "Save"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && <div className="mt-4 text-red-400">{error}</div>}
+
+      {check && (
+        <div className="mt-6 space-y-4">
+          <div className="glass-card p-4">
+            <h2 className="font-semibold mb-2">Extracted</h2>
+            {check.extracted_text ? <p className="text-sm whitespace-pre-wrap">{check.extracted_text.slice(0, 1200)}</p> : <p className="text-sm opacity-70">No extracted text</p>}
+            {Array.isArray(check.extracted_images) && check.extracted_images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-2">{check.extracted_images.slice(0,6).map((src,i)=>(<img key={i} src={src} className="rounded border border-white/10" />))}</div>
             )}
+          </div>
 
-            {/* Quick Actions */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Quick Actions
-              </h3>
-              <div className="grid grid-cols-1 gap-2">
-                <Link
-                  href="/projects"
-                  className="frost-card hover:frost-strong p-3 text-sm transition-all"
-                  data-testid="projects-link"
-                >
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    Analyze Project Files
-                  </span>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Run truth checks on uploaded captures
-                  </p>
-                </Link>
-                
-                <Link
-                  href="/chrome-extension"
-                  className="frost-card hover:frost-strong p-3 text-sm transition-all"
-                  data-testid="extension-link"
-                >
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    Browser Extension
-                  </span>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Install for instant fact-checking
-                  </p>
-                </Link>
-              </div>
+          <div className="glass-card p-4">
+            <h2 className="font-semibold mb-2">Text Analysis</h2>
+            <div className="flex gap-2 mb-3">
+              <button className="px-3 py-2 rounded bg-white/10" disabled={mText.isPending} onClick={()=>mText.mutate(true)}>{mText.isPending ? "Running…" : "Quick"}</button>
+              <button className="px-3 py-2 rounded bg-white/10" disabled={mText.isPending} onClick={()=>mText.mutate(false)}>{mText.isPending ? "Running…" : "Deep"}</button>
             </div>
+            <pre className="text-xs bg-black/30 p-3 rounded overflow-auto">{JSON.stringify({
+              result_truth: check.result_truth,
+              result_strategic: check.result_strategic,
+              result_cohorts: check.result_cohorts
+            }, null, 2)}</pre>
+          </div>
+
+          <div className="glass-card p-4">
+            <h2 className="font-semibold mb-2">Visual Check</h2>
+            <div className="flex gap-2 mb-3">
+              <button className="px-3 py-2 rounded bg-white/10" disabled={mVisual.isPending} onClick={()=>mVisual.mutate(true)}>{mVisual.isPending ? "Running…" : "Quick"}</button>
+              <button className="px-3 py-2 rounded bg-white/10" disabled={mVisual.isPending} onClick={()=>mVisual.mutate(false)}>{mVisual.isPending ? "Running…" : "Deep"}</button>
+            </div>
+            <pre className="text-xs bg-black/30 p-3 rounded overflow-auto">{JSON.stringify(check.result_visual, null, 2)}</pre>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
