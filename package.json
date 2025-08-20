@@ -157,9 +157,11 @@
     "tailwindcss": "^4.1.12",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "concurrently": "^9.0.1"
   },
   "overrides": {
     "brace-expansion": "^2.0.2"
-  }
+  },
+  "packageManager": "pnpm@9.12.2"
 }
