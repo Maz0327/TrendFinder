@@ -3,6 +3,8 @@ import { requireAuth } from "../middleware/supabase-auth";
 import { z } from "zod";
 import { storage } from "../storage";
 import crypto from "crypto";
+import multer from "multer";
+import { supabaseAdmin } from "../lib/supabaseAdmin";
 
 const r = Router();
 r.use(requireAuth);
@@ -115,6 +117,63 @@ r.patch("/:id/tags", async (req, res) => {
   } catch (error) {
     console.error("Error updating capture tags:", error);
     res.status(500).json({ error: "Failed to update capture tags" });
+  }
+});
+
+// --- Part 5: Multi-file upload endpoint ---
+const MAX_BYTES = parseInt(process.env.CAPTURE_MAX_UPLOAD_BYTES || String(10 * 1024 * 1024), 10);
+const MAX_FILES = parseInt(process.env.CAPTURE_MAX_BATCH || "10", 10);
+const ALLOWED = (process.env.CAPTURE_ALLOWED_MIME || [
+  "image/*", "application/pdf", "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+].join(",")).split(",");
+const memoryUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_BYTES, files: MAX_FILES } });
+function allowedType(m: string){ return ALLOWED.some(a => a.endsWith("/*") ? m.startsWith(a.slice(0,-2)) : m === a); }
+
+r.post("/upload", requireAuth, memoryUpload.array("files", MAX_FILES), async (req, res) => {
+  try {
+    const userId = (req as any).user.id as string;
+    const project_id = (req.body.project_id as string | undefined) || (req.query.projectId as string | undefined) || (req as any).projectId || null;
+    const notesArr  = Array.isArray((req.body as any)["notes[]"])  ? (req.body as any)["notes[]"]  : ((req.body as any).notes  ? ([] as string[]).concat((req.body as any).notes)  : []);
+    const titlesArr = Array.isArray((req.body as any)["titles[]"]) ? (req.body as any)["titles[]"] : ((req.body as any).title ? ([] as string[]).concat((req.body as any).title) : []);
+    const tagsArr   = Array.isArray((req.body as any)["tags[]"])   ? (req.body as any)["tags[]"]   : ((req.body as any).tags   ? ([] as string[]).concat((req.body as any).tags)   : []);
+    if (!req.files || (req.files as any[]).length === 0) return res.status(400).json({ error: "No files provided" });
+    const created:any[] = [];
+    let index = 0;
+    for (const f of req.files as Express.Multer.File[]) {
+      if (!allowedType(f.mimetype)) return res.status(415).json({ error: `Unsupported file type: ${f.mimetype}` });
+      const ts = Date.now();
+      const safe = f.originalname.replace(/\s+/g, "_");
+      const key = `captures/${userId}/${ts}_${index}_${safe}`;
+      const hash = crypto.createHash("sha256").update(f.buffer).digest("hex");
+      let uploadedPath: string | null = null;
+      if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const { error } = await supabaseAdmin.storage.from(process.env.SUPABASE_STORAGE_BUCKET || "media").upload(key, f.buffer, { contentType: f.mimetype, upsert: false });
+        if (!error) uploadedPath = key; else console.error("[captures.upload] storage upload failed:", error);
+      }
+      const tagsCsv = (tagsArr[index] || "").toString();
+      const tags = tagsCsv.split(",").map((s:string)=>s.trim()).filter(Boolean);
+      const title = titlesArr[index] || f.originalname;
+      const notes = notesArr[index] || "";
+      const rec = await storage.createCapture({
+        userId, projectId: project_id || undefined, type: "upload", title, content: notes || null, url: null, platform: null,
+        screenshotUrl: null, summary: null, tags, metadata: {}
+      } as any);
+      if (rec?.id && (uploadedPath || hash)) {
+        // Update file_* fields via service-role (bypasses RLS safely)
+        const { error: upErr } = await supabaseAdmin.from("captures").update({
+          file_path: uploadedPath, file_type: f.mimetype, file_size: f.size, content_hash: hash, notes
+        }).eq("id", rec.id);
+        if (upErr) console.error("[captures.upload] update file meta failed:", upErr);
+      }
+      created.push(rec);
+      index++;
+    }
+    return res.json({ ok: true, created });
+  } catch (err) {
+    console.error("[captures.upload] error:", err);
+    return res.status(500).json({ error: "Upload failed" });
   }
 });
 

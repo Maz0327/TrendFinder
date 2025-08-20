@@ -3,7 +3,7 @@ import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { FileDrop } from './FileDrop';
 import { FileRow } from './FileRow';
 import { cn } from '@/lib/utils';
-import { uploadCapture } from '../../services/captures';
+import { uploadCaptures } from '../../services/captures';
 
 interface FileWithMetadata {
   file: File;
