@@ -48,6 +48,7 @@ import googleExportsRouter from "./routes/google-exports";
 import { setupSettingsRoutes } from "./routes/settings";
 import { setupAnnotationsRoutes } from "./routes/annotations";
 import { setupAnalyticsRoutes } from "./routes/analytics";
+import { setupDailyRoutes } from "./routes/daily";
 import searchRouter from "./routes/search";
 import captureAnalysisRouter from "./routes/capture-analysis";
 import adminAnalysisRouter from "./routes/admin-analysis";
@@ -425,6 +426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register new routes for Lovable UI support
   setupSettingsRoutes(app);
   setupAnnotationsRoutes(app);
+  setupDailyRoutes(app);
   
   // Register project and brief routes
   // Legacy route registration - now handled by new API routes above

@@ -14,6 +14,7 @@ import { productionMonitor } from "./monitoring/productionMonitor";
 import { env } from "./lib/env";
 import { corsMiddleware } from "./lib/cors";
 import { publicLimiter, authLimiter, heavyLimiter } from "./middleware/rateLimit";
+import { projectScope } from "./middleware/project-scope";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -59,6 +60,9 @@ app.use(helmet());
 
 // Strict CORS from env - only for API routes
 app.use("/api", corsMiddleware);
+
+// Project scoping middleware
+app.use("/api", projectScope);
 
 // Global rate limits
 app.use("/api", publicLimiter);

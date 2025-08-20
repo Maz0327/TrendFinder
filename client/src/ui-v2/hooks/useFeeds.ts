@@ -1,13 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listFeeds, createFeed, updateFeed, deleteFeed } from '../services/feeds';
+import { useProjectContext } from "../app/providers";
 import { UserFeed } from '../types';
 
-export function useFeeds() {
+export function useFeeds(params?: { projectId?: string; active?: boolean }) {
+  const { currentProjectId } = useProjectContext();
+  const withScope = { ...(params || {}), projectId: (params?.projectId ?? currentProjectId) || undefined };
   const queryClient = useQueryClient();
 
   const { data: feeds = [], isLoading, error } = useQuery({
-    queryKey: ['feeds'],
-    queryFn: () => listFeeds(),
+    queryKey: ['feeds', withScope],
+    queryFn: () => listFeeds(withScope),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 

@@ -10,6 +10,11 @@ const API_BASE =
 export const IS_MOCK_MODE =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_MOCK_AUTH === "1") || false;
 
+let __scopedProjectId: string | null = null;
+export function setScopedProjectId(id: string | null) {
+  __scopedProjectId = id ?? null;
+}
+
 function getToken(): string | null {
   try { 
     // For development, provide a mock token to bypass authentication
@@ -33,6 +38,10 @@ async function request<T>(method: HttpMethod, path: string, body?: Json | FormDa
   const h = new Headers(headers || {});
   const token = getToken();
   if (token) h.set("Authorization", `Bearer ${token}`);
+
+  // NEW: project scoping header
+  if (__scopedProjectId) h.set("X-Project-ID", __scopedProjectId);
+
   const init: RequestInit = { method, headers: h };
 
   if (body instanceof FormData) {

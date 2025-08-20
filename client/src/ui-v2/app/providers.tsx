@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, createContext, useContext, useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { IS_MOCK_MODE } from "../lib/api";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { IS_MOCK_MODE, setScopedProjectId } from "../lib/api";
 import { useAuth, AuthProvider } from "../hooks/useAuth";
 
 const qc = new QueryClient({
@@ -25,6 +25,16 @@ export function useProjectContext() {
 
 function ProjectProvider({ children }: { children: ReactNode }) {
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setScopedProjectId(currentProjectId);
+    // invalidate project-scoped queries
+    // (use broad keys; they're already grouped by params)
+    qc.invalidateQueries({ queryKey: ["captures"] });
+    qc.invalidateQueries({ queryKey: ["moments"] });
+    qc.invalidateQueries({ queryKey: ["briefs"] });
+    qc.invalidateQueries({ queryKey: ["feeds"] });
+  }, [currentProjectId]);
 
   return (
     <ProjectContext.Provider value={{ currentProjectId, setCurrentProjectId }}>

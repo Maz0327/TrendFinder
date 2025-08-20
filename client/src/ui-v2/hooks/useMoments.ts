@@ -1,13 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { momentsService, MomentsListParams } from '../services/moments';
+import { useProjectContext } from "../app/providers";
 import { Moment } from '../types';
 
-export function useMoments(params: MomentsListParams) {
+export function useMoments(params?: MomentsListParams) {
+  const { currentProjectId } = useProjectContext();
+  const withScope = { ...(params || {}), projectId: (params?.projectId ?? currentProjectId) || undefined };
   const queryClient = useQueryClient();
 
   const { data: moments = [], isLoading, error } = useQuery({
-    queryKey: ['moments', params],
-    queryFn: () => momentsService.list(params),
+    queryKey: ['moments', withScope],
+    queryFn: () => momentsService.list(withScope),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
