@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { Pool } from "pg";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 // Conditional imports moved to where they're used
 import { debugLogger, errorHandler } from "./services/debug-logger";
@@ -10,9 +11,9 @@ import { requestLogger, errorLogger } from "./middleware/logging";
 import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
 import { extensionSecurity } from "./security/chromeExtensionSecurity";
 import { productionMonitor } from "./monitoring/productionMonitor";
-import { securityMiddleware } from "./lib/security";
+import { env } from "./lib/env";
 import { corsMiddleware } from "./lib/cors";
-import cors from "cors";
+import { publicLimiter, authLimiter, heavyLimiter } from "./middleware/rateLimit";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -53,11 +54,15 @@ const app = express();
 // Trust proxy for Replit deployment
 app.set("trust proxy", 1);
 
-// Security headers
-app.use(securityMiddleware);
+// Security middleware
+app.use(helmet());
 
-// Enhanced CORS with environment-driven origins
-app.use(corsMiddleware);
+// Strict CORS from env - only for API routes
+app.use("/api", corsMiddleware);
+
+// Global rate limits
+app.use("/api", publicLimiter);
+app.use("/api/auth", authLimiter);
 
 // Logging and monitoring middleware
 app.use(requestLogger);
@@ -73,54 +78,10 @@ app.use(
   ]),
 );
 
-// Enhanced rate limiting
-import {
-  publicLimiter,
-  heavyLimiter,
-  authLimiter,
-} from "./middleware/rateLimit";
-app.use("/api/", publicLimiter); // Apply to all API routes
-app.use("/api/auth/", authLimiter); // Stricter for auth routes
-app.use("/api/analysis/", heavyLimiter); // Stricter for heavy operations
-app.use("/api/captures/upload", heavyLimiter); // Upload rate limiting
-
-// Body size limits
+// Body size limits  
 const JSON_LIMIT = process.env.JSON_LIMIT || "1mb";
 app.use(express.json({ limit: JSON_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: JSON_LIMIT }));
-
-// Enhanced CORS configuration for Replit/Bolt origins
-
-const allow = [
-  process.env.VITE_SITE_URL, // e.g., https://workspace.XXX.repl.co
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "https://localhost:5173",
-  "https://127.0.0.1:5173",
-];
-
-// Global CORS for API routes
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-      if (allow.some((a) => a && origin.startsWith(a))) return cb(null, true);
-      return cb(null, false);
-    },
-    credentials: true,
-  }),
-);
-
-// Additional CORS for Chrome Extension
-app.use(
-  "/api/extension/",
-  cors({
-    origin: ["chrome-extension://*", "moz-extension://*"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-extension-token"],
-  }),
-);
 
 // Chrome Extension Security
 app.use("/api/extension/", extensionSecurity.validateExtensionOrigin);
@@ -128,10 +89,6 @@ app.use("/api/extension/", extensionSecurity.extensionRateLimit);
 app.use("/api/extension/", extensionSecurity.authenticateExtension);
 app.use("/api/extension/", extensionSecurity.validateRequestSize);
 app.use("/api/extension/", extensionSecurity.setExtensionCSP);
-
-// Increase payload limits for visual analysis with base64 images
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 
 // PostgreSQL-backed session configuration
 app.use(
@@ -153,51 +110,7 @@ app.use(
   }),
 );
 
-// Enhanced CORS headers for Chrome extension and credentials
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Credentials", "true");
-  const origin = req.headers.origin;
 
-  // Allow Chrome extension origins
-  if (
-    origin &&
-    (origin.startsWith("chrome-extension://") ||
-      origin.startsWith("moz-extension://"))
-  ) {
-    res.header("Access-Control-Allow-Origin", origin);
-  } else {
-    // Standard CORS for web clients
-    const allowedOrigins = [
-      "http://localhost:5173", // Frontend dev server
-      "http://127.0.0.1:5173",
-      process.env.REPLIT_DEV_DOMAIN
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : null,
-      process.env.REPL_SLUG && process.env.REPL_OWNER
-        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-        : null,
-    ].filter(Boolean);
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      res.header(
-        "Access-Control-Allow-Origin",
-        origin || "http://localhost:5173",
-      );
-    }
-  }
-
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Ext-Token",
-  );
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-
-  next();
-});
 
 // Process error handlers
 process.on("uncaughtException", (error) => {

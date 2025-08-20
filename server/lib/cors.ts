@@ -1,56 +1,35 @@
 import cors from 'cors';
+import { env } from './env';
 
-const getAllowedOrigins = (): string[] => {
-  const originsEnv = process.env.ALLOWED_ORIGINS;
-  if (originsEnv) {
-    return originsEnv.split(',').map(origin => origin.trim());
+function computeAllowedOrigins(): string[] {
+  const list: string[] = [];
+  if (env.ALLOWED_ORIGINS) {
+    for (const raw of env.ALLOWED_ORIGINS.split(',')) {
+      const o = raw.trim();
+      if (o) list.push(o);
+    }
   }
+  if (env.VITE_SITE_URL) list.push(env.VITE_SITE_URL);
+  if (env.CHROME_EXTENSION_ID) list.push(`chrome-extension://${env.CHROME_EXTENSION_ID}`);
 
-  // Default allowed origins for development and production
-  const defaults = [
-    'http://localhost:5000',
-    'http://localhost:3000',
-    'http://localhost:5173',
-  ];
-
-  // Add Replit domains if in Replit environment
-  if (process.env.REPLIT_DOMAINS) {
-    const replitDomains = process.env.REPLIT_DOMAINS.split(',').map(domain => `https://${domain.trim()}`);
-    defaults.push(...replitDomains);
+  // Local dev only
+  if (env.NODE_ENV !== 'production') {
+    list.push('http://localhost:5173','http://127.0.0.1:5173','http://localhost:5000');
   }
+  return Array.from(new Set(list));
+}
 
-  // Add Chrome extension origin if configured
-  if (process.env.CHROME_EXTENSION_ID) {
-    defaults.push(`chrome-extension://${process.env.CHROME_EXTENSION_ID}`);
-  }
-
-  return defaults;
-};
+const allowedOrigins = computeAllowedOrigins();
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl requests, or same-origin)
-    if (!origin) return callback(null, true);
-    
-    // Always allow Vite dev server and local development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    if (!origin) return callback(null, true); // curl/same-origin
+    if (allowedOrigins.some(o => origin === o || (o.endsWith('*') && origin.startsWith(o.slice(0,-1))))) {
       return callback(null, true);
     }
-    
-    const allowedOrigins = getAllowedOrigins();
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      // In production mode, be more permissive for our own assets
-      if (process.env.NODE_ENV === 'production') {
-        // Allow all origins for now to fix the issue
-        return callback(null, true);
-      }
-      callback(new Error('Not allowed by CORS'));
-    }
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Project-ID']
 });
