@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm run lint && npm run build",
     "zip:extension": "bash scripts/zip-extension.sh",
-    "dev:server": "VITE_UIV2_MOCK=0 NODE_ENV=production tsx server/index.ts",
+    "dev:server": "VITE_UIV2_MOCK=0 NODE_ENV=production npx tsx server/index.ts",
     "dev:client": "VITE_UIV2_MOCK=0 vite"
   },
   "dependencies": {
@@ -72,6 +72,7 @@
     "@types/supertest": "^6.0.3",
     "@vitest/ui": "^3.2.4",
     "archiver": "^7.0.1",
+    "autoprefixer": "^10.4.21",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
