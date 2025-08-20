@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExternalLink, Type, Image, Upload } from 'lucide-react';
-import { cn } from '../../lib/cn';
+import { cn } from '@/lib/utils';
 import { createTruthCheck } from '../../services/truth';
 
 interface TruthTabsProps {

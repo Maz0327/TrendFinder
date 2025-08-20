@@ -1,0 +1,9 @@
+postcss.config.cjs (first 200 chars):
+module.exports = { plugins: { "@tailwindcss/postcss": {} } };
+
+postcss.config.js exists? -> no
+
+Tailwind packages (npm ls):
+rest-express@1.0.0 /home/runner/workspace
+└── (empty)
+

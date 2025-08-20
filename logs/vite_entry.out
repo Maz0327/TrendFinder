@@ -1,0 +1,16 @@
+vite.config.ts (first 200 chars):
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import fs from "fs";
+
+const hasClient = fs.existsSync(path.resolve(__dirname, "client"));
+const 
+index.html script tag:
+12:    <script type="module" src="/src/main.tsx"></script>
+
+main.tsx (first 120 chars):
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import "./index.css";
+import "./ui-v2/index.css"
