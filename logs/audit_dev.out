@@ -1,0 +1,6 @@
+
+> rest-express@1.0.0 dev /home/runner/workspace
+> concurrently -k -n server,client -c cyan,magenta "npm:dev:server" "npm:dev:client"
+
+sh: 1: concurrently: not found
+ ELIFECYCLE  Command failed.
