@@ -1,0 +1,77 @@
+
+> rest-express@1.0.0 typecheck
+> tsc --noEmit
+
+client/src/__tests__/App.test.tsx(3,17): error TS2307: Cannot find module '../App' or its corresponding type declarations.
+client/src/components/auth/AuthDebug.tsx(4,25): error TS2307: Cannot find module '@/context/AuthContext' or its corresponding type declarations.
+client/src/components/auth/RequireAuth.tsx(3,25): error TS2307: Cannot find module '@/context/AuthContext' or its corresponding type declarations.
+client/src/components/layout/ProjectSwitcher.tsx(3,35): error TS2307: Cannot find module '@/context/ProjectContext' or its corresponding type declarations.
+client/src/components/layout/ProjectSwitcher.tsx(4,29): error TS2307: Cannot find module '@/hooks/useProjects' or its corresponding type declarations.
+client/src/hooks/use-auth.tsx(1,55): error TS2307: Cannot find module '../contexts/SupabaseAuthContext' or its corresponding type declarations.
+client/src/hooks/use-realtime.tsx(2,33): error TS2307: Cannot find module '../services/supabase-realtime' or its corresponding type declarations.
+client/src/hooks/use-realtime.tsx(3,33): error TS2307: Cannot find module '../contexts/SupabaseAuthContext' or its corresponding type declarations.
+client/src/hooks/use-realtime.tsx(15,8): error TS7006: Parameter 'capture' implicitly has an 'any' type.
+client/src/hooks/use-realtime.tsx(27,8): error TS7006: Parameter 'capture' implicitly has an 'any' type.
+client/src/hooks/use-realtime.tsx(32,8): error TS7006: Parameter 'id' implicitly has an 'any' type.
+client/src/hooks/use-realtime.tsx(50,8): error TS7006: Parameter 'moment' implicitly has an 'any' type.
+client/src/hooks/use-realtime.tsx(77,8): error TS7006: Parameter 'brief' implicitly has an 'any' type.
+client/src/hooks/use-storage.tsx(2,32): error TS2307: Cannot find module '../services/supabase-storage' or its corresponding type declarations.
+client/src/hooks/use-storage.tsx(3,33): error TS2307: Cannot find module '../contexts/SupabaseAuthContext' or its corresponding type declarations.
+client/src/hooks/use-storage.tsx(138,30): error TS7006: Parameter 'r' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/CanvasToolbar.tsx(49,7): error TS2322: Type 'number' is not assignable to type 'string'.
+client/src/ui-v2/brief-canvas/CanvasToolbar.tsx(58,7): error TS2353: Object literal may only specify known properties, and 'w' does not exist in type 'Omit<Block, "id">'.
+client/src/ui-v2/brief-canvas/CanvasToolbar.tsx(70,7): error TS2353: Object literal may only specify known properties, and 'w' does not exist in type 'Omit<Block, "id">'.
+client/src/ui-v2/brief-canvas/SlideList.tsx(86,21): error TS2322: Type '{ children: (false | Element)[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/brief-canvas/SlideList.tsx(99,25): error TS2322: Type '{ children: string; onClick: () => void; icon: Element; destructive: true; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuItemProps'.
+  Property 'destructive' does not exist on type 'IntrinsicAttributes & PopoverMenuItemProps'.
+client/src/ui-v2/brief-canvas/SlideThumb.tsx(34,7): error TS2322: Type '((e: DragEvent<Element>) => void) | undefined' is not assignable to type '((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void) | undefined'.
+  Type '(e: DragEvent<Element>) => void' is not assignable to type '(event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void'.
+    Types of parameters 'e' and 'event' are incompatible.
+      Type 'MouseEvent | TouchEvent | PointerEvent' is not assignable to type 'DragEvent<Element>'.
+        Type 'MouseEvent' is missing the following properties from type 'DragEvent<Element>': dataTransfer, nativeEvent, isDefaultPrevented, isPropagationStopped, persist
+client/src/ui-v2/brief-canvas/SlideViewport.tsx(59,15): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/SlideViewport.tsx(60,12): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/SlideViewport.tsx(63,46): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/SlideViewport.tsx(143,37): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/keyboard.ts(83,78): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/keyboard.ts(101,75): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(166,47): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(180,60): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(195,51): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(197,52): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(210,46): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(224,7): error TS2353: Object literal may only specify known properties, and 'captureRefs' does not exist in type 'Slide'.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(224,30): error TS2339: Property 'captureRefs' does not exist on type 'Partial<Slide>'.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(230,18): error TS2339: Property 'slideCount' does not exist on type '{ slides: any[]; id: string; project_id?: string | null | undefined; title: string; status?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }'.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(257,18): error TS2339: Property 'slideCount' does not exist on type '{ slides: any[]; id: string; project_id?: string | null | undefined; title: string; status?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }'.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(285,39): error TS7006: Parameter 'block' implicitly has an 'any' type.
+client/src/ui-v2/brief-canvas/useCanvasStore.ts(293,18): error TS2339: Property 'slideCount' does not exist on type '{ slides: any[]; id: string; project_id?: string | null | undefined; title: string; status?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }'.
+client/src/ui-v2/components/upload/UploadPanel.tsx(61,28): error TS2552: Cannot find name 'uploadCaptures'. Did you mean 'uploadCapture'?
+client/src/ui-v2/hooks/useBrief.ts(57,20): error TS2304: Cannot find name 'jobsService'.
+client/src/ui-v2/hooks/useBrief.ts(61,20): error TS2339: Property 'status' does not exist on type 'Query<any, Error, any, (string | undefined)[]>'.
+client/src/ui-v2/hooks/useBrief.ts(61,50): error TS2339: Property 'status' does not exist on type 'Query<any, Error, any, (string | undefined)[]>'.
+client/src/ui-v2/pages/BriefsListPage.tsx(160,27): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/BriefsListPage.tsx(171,29): error TS2322: Type '{ children: string; onClick: () => void; icon: Element; destructive: true; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuItemProps'.
+  Property 'destructive' does not exist on type 'IntrinsicAttributes & PopoverMenuItemProps'.
+client/src/ui-v2/pages/BriefsListPage.tsx(253,23): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/BriefsListPage.tsx(264,25): error TS2322: Type '{ children: string; onClick: () => void; icon: Element; destructive: true; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuItemProps'.
+  Property 'destructive' does not exist on type 'IntrinsicAttributes & PopoverMenuItemProps'.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(57,32): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(190,33): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(193,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(198,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(203,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(321,33): error TS2322: Type '{ children: Element[]; trigger: Element; align: string; }' is not assignable to type 'IntrinsicAttributes & PopoverMenuProps'.
+  Property 'align' does not exist on type 'IntrinsicAttributes & PopoverMenuProps'.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(324,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(329,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(334,50): error TS2554: Expected 2 arguments, but got 1.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(385,47): error TS7006: Parameter 'c' implicitly has an 'any' type.
+client/src/ui-v2/pages/CapturesInboxPage.tsx(442,43): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+client/src/ui-v2/pages/FeedsPage.tsx(19,42): error TS2339: Property 'toggleFeed' does not exist on type '{ feeds: never[] | Paginated<UserFeed>; isLoading: boolean; error: Error | null; createFeed: UseMutateAsyncFunction<UserFeed, Error, { feed_url: string; title?: string | ... 1 more ... | undefined; project_id?: string | ... 1 more ... | undefined; }, unknown>; ... 4 more ...; isDeleting: boolean; }'.
+client/src/ui-v2/pages/FeedsPage.tsx(30,11): error TS2561: Object literal may only specify known properties, but 'feedUrl' does not exist in type '{ id: string; } & Partial<UserFeed>'. Did you mean to write 'feed_url'?
+client/src/ui-v2/pages/FeedsPage.tsx(40,11): error TS2561: Object literal may only specify known properties, but 'feedUrl' does not exist in type '{ feed_url: string; title?: string | null | undefined; project_id?: string | null | undefined; }'. Did you mean to write 'feed_url'?
