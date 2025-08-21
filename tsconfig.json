@@ -3,7 +3,8 @@
     "client",
     "server",
     "shared",
-    "scripts"
+    "scripts",
+    "server/types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
@@ -28,7 +29,11 @@
     "skipLibCheck": true,
     "noEmit": true,
     "types": [
-      "vite/client"
+      "node"
+    ],
+    "typeRoots": [
+      "./server/types",
+      "./node_modules/@types"
     ],
     "baseUrl": ".",
     "paths": {

@@ -53,6 +53,7 @@ import searchRouter from "./routes/search";
 import captureAnalysisRouter from "./routes/capture-analysis";
 import adminAnalysisRouter from "./routes/admin-analysis";
 import { healthCheckEndpoint, readinessCheck } from "./middleware/healthCheck";
+import truthRouter from "./routes/truth";
 import { productionMonitor } from "./monitoring/productionMonitor";
 import briefBlocksRouter from "./routes/brief-blocks";
 import uploadsRouter from "./routes/uploads";
@@ -64,7 +65,6 @@ import extCaptureRoutes from './routes/ext-capture';
 
 // Upload + Truth Lab + Visual Check
 import { capturesUpload } from './routes/captures-upload';
-import truthRouter from './routes/truth';
 
 // Initialize AI services
 const liveBrightData = new LiveBrightDataService();
@@ -74,6 +74,7 @@ const truthFramework = new TruthAnalysisFramework();
 // Note: Extension capture schema moved inline with route handler
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.use("/api/truth", truthRouter);
   app.use(requestId);
   app.use(httpLogger);
 
