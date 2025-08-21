@@ -1,16 +1,26 @@
 
-> rest-express@1.0.0 build /home/runner/workspace
+> rest-express@1.0.0 build
 > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild server/prod-server.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
-failed to load config from /home/runner/workspace/vite.config.ts
-error during build:
-Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@vitejs/plugin-react' imported from /home/runner/workspace/vite.config.ts.timestamp-1755716705840-11d4c90e50938.mjs
-    at packageResolve (node:internal/modules/esm/resolve:873:9)
-    at moduleResolve (node:internal/modules/esm/resolve:946:18)
-    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
-    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
-    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
-    at ModuleLoader.resolve (node:internal/modules/esm/loader:574:38)
-    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:236:38)
-    at ModuleJob._link (node:internal/modules/esm/module_job:130:49)
- ELIFECYCLE  Command failed with exit code 1.
+vite v5.4.19 building for production...
+transforming...
+✓ 2138 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   1.12 kB │ gzip:   0.60 kB
+dist/assets/index-BacWsMck.css   68.87 kB │ gzip:  12.29 kB
+dist/assets/index-Cu4x-kEw.js   554.11 kB │ gzip: 164.60 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 56.46s
+
+  dist/index.js  588.7kb
+
+⚡ Done in 144ms
+
+  dist/prod-server.js  623.9kb
+
+⚡ Done in 129ms

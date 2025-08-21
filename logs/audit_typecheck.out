@@ -1,5 +1,5 @@
 
-> rest-express@1.0.0 typecheck /home/runner/workspace
+> rest-express@1.0.0 typecheck
 > tsc --noEmit
 
 client/src/__tests__/App.test.tsx(3,17): error TS2307: Cannot find module '../App' or its corresponding type declarations.
@@ -47,6 +47,7 @@ client/src/ui-v2/brief-canvas/useCanvasStore.ts(230,18): error TS2339: Property 
 client/src/ui-v2/brief-canvas/useCanvasStore.ts(257,18): error TS2339: Property 'slideCount' does not exist on type '{ slides: any[]; id: string; project_id?: string | null | undefined; title: string; status?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }'.
 client/src/ui-v2/brief-canvas/useCanvasStore.ts(285,39): error TS7006: Parameter 'block' implicitly has an 'any' type.
 client/src/ui-v2/brief-canvas/useCanvasStore.ts(293,18): error TS2339: Property 'slideCount' does not exist on type '{ slides: any[]; id: string; project_id?: string | null | undefined; title: string; status?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }'.
+client/src/ui-v2/components/truth/TruthTabs.tsx(4,10): error TS2724: '"../../services/truth"' has no exported member named 'createTruthCheck'. Did you mean 'getTruthCheck'?
 client/src/ui-v2/hooks/useBrief.ts(57,20): error TS2304: Cannot find name 'jobsService'.
 client/src/ui-v2/hooks/useBrief.ts(61,20): error TS2339: Property 'status' does not exist on type 'Query<any, Error, any, (string | undefined)[]>'.
 client/src/ui-v2/hooks/useBrief.ts(61,50): error TS2339: Property 'status' does not exist on type 'Query<any, Error, any, (string | undefined)[]>'.
@@ -241,6 +242,7 @@ server/routes/google-exports.ts(336,61): error TS2339: Property 'session' does n
 server/routes/google-exports.ts(361,39): error TS2339: Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
 server/routes/google-exports.ts(363,37): error TS2339: Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
 server/routes/google-exports.ts(365,39): error TS2339: Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/index.ts(8,10): error TS2614: Module '"./truth"' has no exported member 'registerTruthRoutes'. Did you mean to use 'import registerTruthRoutes from "./truth"' instead?
 server/routes/settings.ts(35,16): error TS2339: Property 'session' does not exist on type 'Request<{}, any, any, ParsedQs, Record<string, any>>'.
 server/routes/settings.ts(39,56): error TS2339: Property 'session' does not exist on type 'Request<{}, any, any, ParsedQs, Record<string, any>>'.
 server/routes/settings.ts(44,23): error TS2339: Property 'session' does not exist on type 'Request<{}, any, any, ParsedQs, Record<string, any>>'.
@@ -278,5 +280,3 @@ server/services/google/slides.ts(91,49): error TS2339: Property 'data' does not 
 server/services/google/slides.ts(220,11): error TS2353: Object literal may only specify known properties, and 'presentationId' does not exist in type 'BodyResponseCallback<Schema$BatchUpdatePresentationResponse>'.
 server/types/session.ts(3,16): error TS2665: Invalid module name in augmentation. Module 'express-session' resolves to an untyped module at '/home/runner/workspace/node_modules/express-session/index.js', which cannot be augmented.
 server/workers/analysis/pipeline.ts(90,7): error TS2322: Type 'string' is not assignable to type '"google" | "openai" | "mock"'.
-vite.config.ts(2,19): error TS2307: Cannot find module '@vitejs/plugin-react' or its corresponding type declarations.
- ELIFECYCLE  Command failed with exit code 2.
