@@ -166,9 +166,7 @@
     "tailwindcss": "^4.1.12",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2",
-    "vite": "^5.4.19",
-    "concurrently": "^8.2.2",
-    "esbuild": "^0.24.4"
+    "vite": "^5.4.19"
   },
   "overrides": {
     "brace-expansion": "^2.0.2"
