@@ -1,0 +1,31 @@
+{
+  "name": "rest-express",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "start": "NODE_ENV=production node dist/prod-server.js",
+    "typecheck": "tsc --noEmit",
+    "db:push": "drizzle-kit push",
+    "dev:server": "VITE_UIV2_MOCK=0 NODE_ENV=production npx tsx server/index.ts",
+    "dev:client": "VITE_UIV2_MOCK=0 vite"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "express": "^4.19.2",
+    "@supabase/supabase-js": "^2.48.0",
+    "drizzle-orm": "^0.33.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.6",
+    "typescript": "^5.5.4",
+    "tsx": "^4.19.0",
+    "concurrently": "^8.2.2",
+    "esbuild": "^0.24.4",
+    "drizzle-kit": "^0.30.6"
+  }
+}
